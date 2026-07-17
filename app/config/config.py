@@ -1,21 +1,12 @@
 from pathlib import Path
 
 APP_NAME = "Distance Calculator Pro"
+APP_VERSION = "0.1.0"
 
-VERSION = "1.0.0"
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
-ROOT = Path(__file__).resolve().parents[2]
+RESOURCE_DIR = ROOT_DIR / "app" / "resources"
 
-RESOURCE_DIR = ROOT / "app" / "resources"
+LOG_DIR = ROOT_DIR / "logs"
 
-DATABASE_DIR = ROOT / "database"
-
-CACHE_DB = DATABASE_DIR / "distance_cache.db"
-
-LOG_DIR = ROOT / "logs"
-
-DEFAULT_SAVE_INTERVAL = 20
-
-DEFAULT_THREADS = 2
-
-GOOGLE_TIMEOUT = 30000
+LOG_DIR.mkdir(exist_ok=True)
