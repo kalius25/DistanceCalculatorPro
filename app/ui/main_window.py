@@ -7,7 +7,10 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QFileDialog,
     QHBoxLayout,
+    QComboBox,
 )
+
+from app.services.excel_service import ExcelService
 
 
 class MainWindow(QMainWindow):
@@ -19,6 +22,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Distance Calculator Pro")
 
         self.resize(900, 600)
+
+        self.excel_service = ExcelService()
 
         self.build_ui()
 
@@ -32,25 +37,55 @@ class MainWindow(QMainWindow):
 
         title = QLabel("Distance Calculator Pro")
 
-        title.setStyleSheet("font-size:24px;font-weight:bold")
+        title.setStyleSheet(
+            "font-size:24px;font-weight:bold"
+        )
 
         layout.addWidget(title)
 
-        row = QHBoxLayout()
+        # ==========================
+        # File Excel
+        # ==========================
+
+        file_row = QHBoxLayout()
 
         self.file_edit = QLineEdit()
 
-        self.file_edit.setPlaceholderText("Chọn file Excel...")
+        self.file_edit.setPlaceholderText(
+            "Chọn file Excel..."
+        )
 
-        row.addWidget(self.file_edit)
+        file_row.addWidget(self.file_edit)
 
-        btn = QPushButton("Chọn File")
+        self.btn_open = QPushButton("Chọn File")
 
-        btn.clicked.connect(self.choose_file)
+        self.btn_open.clicked.connect(
+            self.choose_file
+        )
 
-        row.addWidget(btn)
+        file_row.addWidget(self.btn_open)
 
-        layout.addLayout(row)
+        layout.addLayout(file_row)
+
+        # ==========================
+        # Sheet
+        # ==========================
+
+        sheet_row = QHBoxLayout()
+
+        sheet_row.addWidget(
+            QLabel("Sheet")
+        )
+
+        self.sheet_combo = QComboBox()
+
+        sheet_row.addWidget(
+            self.sheet_combo
+        )
+
+        layout.addLayout(sheet_row)
+
+        layout.addStretch()
 
         self.status = QLabel("Sẵn sàng.")
 
@@ -60,11 +95,32 @@ class MainWindow(QMainWindow):
 
         filename, _ = QFileDialog.getOpenFileName(
             self,
-            "Chọn Excel",
+            "Chọn File Excel",
             "",
             "Excel (*.xlsx)"
         )
 
-        if filename:
+        if not filename:
+            return
 
-            self.file_edit.setText(filename)
+        self.file_edit.setText(filename)
+
+        try:
+
+            sheets = self.excel_service.open_workbook(
+                filename
+            )
+
+            self.sheet_combo.clear()
+
+            self.sheet_combo.addItems(
+                sheets
+            )
+
+            self.status.setText(
+                f"Đã mở Workbook ({len(sheets)} sheet)"
+            )
+
+        except Exception as ex:
+
+            self.status.setText(str(ex))
