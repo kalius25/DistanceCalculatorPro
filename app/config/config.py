@@ -1,12 +1,16 @@
 from pathlib import Path
 
 APP_NAME = "Distance Calculator Pro"
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.3.0"
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 
-RESOURCE_DIR = ROOT_DIR / "app" / "resources"
+APP_DIR = ROOT_DIR / "app"
+
+RESOURCE_DIR = ROOT_DIR / "resources"
 
 LOG_DIR = ROOT_DIR / "logs"
 
-LOG_DIR.mkdir(exist_ok=True)
+DOC_DIR = ROOT_DIR / "docs"
+
+TEST_DIR = ROOT_DIR / "tests"
