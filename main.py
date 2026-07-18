@@ -3,7 +3,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from app.config.config import APP_NAME
-from app.ui.main_window import MainWindow
+from app.gui.main_window import MainWindow
 from app.utils.logger import logger
 
 
