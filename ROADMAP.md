@@ -83,3 +83,36 @@ app/models/
     route_option.py
     route_result.py
 
+Release 1
+Core Foundation
+Enums
+Models
+Constants
+Exceptions
+Release 2
+Engine
+BrowserManager
+UrlBuilder
+Engine
+Parser V3
+Release 3
+Business Layer
+Provider
+Services
+Batch
+Release 4
+Tests
+Unit Test
+Regression Test
+Debug
+Release 5
+Excel
+Import
+Export
+Batch
+Release 6
+GUI
+PySide6
+Progress
+Cancel
+Log

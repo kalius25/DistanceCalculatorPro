@@ -1,9 +1,13 @@
-from enum import Enum
+"""
+Travel mode definitions.
+"""
+
+from enum import StrEnum
 
 
-class TravelMode(str, Enum):
+class TravelMode(StrEnum):
     """
-    Chế độ di chuyển.
+    Supported Google Maps travel modes.
     """
 
     DRIVING = "driving"

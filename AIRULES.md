@@ -8,3 +8,9 @@ Từ bây giờ tôi sẽ áp dụng các quy tắc:
 ✅ Không magic string
 ✅ Không API cũ
 ✅ Mỗi file đều có thể thay thế trực tiếp
+
+Mỗi release sẽ đảm bảo
+✅ Biên dịch được.
+✅ Chạy được.
+✅ Test pass.
+✅ Không còn API cũ.

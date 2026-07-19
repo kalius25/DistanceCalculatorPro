@@ -1,9 +1,19 @@
-from enum import Enum
+"""
+Route preference definitions.
+"""
+
+from enum import StrEnum
 
 
-class RoutePreference(str, Enum):
+class RoutePreference(StrEnum):
     """
-    Tùy chọn ưu tiên tuyến đường.
+    Route preference.
+
+    AUTO
+        Use Google's default behavior.
+
+    AVOID
+        Try to avoid this road type.
     """
 
     AUTO = "auto"
