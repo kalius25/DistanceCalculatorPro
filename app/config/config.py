@@ -1,34 +1,123 @@
+"""
+Global application configuration.
+
+All configurable values should be defined here.
+Do not hardcode configuration values elsewhere in the project.
+"""
+
+from __future__ import annotations
+
+from enum import StrEnum
 from pathlib import Path
 
-APP_NAME = "Distance Calculator Pro"
-APP_VERSION = "0.3.0"
 
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+class AppMode(StrEnum):
+    """Application running mode."""
 
-APP_DIR = ROOT_DIR / "app"
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
 
-RESOURCE_DIR = ROOT_DIR / "resources"
 
-ICON_DIR = RESOURCE_DIR / "icons"
+# =============================================================================
+# Application
+# =============================================================================
 
-IMAGE_DIR = RESOURCE_DIR / "images"
+APP_MODE: AppMode = AppMode.DEVELOPMENT
 
-STYLE_DIR = RESOURCE_DIR / "styles"
 
-FONT_DIR = RESOURCE_DIR / "fonts"
+# =============================================================================
+# Project Paths
+# =============================================================================
 
-TRANSLATION_DIR = RESOURCE_DIR / "translations"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-LOG_DIR = ROOT_DIR / "logs"
+LOG_DIR = PROJECT_ROOT / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-DOC_DIR = ROOT_DIR / "docs"
 
-TEST_DIR = ROOT_DIR / "tests"
+# =============================================================================
+# Browser
+# =============================================================================
 
-DATA_DIR = ROOT_DIR / "data"
+HEADLESS: bool = False
 
-CACHE_DIR = DATA_DIR / "cache"
+BROWSER_TIMEOUT: int = 30_000
 
-OUTPUT_DIR = DATA_DIR / "output"
+PAGE_LOAD_WAIT: int = 3_000
 
-TEMP_DIR = DATA_DIR / "temp"
+
+# =============================================================================
+# Google Maps
+# =============================================================================
+
+GOOGLE_LANGUAGE: str = "vi"
+
+GOOGLE_REGION: str = "VN"
+
+GOOGLE_MAPS_BASE_URL: str = "https://www.google.com/maps"
+
+GOOGLE_MAPS_DIRECTIONS_URL: str = (
+    f"{GOOGLE_MAPS_BASE_URL}/dir/?api=1"
+)
+
+GOOGLE_MAPS_SEARCH_URL: str = (
+    f"{GOOGLE_MAPS_BASE_URL}/search/"
+)
+
+
+# =============================================================================
+# Parser
+# =============================================================================
+
+PARSER_TIMEOUT: int = 15_000
+
+PARSER_MAX_ROUTES: int = 5
+
+
+# =============================================================================
+# Logging
+# =============================================================================
+
+LOG_LEVEL: str = "INFO"
+
+LOG_FILE = LOG_DIR / "app.log"
+
+SAVE_HTML_ON_ERROR: bool = True
+
+SAVE_SCREENSHOT_ON_ERROR: bool = True
+
+SAVE_LAST_URL_ON_ERROR: bool = True
+
+SAVE_PARSER_REPORT: bool = True
+
+
+# =============================================================================
+# Network
+# =============================================================================
+
+MAX_RETRY: int = 2
+
+
+__all__ = [
+    "AppMode",
+    "APP_MODE",
+    "PROJECT_ROOT",
+    "LOG_DIR",
+    "HEADLESS",
+    "BROWSER_TIMEOUT",
+    "PAGE_LOAD_WAIT",
+    "GOOGLE_LANGUAGE",
+    "GOOGLE_REGION",
+    "GOOGLE_MAPS_BASE_URL",
+    "GOOGLE_MAPS_DIRECTIONS_URL",
+    "GOOGLE_MAPS_SEARCH_URL",
+    "PARSER_TIMEOUT",
+    "PARSER_MAX_ROUTES",
+    "LOG_LEVEL",
+    "LOG_FILE",
+    "SAVE_HTML_ON_ERROR",
+    "SAVE_SCREENSHOT_ON_ERROR",
+    "SAVE_LAST_URL_ON_ERROR",
+    "SAVE_PARSER_REPORT",
+    "MAX_RETRY",
+]
