@@ -418,6 +418,47 @@ Status
 
 ✅ Freeze
 
+DDD-021. Refactor Must Have Measurable Benefit
+
+Một refactor chỉ được thực hiện khi đạt ít nhất một trong các tiêu chí:
+
+Giảm số dòng code hoặc độ phức tạp một cách rõ ràng.
+Cải thiện khả năng bảo trì (ví dụ loại bỏ lặp mã, tách trách nhiệm).
+Tăng độ ổn định hoặc khả năng kiểm thử.
+Hỗ trợ một yêu cầu đã có trong roadmap.
+
+Nếu thay đổi chỉ vì "đẹp hơn", "hiện đại hơn" hoặc "có thể dùng pattern X", thì không thực hiện.
+
+Status
+
+✅ Freeze
+
+DDD-022. Public API Stability
+
+Đối với các lớp hoặc hàm đã được sử dụng ở nhiều nơi:
+
+Không đổi tên.
+Không đổi tham số.
+Không đổi kiểu trả về.
+
+Nếu cần thay đổi:
+
+Thêm API mới.
+Giữ API cũ dưới dạng compatibility wrapper.
+Đánh dấu deprecated.
+Chỉ xóa khi toàn bộ caller đã chuyển sang API mới.
+
+Điều này phù hợp với quyết định trước đây về build_route().
+
+Status
+
+✅ Freeze
+
+
+
+
+
+
 
 Roadmap (DDD)
 Version	Trạng thái
