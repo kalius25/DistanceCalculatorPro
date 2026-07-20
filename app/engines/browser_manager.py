@@ -12,7 +12,12 @@ from playwright.sync_api import BrowserContext
 from playwright.sync_api import Page
 from playwright.sync_api import Playwright
 from playwright.sync_api import sync_playwright
+from types import TracebackType
 
+from exceptions.engine_exception import EngineException
+from exceptions.engine_exception import EngineException
+
+from app import config
 
 class BrowserManager:
     """
@@ -21,7 +26,7 @@ class BrowserManager:
 
     def __init__(
         self,
-        headless: bool = False,
+        headless: bool = config.HEADLESS,
     ) -> None:
 
         self._headless = headless
@@ -46,7 +51,7 @@ class BrowserManager:
         )
 
         self._context = self._browser.new_context(
-            locale="vi-VN"
+            locale=config.DEFAULT_LOCALE
         )
 
     # =====================================================
@@ -56,7 +61,7 @@ class BrowserManager:
     def new_page(self) -> Page:
 
         if self._context is None:
-            raise RuntimeError(
+            raise EngineException(
                 "Browser chưa được khởi động."
             )
 
@@ -84,7 +89,7 @@ class BrowserManager:
     # Context Manager
     # =====================================================
 
-    def __enter__(self):
+    def __enter__(self) -> BrowserManager:
 
         self.start()
 
@@ -92,9 +97,9 @@ class BrowserManager:
 
     def __exit__(
         self,
-        exc_type,
-        exc_val,
-        exc_tb,
-    ):
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
 
         self.close()

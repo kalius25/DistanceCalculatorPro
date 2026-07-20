@@ -23,12 +23,12 @@ _DISTANCE_PATTERN = re.compile(
 )
 
 _HOUR_PATTERN = re.compile(
-    r"(\d+)\s*(?:giờ|hr|hour|hours)",
+    r"(\d+)\s*(?:giờ|tiếng|h|hr|hrs|hour|hours)",
     re.IGNORECASE,
 )
 
 _MINUTE_PATTERN = re.compile(
-    r"(\d+)\s*(?:phút|p|min|minute|minutes)",
+    r"(\d+)\s*(?:phút|p|ph|min|mins|minute|minutes)",
     re.IGNORECASE,
 )
 
@@ -86,7 +86,7 @@ class TextConverter:
             return value * 1.609344
 
         if unit == "ft":
-            return value * 0.0003048
+            return value * 0.3048 / 1000
 
         return None
 

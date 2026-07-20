@@ -23,7 +23,7 @@ from playwright.sync_api import Locator
 from playwright.sync_api import Page
 
 from app import config
-from app.engine.google_maps_locator import GoogleMapsLocator
+from app.engines.google_maps_locator import GoogleMapsLocator
 from app.models.route_option import RouteOption
 from app.utils.text_converter import TextConverter
 
@@ -32,13 +32,26 @@ from app.utils.text_converter import TextConverter
 # =============================================================================
 
 _DISTANCE_PATTERN = re.compile(
-    r"(\d+(?:,\d+)?\s*(?:km|m))",
-    re.IGNORECASE,
+    r"""
+    (
+        \d+(?:[.,]\d+)?
+        \s*
+        (?:km|m|mi|ft)
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 _DURATION_PATTERN = re.compile(
-    r"(\d+\s*giờ(?:\s*\d+\s*p)?|\d+\s*p)",
-    re.IGNORECASE,
+    r"""
+    (
+        (?:\d+\s*(?:giờ|tiếng|h|hr|hrs|hour|hours))
+        (?:\s*\d+\s*(?:phút|p|min|mins|minute|minutes))?
+        |
+        (?:\d+\s*(?:phút|p|min|mins|minute|minutes))
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 # =============================================================================
@@ -69,6 +82,14 @@ _IGNORE_SUMMARY_KEYWORDS = (
     "thu phí",
     "chi tiết",
     "xem trước",
+    "hr",
+    "hour",
+    "hours",
+    "min",
+    "minute",
+    "minutes",
+    "hrs",
+    "mins",
 )
 
 # =============================================================================
@@ -102,10 +123,10 @@ def _extract_duration(text: str) -> str | None:
 
     match = _DURATION_PATTERN.search(text)
 
-    if not match:
+    if match is None:
         return None
-
-    return match.group(1)
+    
+    return match.group(1).strip()
 
 
 def _extract_summary(text: str) -> str:
@@ -144,9 +165,11 @@ def _parse_card(card: Locator) -> RouteOption | None:
 
     if distance_text is None:
         return None
+    
+    summary = _extract_summary(text)
 
     return RouteOption(
-        summary=_extract_summary(text),
+        summary=summary,
         distance_text=distance_text,
         distance_km=TextConverter.distance_to_km(distance_text),
         duration_text=duration_text,
@@ -156,6 +179,9 @@ def _parse_card(card: Locator) -> RouteOption | None:
         has_highway=_has_keyword(text, _HIGHWAY_KEYWORDS),
         raw={
             "text": text,
+            "summary": summary,
+            "distance_text": distance_text,
+            "duration_text": duration_text,
         },
     )
 
@@ -194,15 +220,10 @@ class GoogleMapsParser:
 
         for index in range(count):
 
-            try:
-                option = _parse_card(locator.nth(index))
+            option = _parse_card(locator.nth(index))
 
-                if option is not None:
-                    routes.append(option)
-
-            except Exception:
-                # Ignore invalid cards.
-                continue
+            if option is not None:
+                routes.append(option)
 
         return routes
 

@@ -25,11 +25,11 @@ from collections.abc import Callable
 from playwright.sync_api import Locator
 
 from app import config
-from app.engine.google_maps_locator import GoogleMapsLocator
+from app.engines.google_maps_locator import GoogleMapsLocator
 from app.enums.travel_mode import TravelMode
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
-from app.parser.google_maps_parser import GoogleMapsParser
+from app.parsers.google_maps_parser import GoogleMapsParser
 
 _WAIT_STATE = "visible"
 
