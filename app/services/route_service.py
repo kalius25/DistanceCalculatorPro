@@ -4,6 +4,7 @@ from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.providers.base_provider import BaseProvider
 
+
 class RouteService:
     """Business service for route calculation."""
 

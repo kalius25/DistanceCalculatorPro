@@ -23,9 +23,7 @@ class ExcelService:
         self.file_path = Path(file_path)
 
         self.workbook = load_workbook(
-            filename=self.file_path,
-            read_only=True,
-            data_only=True
+            filename=self.file_path, read_only=True, data_only=True
         )
 
         return self.workbook.sheetnames
@@ -56,43 +54,22 @@ class ExcelService:
 
         ws = self.get_worksheet(sheet_name)
 
-        first_row = next(
-            ws.iter_rows(
-                min_row=1,
-                max_row=1,
-                values_only=True
-            )
-        )
+        first_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
 
-        return [
-            "" if value is None else str(value)
-            for value in first_row
-        ]
+        return ["" if value is None else str(value) for value in first_row]
 
     # ==========================================================
     # Preview
     # ==========================================================
 
-    def read_preview(
-        self,
-        sheet_name: str,
-        max_rows: int = PREVIEW_ROWS
-    ):
+    def read_preview(self, sheet_name: str, max_rows: int = PREVIEW_ROWS):
 
         ws = self.get_worksheet(sheet_name)
 
         rows = []
 
-        for row in ws.iter_rows(
-            min_row=2,
-            max_row=max_rows + 1,
-            values_only=True
-        ):
-
-            rows.append([
-                "" if cell is None else cell
-                for cell in row
-            ])
+        for row in ws.iter_rows(min_row=2, max_row=max_rows + 1, values_only=True):
+            rows.append(["" if cell is None else cell for cell in row])
 
         return rows
 
@@ -106,14 +83,7 @@ class ExcelService:
 
         rows = []
 
-        for row in ws.iter_rows(
-            min_row=2,
-            values_only=True
-        ):
-
-            rows.append([
-                "" if cell is None else cell
-                for cell in row
-            ])
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            rows.append(["" if cell is None else cell for cell in row])
 
         return rows

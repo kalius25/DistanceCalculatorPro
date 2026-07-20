@@ -6,7 +6,6 @@ from app.enums.route_preference import RoutePreference
 
 @dataclass(slots=True)
 class RouteRequest:
-
     origin: str
 
     destination: str

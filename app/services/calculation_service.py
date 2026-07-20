@@ -8,7 +8,6 @@ from app.providers.base_provider import BaseProvider
 
 
 class CalculationService:
-
     def __init__(self, provider: BaseProvider):
         self.provider = provider
 
@@ -18,7 +17,6 @@ class CalculationService:
     ) -> RouteResult:
 
         try:
-
             self._validate(request)
 
             result = self.provider.calculate(request)
@@ -29,7 +27,6 @@ class CalculationService:
             return result
 
         except Exception as ex:
-
             traceback.print_exc()
 
             return RouteResult(
@@ -55,7 +52,6 @@ class CalculationService:
         best_minutes = result.routes[0].duration_minutes
 
         for index, route in enumerate(result.routes):
-
             if route.duration_minutes < best_minutes:
                 best_minutes = route.duration_minutes
                 best_index = index

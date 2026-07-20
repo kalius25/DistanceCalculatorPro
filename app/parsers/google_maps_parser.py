@@ -96,6 +96,7 @@ _IGNORE_SUMMARY_KEYWORDS = (
 # Private Helpers
 # =============================================================================
 
+
 def _has_keyword(
     text: str,
     keywords: tuple[str, ...],
@@ -125,7 +126,7 @@ def _extract_duration(text: str) -> str | None:
 
     if match is None:
         return None
-    
+
     return match.group(1).strip()
 
 
@@ -133,7 +134,6 @@ def _extract_summary(text: str) -> str:
     """Extract route summary."""
 
     for line in text.splitlines():
-
         line = line.strip()
 
         if not line:
@@ -165,21 +165,27 @@ def _parse_card(card: Locator) -> RouteOption | None:
 
     if distance_text is None:
         return None
-    
-    summary = _extract_summary(text)
+
+    summary_extraced = _extract_summary(text)
+
+    parsed_distance_km  = TextConverter.distance_to_km(distance_text)
+    parsed_duration_minutes = TextConverter.duration_to_minutes(duration_text)
+
+    if parsed_distance_km is None or parsed_duration_minutes is None:
+        return None
 
     return RouteOption(
-        summary=summary,
+        summary=summary_extraced,
         distance_text=distance_text,
-        distance_km=TextConverter.distance_to_km(distance_text),
+        distance_km=parsed_distance_km,
         duration_text=duration_text,
-        duration_minutes=TextConverter.duration_to_minutes(duration_text),
+        duration_minutes=parsed_duration_minutes,
         has_toll=_has_keyword(text, _TOLL_KEYWORDS),
         has_ferry=_has_keyword(text, _FERRY_KEYWORDS),
         has_highway=_has_keyword(text, _HIGHWAY_KEYWORDS),
         raw={
             "text": text,
-            "summary": summary,
+            "summary": summary_extraced,
             "distance_text": distance_text,
             "duration_text": duration_text,
         },
@@ -219,7 +225,6 @@ class GoogleMapsParser:
         routes: list[RouteOption] = []
 
         for index in range(count):
-
             option = _parse_card(locator.nth(index))
 
             if option is not None:
@@ -231,4 +236,3 @@ class GoogleMapsParser:
 __all__ = [
     "GoogleMapsParser",
 ]
-

@@ -63,10 +63,7 @@ class GoogleMapsUrlBuilder:
 
         keyword = quote_plus(keyword)
 
-        return (
-            f"{GOOGLE_MAPS_SEARCH_URL}"
-            f"?api=1&query={keyword}"
-        )
+        return f"{GOOGLE_MAPS_SEARCH_URL}?api=1&query={keyword}"
 
     @staticmethod
     def build_route(

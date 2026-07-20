@@ -6,7 +6,6 @@ from app.models.route_request import RouteRequest
 
 @dataclass(slots=True)
 class RouteResult:
-
     success: bool
 
     request: RouteRequest

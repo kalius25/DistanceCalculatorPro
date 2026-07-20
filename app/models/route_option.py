@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 
 @dataclass(slots=True)
 class RouteOption:
-
     summary: str = ""
 
     distance_text: str = ""

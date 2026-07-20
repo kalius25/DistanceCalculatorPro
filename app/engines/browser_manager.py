@@ -14,10 +14,10 @@ from playwright.sync_api import Playwright
 from playwright.sync_api import sync_playwright
 from types import TracebackType
 
-from exceptions.engine_exception import EngineException
-from exceptions.engine_exception import EngineException
+from app.exceptions.engine_exception import EngineException
 
 from app import config
+
 
 class BrowserManager:
     """
@@ -46,13 +46,9 @@ class BrowserManager:
 
         self._playwright = sync_playwright().start()
 
-        self._browser = self._playwright.chromium.launch(
-            headless=self._headless
-        )
+        self._browser = self._playwright.chromium.launch(headless=self._headless)
 
-        self._context = self._browser.new_context(
-            locale=config.DEFAULT_LOCALE
-        )
+        self._context = self._browser.new_context(locale=config.DEFAULT_LOCALE)
 
     # =====================================================
     # Page
@@ -61,9 +57,7 @@ class BrowserManager:
     def new_page(self) -> Page:
 
         if self._context is None:
-            raise EngineException(
-                "Browser chưa được khởi động."
-            )
+            raise EngineException("Browser chưa được khởi động.")
 
         return self._context.new_page()
 

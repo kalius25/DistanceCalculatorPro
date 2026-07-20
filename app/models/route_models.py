@@ -9,20 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-
-@dataclass(slots=True)
-class RouteRequest:
-    """
-    Đại diện cho một dòng dữ liệu cần tính khoảng cách.
-    """
-
-    row_number: int
-
-    origin: str
-
-    destination: str
-
-
 @dataclass(slots=True)
 class RouteResult:
     """

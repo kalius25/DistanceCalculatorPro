@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.models.route_models import RouteRequest
+from app.models.route_request import RouteRequest
 from app.services.excel_service import ExcelService
 
 
@@ -21,7 +21,6 @@ class ColumnMapping:
 
 
 class CalculationController:
-
     def __init__(self, excel_service: ExcelService):
 
         self._excel = excel_service
@@ -94,26 +93,20 @@ class CalculationController:
 
         rows = self._excel.read_all(sheet_name)
 
-        header_index = {
-            name: index
-            for index, name in enumerate(headers)
-        }
+        header_index = {name: index for index, name in enumerate(headers)}
 
         requests: list[RouteRequest] = []
 
         for excel_row, values in enumerate(rows, start=2):
+            origin = values[header_index[mapping.origin]]
 
-            origin = values[
-                header_index[mapping.origin]
-            ]
-
-            destination = values[
-                header_index[mapping.destination]
-            ]
+            destination = values[header_index[mapping.destination]]
 
             requests.append(
                 RouteRequest(
-                    row_number=excel_row,
+                    metadata={
+                        "row_number": excel_row
+                    },
                     origin=str(origin).strip(),
                     destination=str(destination).strip(),
                 )

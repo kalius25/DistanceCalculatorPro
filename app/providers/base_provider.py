@@ -8,7 +8,6 @@ from app.models.route_result import RouteResult
 
 
 class BaseProvider(ABC):
-
     @abstractmethod
     def calculate(
         self,

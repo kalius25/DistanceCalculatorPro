@@ -12,6 +12,7 @@ from typing import Any
 from PySide6.QtCore import QAbstractTableModel
 from PySide6.QtCore import QModelIndex
 from PySide6.QtCore import Qt
+from PySide6.QtCore import QPersistentModelIndex
 
 
 class ExcelTableModel(QAbstractTableModel):
@@ -62,28 +63,28 @@ class ExcelTableModel(QAbstractTableModel):
 
     def rowCount(
         self,
-        parent: QModelIndex = QModelIndex(),
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),
     ) -> int:
 
         return len(self._rows)
 
     def columnCount(
         self,
-        parent: QModelIndex = QModelIndex(),
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),
     ) -> int:
 
         return len(self._headers)
 
     def data(
         self,
-        index: QModelIndex,
-        role: int = Qt.DisplayRole,
+        index: QModelIndex | QPersistentModelIndex,
+        role: int = Qt.ItemDataRole.DisplayRole,
     ):
 
         if not index.isValid():
             return None
 
-        if role != Qt.DisplayRole:
+        if role != Qt.ItemDataRole.DisplayRole:
             return None
 
         value = self._rows[index.row()][index.column()]
@@ -97,14 +98,13 @@ class ExcelTableModel(QAbstractTableModel):
         self,
         section: int,
         orientation: Qt.Orientation,
-        role: int = Qt.DisplayRole,
+        role: int = Qt.ItemDataRole.DisplayRole,
     ):
 
-        if role != Qt.DisplayRole:
+        if role != Qt.ItemDataRole.DisplayRole:
             return None
 
-        if orientation == Qt.Horizontal:
-
+        if orientation == Qt.Orientation.Horizontal:
             if section < len(self._headers):
                 return self._headers[section]
 

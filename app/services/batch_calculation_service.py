@@ -16,7 +16,6 @@ ProgressCallback = Callable[
 
 
 class BatchCalculationService:
-
     def __init__(
         self,
         calculation_service: CalculationService,
@@ -36,15 +35,11 @@ class BatchCalculationService:
         results: list[RouteResult] = []
 
         for current, request in enumerate(requests, start=1):
-
-            result = self.calculation_service.calculate(
-                request
-            )
+            result = self.calculation_service.calculate(request)
 
             results.append(result)
 
             if progress_callback:
-
                 progress_callback(
                     current,
                     total,

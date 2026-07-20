@@ -31,7 +31,10 @@ from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.parsers.google_maps_parser import GoogleMapsParser
 
-_WAIT_STATE = "visible"
+from typing import Literal
+
+_WAIT_STATE: Literal["visible"] = "visible"
+
 
 class GoogleMapsEngine:
     """
@@ -125,7 +128,6 @@ class GoogleMapsEngine:
         if request.timeout <= 0:
             raise ValueError("Timeout must be greater than zero.")
 
-
     @staticmethod
     def _fill_route_input(
         page: Page,
@@ -163,13 +165,12 @@ class GoogleMapsEngine:
         )
 
         if locator_factory is None:
-            raise NotImplementedError(
-                f"Unsupported travel mode: {request.travel_mode}"
-            )
+            raise NotImplementedError(f"Unsupported travel mode: {request.travel_mode}")
 
         locator_factory(page).click(
             timeout=config.BROWSER_TIMEOUT,
         )
+
 
 __all__ = [
     "GoogleMapsEngine",
