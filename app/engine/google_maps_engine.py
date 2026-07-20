@@ -1,161 +1,176 @@
 """
-Distance Calculator Pro
+Google Maps Engine.
 
-Google Maps Engine
+This module is responsible for driving Google Maps through Playwright.
+
+Responsibilities
+----------------
+- Open Google Maps Directions.
+- Fill origin and destination.
+- Select travel mode.
+- Wait until route results are available.
+- Delegate parsing to GoogleMapsParser.
+
+This module must NOT:
+- Parse HTML.
+- Build business results.
+- Retry failed requests.
+- Perform business rule validation.
 """
 
 from __future__ import annotations
 
-from playwright.sync_api import TimeoutError
+from playwright.sync_api import Page
+from collections.abc import Callable
+from playwright.sync_api import Locator
 
-from app.engine.browser_manager import BrowserManager
-
+from app import config
 from app.engine.google_maps_locator import GoogleMapsLocator
+from app.enums.travel_mode import TravelMode
+from app.models.route_option import RouteOption
+from app.models.route_request import RouteRequest
+from app.parser.google_maps_parser import GoogleMapsParser
 
-from urllib.parse import quote_plus
-
-from app.engine.google_maps_url_builder import GoogleMapsUrlBuilder
+_WAIT_STATE = "visible"
 
 class GoogleMapsEngine:
     """
-    Engine điều khiển Google Maps bằng Playwright.
+    Execute Google Maps routing workflow using Playwright.
     """
 
-    GOOGLE_MAPS_URL = "https://www.google.com/maps"
+    _TRAVEL_MODE_LOCATORS: dict[
+        TravelMode,
+        Callable[[Page], Locator],
+    ] = {
+        TravelMode.DRIVING: GoogleMapsLocator.transport_driving,
+    }
 
-    def __init__(self, browser: BrowserManager):
-
-        self._browser = browser
-
-    # =====================================================
-    # Open Google Maps
-    # =====================================================
-
-    def open(self):
-
-        page = self._browser.new_page()
-
-        page.goto(
-            self.GOOGLE_MAPS_URL,
-            wait_until="domcontentloaded",
-            timeout=60000,
-        )
-
-        return page
-
-    # =====================================================
-    # Health Check
-    # =====================================================
-
-    def health_check(self) -> tuple[bool, str]:
-
-        try:
-
-            page = self.open()
-
-            title = page.title()
-
-            if "Google Maps" in title:
-
-                page.close()
-
-                return True, title
-
-            page.close()
-
-            return False, title
-
-        except TimeoutError:
-
-            return False, "Timeout"
-
-        except Exception as ex:
-
-            return False, str(ex)
-
-    def wait_until_ready(self, page):
-
-        search = GoogleMapsLocator.search_box(page)
-
-        search.wait_for(
-            state="visible",
-            timeout=30000,
-        )
-
-    def search_place(
+    def find_routes(
         self,
-        page,
-        place: str,
-    ):
+        page: Page,
+        request: RouteRequest,
+    ) -> list[RouteOption]:
+        """
+        Find available routes on Google Maps.
 
-        search = GoogleMapsLocator.search_box(page)
+        Parameters
+        ----------
+        page:
+            Active Playwright page.
 
-        search.click()
+        request:
+            Route request.
 
-        search.fill("")
+        Returns
+        -------
+        list[RouteOption]
+            Parsed route options.
 
-        search.fill(place)
+        Raises
+        ------
+        ValueError
+            If origin or destination is empty.
 
-        search.press("Enter")
+        NotImplementedError
+            If travel mode is unsupported.
+        """
 
-        page.wait_for_load_state("networkidle")
-
-    def search(self, page, keyword):
-
-        search = GoogleMapsLocator.search_box(page)
-
-        search.click()
-
-        search.type("Cần Thơ", delay=50)
-
-        print(page.evaluate("""
-        () => document.activeElement.tagName
-        """))
-
-        print(page.evaluate("""
-        () => document.activeElement.name
-        """))
-
-        page.keyboard.press("Enter")
-
-
-
-    def open_route(self, origin: str, destination: str):
-
-        origin = quote_plus(origin)
-        destination = quote_plus(destination)
-
-        url = (
-            "https://www.google.com/maps/dir/?api=1"
-            f"&origin={origin}"
-            f"&destination={destination}"
-            "&travelmode=driving"
-        )
-
-        page = self._browser.new_page()
+        self._validate_request(request)
 
         page.goto(
-            url,
-            wait_until="domcontentloaded",
+            config.GOOGLE_MAPS_URL,
+            timeout=config.BROWSER_TIMEOUT,
         )
 
-        return page
-    
-    def open_route(self, origin: str, destination: str,):
-
-        page = self._browser.new_page()
-
-        url = GoogleMapsUrlBuilder.build_route(
-            origin,
-            destination,
+        self._fill_route_input(
+            page=page,
+            index=0,
+            value=request.origin,
         )
 
-        print("Open URL:")
-        print(url)
-
-        page.goto(
-            url,
-            wait_until="domcontentloaded",
+        self._fill_route_input(
+            page=page,
+            index=1,
+            value=request.destination,
         )
 
-        return page
+        self._select_travel_mode(
+            page=page,
+            request=request,
+        )
+
+        route_panel = GoogleMapsLocator.route_panel(page)
+
+        route_panel.wait_for(
+            state=_WAIT_STATE,
+            timeout=request.timeout * 1000,
+        )
+
+        return GoogleMapsParser.parse(page)
+
+    @staticmethod
+    def _validate_request(
+        request: RouteRequest,
+    ) -> None:
+        """
+        Validate route request.
+        """
+
+        if not request.origin.strip():
+            raise ValueError("Origin cannot be empty.")
+
+        if not request.destination.strip():
+            raise ValueError("Destination cannot be empty.")
+
+        if request.timeout <= 0:
+            raise ValueError("Timeout must be greater than zero.")
+
+
+    @staticmethod
+    def _fill_route_input(
+        page: Page,
+        *,
+        index: int,
+        value: str,
+    ) -> None:
+        """
+        Fill one route input.
+        """
+
+        locator = GoogleMapsLocator.route_input(
+            page,
+            index,
+        )
+
+        locator.wait_for(
+            state=_WAIT_STATE,
+            timeout=config.BROWSER_TIMEOUT,
+        )
+
+        locator.fill(value)
+
+    def _select_travel_mode(
+        self,
+        page: Page,
+        request: RouteRequest,
+    ) -> None:
+        """
+        Select travel mode.
+        """
+
+        locator_factory = self._TRAVEL_MODE_LOCATORS.get(
+            request.travel_mode,
+        )
+
+        if locator_factory is None:
+            raise NotImplementedError(
+                f"Unsupported travel mode: {request.travel_mode}"
+            )
+
+        locator_factory(page).click(
+            timeout=config.BROWSER_TIMEOUT,
+        )
+
+__all__ = [
+    "GoogleMapsEngine",
+]
