@@ -36,7 +36,7 @@ _DISTANCE_PATTERN = re.compile(
     (
         \d+(?:[.,]\d+)?
         \s*
-        (?:km|m|mi|ft)
+        (?:km|mi|ft|m)
     )
     """,
     re.IGNORECASE | re.VERBOSE,
@@ -45,10 +45,10 @@ _DISTANCE_PATTERN = re.compile(
 _DURATION_PATTERN = re.compile(
     r"""
     (
-        (?:\d+\s*(?:giờ|tiếng|h|hr|hrs|hour|hours))
-        (?:\s*\d+\s*(?:phút|p|min|mins|minute|minutes))?
+        (?:\d+\s*(?:hours|hour|hrs|hr|giờ|tiếng|h))
+        (?:\s*\d+\s*(?:minutes|minute|mins|min|phút|p))?
         |
-        (?:\d+\s*(?:phút|p|min|mins|minute|minutes))
+        (?:\d+\s*(?:minutes|minute|mins|min|phút|p))
     )
     """,
     re.IGNORECASE | re.VERBOSE,
@@ -151,11 +151,8 @@ def _extract_summary(text: str) -> str:
 
     return ""
 
-
-def _parse_card(card: Locator) -> RouteOption | None:
-    """Convert one Google Maps route card into RouteOption."""
-
-    text = card.inner_text()
+def _parse_text(text: str) -> RouteOption | None:
+    """Convert one Google Maps route text into RouteOption."""
 
     duration_text = _extract_duration(text)
     distance_text = _extract_distance(text)
@@ -166,16 +163,19 @@ def _parse_card(card: Locator) -> RouteOption | None:
     if distance_text is None:
         return None
 
-    summary_extraced = _extract_summary(text)
+    summary_extracted = _extract_summary(text)
 
-    parsed_distance_km  = TextConverter.distance_to_km(distance_text)
+    parsed_distance_km = TextConverter.distance_to_km(distance_text)
     parsed_duration_minutes = TextConverter.duration_to_minutes(duration_text)
 
-    if parsed_distance_km is None or parsed_duration_minutes is None:
+    if parsed_distance_km is None:
+        return None
+
+    if parsed_duration_minutes is None:
         return None
 
     return RouteOption(
-        summary=summary_extraced,
+        summary=summary_extracted,
         distance_text=distance_text,
         distance_km=parsed_distance_km,
         duration_text=duration_text,
@@ -185,11 +185,16 @@ def _parse_card(card: Locator) -> RouteOption | None:
         has_highway=_has_keyword(text, _HIGHWAY_KEYWORDS),
         raw={
             "text": text,
-            "summary": summary_extraced,
+            "summary": summary_extracted,
             "distance_text": distance_text,
             "duration_text": duration_text,
         },
     )
+
+def _parse_locator(card: Locator) -> RouteOption | None:
+    """Convert one Playwright Locator into RouteOption."""
+
+    return _parse_text(card.inner_text())
 
 # =============================================================================
 # Public Parser
@@ -225,7 +230,7 @@ class GoogleMapsParser:
         routes: list[RouteOption] = []
 
         for index in range(count):
-            option = _parse_card(locator.nth(index))
+            option = _parse_locator(locator.nth(index))
 
             if option is not None:
                 routes.append(option)
