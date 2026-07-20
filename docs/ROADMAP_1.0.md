@@ -235,3 +235,109 @@ hoặc nếu module này phụ thuộc nhiều file:
 converter/
 
 Tôi sẽ bắt đầu Sprint 2 theo đúng quy trình đã thống nhất và mục tiêu là đưa text_converter.py lên trạng thái ✅ FREEZE.
+
+
+UPDATE ROADMAP
+
+Roadmap sau khi cập nhật
+Sprint 0
+✅ Constitution
+✅ Architecture
+✅ Coding Standard
+✅ DDD
+✅ Naming
+Sprint 1
+✅ Config
+✅ Locator
+✅ URL Builder
+Sprint 2
+✅ TextConverter
+Sprint 3
+✅ GoogleMapsParser
+Sprint 4
+
+GoogleMapsEngine
+
+Đây sẽ là module lớn nhất.
+
+Khoảng 250–350 dòng.
+
+Sprint 5
+
+GoogleMapsProvider
+
+Khoảng 120 dòng.
+
+Sprint 6
+
+RouteService
+
+Sprint 7
+
+Controller
+
+Sprint 8
+
+GUI
+
+Đánh giá
+
+Tôi đã tham gia khá nhiều dự án Python có Playwright, Selenium và Scraping. Với quy mô của DistanceCalculatorPro, kiến trúc hiện tại có một điểm mạnh là mỗi lớp đều có trách nhiệm rất rõ:
+
+Engine chỉ điều khiển trình duyệt.
+Parser chỉ đọc và chuyển dữ liệu HTML thành model.
+Provider chỉ điều phối và đóng gói kết quả.
+Service chỉ xử lý nghiệp vụ.
+Controller chỉ kết nối UI với Service.
+GUI chỉ hiển thị.
+
+Nếu chúng ta giữ kỷ luật này đến hết Sprint 8, mã nguồn sẽ dễ mở rộng, dễ kiểm thử và việc thay thế công nghệ (ví dụ đổi Playwright, thêm Here Maps hoặc OpenRouteService) sẽ ít ảnh hưởng đến các lớp khác.
+
+Tôi đề xuất chính thức đóng băng (Freeze) toàn bộ DDD-001 đến DDD-032 sau khi hoàn tất Sprint 3, và từ Sprint 4 trở đi chỉ bổ sung DDD mới khi thật sự cần thiết, tránh thay đổi các quyết định nền tảng đã ổn định.
+
+
+
+
+
+
+
+
+UPDATE:
+Architecture
+        ✅
+
+DDD
+        ✅
+
+Coding Standard
+        ✅
+
+Sprint 3A
+──────────────
+BaseEngine
+BaseProvider
+RouteService API
+
+Sprint 3B
+──────────────
+GoogleMapsParser
+
+Sprint 4
+──────────────
+GoogleMapsEngine
+
+Sprint 5
+──────────────
+GoogleMapsProvider
+
+Sprint 6
+──────────────
+RouteService
+
+Sprint 7
+──────────────
+Controller
+
+Sprint 8
+──────────────
+GUI
