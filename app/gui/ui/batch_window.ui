@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>BatchWindow</class>
+ <widget class="QMainWindow" name="BatchWindow">
+  <property name="windowTitle">
+   <string>Batch Distance Calculator</string>
+  </property>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

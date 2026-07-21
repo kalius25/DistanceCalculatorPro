@@ -1,0 +1,29 @@
+Quy trình làm việc giữa chúng ta
+
+Từ Sprint 01 trở đi, mỗi Sprint sẽ luôn có cấu trúc giống nhau:
+
+① Design Review
+
+Mình thiết kế trước.
+
+② Coding
+
+Viết đầy đủ code.
+
+③ Self Review
+
+Mình tự review code trước khi giao.
+
+④ Bạn tích hợp
+
+Copy vào project.
+
+⑤ Chạy thử
+
+Nếu OK
+
+↓
+
+Commit.
+
+⑥ Sang Sprint tiếp.
