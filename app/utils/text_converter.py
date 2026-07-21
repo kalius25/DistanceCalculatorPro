@@ -78,10 +78,7 @@ class TextConverter:
         value = _normalize_number(match.group(1))
         unit = match.group(2).lower()
 
-        try:
-            return value * _DISTANCE_FACTORS[unit]
-        except KeyError:
-            raise AssertionError(f"Unexpected distance unit: {unit}")
+        return value * _DISTANCE_FACTORS[unit]
 
     @staticmethod
     def duration_to_minutes(text: str | None) -> int | None:
