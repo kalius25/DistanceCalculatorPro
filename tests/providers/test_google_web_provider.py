@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
 
-import pytest
 
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest

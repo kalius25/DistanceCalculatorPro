@@ -1,0 +1,9 @@
+[run]
+branch = True
+
+source =
+    app
+
+omit =
+    */__init__.py
+    */tests/*

@@ -15,3 +15,6 @@ data/output/*
 
 data/temp/*
 !data/temp/.gitkeep
+
+__pycache__/
+*.py[cod]

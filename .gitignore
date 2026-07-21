@@ -15,3 +15,9 @@ data/output/*
 
 data/temp/*
 !data/temp/.gitkeep
+
+logs/
+
+data/temp
+
+build/
