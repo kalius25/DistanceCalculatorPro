@@ -36,7 +36,7 @@ _DISTANCE_PATTERN = re.compile(
     (
         \d+(?:[.,]\d+)?
         \s*
-        (?:km|mi|ft|m)
+        (?:km|mi|ft|m)\b
     )
     """,
     re.IGNORECASE | re.VERBOSE,
@@ -45,10 +45,10 @@ _DISTANCE_PATTERN = re.compile(
 _DURATION_PATTERN = re.compile(
     r"""
     (
-        (?:\d+\s*(?:hours|hour|hrs|hr|giờ|tiếng|h))
-        (?:\s*\d+\s*(?:minutes|minute|mins|min|phút|p))?
+        (?:\d+[ \t]*(?:hours|hour|hrs|hr|giờ|tiếng|h))
+        (?:[ \t]+\d+[ \t]*(?:minutes|minute|mins|min|phút|p))?
         |
-        (?:\d+\s*(?:minutes|minute|mins|min|phút|p))
+        (?:\d+[ \t]*(?:minutes|minute|mins|min|phút|p))
     )
     """,
     re.IGNORECASE | re.VERBOSE,
