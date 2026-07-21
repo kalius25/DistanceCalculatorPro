@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import re
 
-
 _DISTANCE_PATTERN = re.compile(
     r"^\s*(\d+(?:[.,]\d+)?)\s*(km|m|mi|ft)\s*$",
     re.IGNORECASE,
@@ -32,12 +31,19 @@ _MINUTE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_DISTANCE_FACTORS = {
+    "km": 1.0,
+    "m": 1 / 1000,
+    "mi": 1.609344,
+    "ft": 0.3048 / 1000,
+}
+
 
 def _normalize_number(value: str) -> float:
     """
     Convert a numeric string to float.
 
-    Supports both decimal separators:
+    Supports:
         1.5
         1,5
     """
@@ -52,17 +58,13 @@ class TextConverter:
         """
         Convert a distance string to kilometer.
 
-        Supported formats:
+        Supported:
             350 m
-            999 m
             1 km
             1.2 km
             1,2 km
             15 mi
             500 ft
-
-        Returns:
-            Distance in kilometer, or None if invalid.
         """
 
         if not text:
@@ -76,40 +78,15 @@ class TextConverter:
         value = _normalize_number(match.group(1))
         unit = match.group(2).lower()
 
-        if unit == "km":
-            return value
-
-        if unit == "m":
-            return value / 1000
-
-        if unit == "mi":
-            return value * 1.609344
-
-        if unit == "ft":
-            return value * 0.3048 / 1000
-
-        return None
+        try:
+            return value * _DISTANCE_FACTORS[unit]
+        except KeyError:
+            raise AssertionError(f"Unexpected distance unit: {unit}")
 
     @staticmethod
     def duration_to_minutes(text: str | None) -> int | None:
         """
         Convert duration text to total minutes.
-
-        Supported Vietnamese:
-            45 phút
-            45 p
-            1 giờ
-            1 giờ 15 phút
-            2 giờ 5 p
-
-        Supported English:
-            45 min
-            1 hr
-            1 hour
-            2 hr 30 min
-
-        Returns:
-            Total minutes, or None if invalid.
         """
 
         if not text:
