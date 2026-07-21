@@ -30,13 +30,14 @@ from app.enums.travel_mode import TravelMode
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.parsers.google_maps_parser import GoogleMapsParser
+from app.engines.base_engine import BaseEngine
 
 from typing import Literal
 
 _WAIT_STATE: Literal["visible"] = "visible"
 
 
-class GoogleMapsEngine:
+class GoogleMapsEngine(BaseEngine):
     """
     Execute Google Maps routing workflow using Playwright.
     """

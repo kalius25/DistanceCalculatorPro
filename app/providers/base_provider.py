@@ -8,12 +8,12 @@ from app.models.route_result import RouteResult
 
 
 class BaseProvider(ABC):
+    """Base class for all route providers."""
+
     @abstractmethod
     def calculate(
         self,
         request: RouteRequest,
     ) -> RouteResult:
-        """
-        Tính toán khoảng cách.
-        """
+        """Calculate routes for the given request."""
         raise NotImplementedError
