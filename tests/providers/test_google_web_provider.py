@@ -135,3 +135,26 @@ def test_browser_context_closed():
 
     browser.__enter__.assert_called_once()
     browser.__exit__.assert_called_once()
+
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
+from app.providers.google_web_provider import GoogleWebProvider
+
+def test_constructor_creates_default_engine():
+    browser = MagicMock()
+
+    fake_engine = MagicMock()
+
+    with patch(
+        "app.engines.google_maps_engine.GoogleMapsEngine",
+        return_value=fake_engine,
+    ) as engine_cls:
+        provider = GoogleWebProvider(
+            browser=browser,
+            engine=None,
+        )
+
+    engine_cls.assert_called_once_with()
+    assert provider._engine is fake_engine
+    assert provider._browser is browser
