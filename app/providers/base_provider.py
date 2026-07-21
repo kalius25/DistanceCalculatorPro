@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult

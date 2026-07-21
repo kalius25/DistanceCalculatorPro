@@ -1,5 +1,4 @@
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -108,6 +107,7 @@ def test_exit():
         manager.__exit__(None, None, None)
 
     close.assert_called_once()
+
 
 def test_close_without_context():
     manager = BrowserManager()

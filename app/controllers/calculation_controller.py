@@ -22,7 +22,6 @@ class ColumnMapping:
 
 class CalculationController:
     def __init__(self, excel_service: ExcelService):
-
         self._excel = excel_service
 
     # ======================================================
@@ -56,7 +55,6 @@ class CalculationController:
         self,
         mapping: ColumnMapping,
     ) -> tuple[bool, str]:
-
         if not mapping.origin:
             return False, "Chưa chọn Origin."
 
@@ -83,7 +81,6 @@ class CalculationController:
         sheet_name: str,
         mapping: ColumnMapping,
     ) -> list[RouteRequest]:
-
         ok, message = self.validate_mapping(mapping)
 
         if not ok:
@@ -104,9 +101,7 @@ class CalculationController:
 
             requests.append(
                 RouteRequest(
-                    metadata={
-                        "row_number": excel_row
-                    },
+                    metadata={"row_number": excel_row},
                     origin=str(origin).strip(),
                     destination=str(destination).strip(),
                 )

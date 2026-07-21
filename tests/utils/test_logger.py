@@ -1,6 +1,5 @@
 import logging
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.config import AppMode
 from app.utils import logger

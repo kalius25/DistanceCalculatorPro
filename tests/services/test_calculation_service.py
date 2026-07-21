@@ -1,6 +1,4 @@
-from types import SimpleNamespace
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -137,9 +135,7 @@ def test_calculate_provider_exception():
 
     service = CalculationService(provider)
 
-    with patch(
-        "app.services.calculation_service.traceback.print_exc"
-    ):
+    with patch("app.services.calculation_service.traceback.print_exc"):
         result = service.calculate(request)
 
     assert result.success is False
@@ -155,9 +151,7 @@ def test_calculate_validation_exception():
 
     service = CalculationService(provider)
 
-    with patch(
-        "app.services.calculation_service.traceback.print_exc"
-    ):
+    with patch("app.services.calculation_service.traceback.print_exc"):
         result = service.calculate(request)
 
     provider.calculate.assert_not_called()

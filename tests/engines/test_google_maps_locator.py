@@ -33,9 +33,7 @@ def test_directions_button():
 
     assert GoogleMapsLocator.directions_button(page) is locator
 
-    page.locator.assert_called_once_with(
-        'button[data-value="Directions"]'
-    )
+    page.locator.assert_called_once_with('button[data-value="Directions"]')
 
 
 def test_route_input():
@@ -60,9 +58,7 @@ def test_transport_driving():
 
     assert GoogleMapsLocator.transport_driving(page) is locator
 
-    page.locator.assert_called_once_with(
-        'button[data-travel_mode="0"]'
-    )
+    page.locator.assert_called_once_with('button[data-travel_mode="0"]')
 
 
 def test_route_panel():

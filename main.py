@@ -8,9 +8,8 @@ from app.utils.logger import get_logger
 
 
 def main():
-
     logger = get_logger(__name__)
-    
+
     logger.info("Starting application...")
 
     app = QApplication(sys.argv)

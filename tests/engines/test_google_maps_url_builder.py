@@ -1,7 +1,6 @@
 import warnings
 
-from app.config import GOOGLE_LANGUAGE
-from app.config import GOOGLE_REGION
+from app.config import GOOGLE_LANGUAGE, GOOGLE_REGION
 from app.engines.google_maps_url_builder import GoogleMapsUrlBuilder
 from app.enums.route_preference import RoutePreference
 from app.enums.travel_mode import TravelMode

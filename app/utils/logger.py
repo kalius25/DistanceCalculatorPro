@@ -20,9 +20,9 @@ from pathlib import Path
 
 from app.config import (
     APP_MODE,
-    AppMode,
     LOG_FILE,
     LOG_LEVEL,
+    AppMode,
 )
 
 

@@ -9,10 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import QAbstractTableModel
-from PySide6.QtCore import QModelIndex
-from PySide6.QtCore import Qt
-from PySide6.QtCore import QPersistentModelIndex
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
 
 
 class ExcelTableModel(QAbstractTableModel):
@@ -25,7 +22,6 @@ class ExcelTableModel(QAbstractTableModel):
         headers: list[str] | None = None,
         rows: list[list[Any]] | None = None,
     ) -> None:
-
         super().__init__()
 
         self._headers = headers or []
@@ -40,7 +36,6 @@ class ExcelTableModel(QAbstractTableModel):
         headers: list[str],
         rows: list[list[Any]],
     ) -> None:
-
         self.beginResetModel()
 
         self._headers = headers
@@ -49,7 +44,6 @@ class ExcelTableModel(QAbstractTableModel):
         self.endResetModel()
 
     def clear(self) -> None:
-
         self.beginResetModel()
 
         self._headers = []
@@ -65,14 +59,12 @@ class ExcelTableModel(QAbstractTableModel):
         self,
         parent: QModelIndex | QPersistentModelIndex = QModelIndex(),
     ) -> int:
-
         return len(self._rows)
 
     def columnCount(
         self,
         parent: QModelIndex | QPersistentModelIndex = QModelIndex(),
     ) -> int:
-
         return len(self._headers)
 
     def data(
@@ -80,7 +72,6 @@ class ExcelTableModel(QAbstractTableModel):
         index: QModelIndex | QPersistentModelIndex,
         role: int = Qt.ItemDataRole.DisplayRole,
     ):
-
         if not index.isValid():
             return None
 
@@ -100,7 +91,6 @@ class ExcelTableModel(QAbstractTableModel):
         orientation: Qt.Orientation,
         role: int = Qt.ItemDataRole.DisplayRole,
     ):
-
         if role != Qt.ItemDataRole.DisplayRole:
             return None
 

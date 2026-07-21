@@ -20,19 +20,18 @@ This module must NOT:
 
 from __future__ import annotations
 
-from playwright.sync_api import Page
 from collections.abc import Callable
-from playwright.sync_api import Locator
+from typing import Literal
+
+from playwright.sync_api import Locator, Page
 
 from app import config
+from app.engines.base_engine import BaseEngine
 from app.engines.google_maps_locator import GoogleMapsLocator
 from app.enums.travel_mode import TravelMode
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.parsers.google_maps_parser import GoogleMapsParser
-from app.engines.base_engine import BaseEngine
-
-from typing import Literal
 
 _WAIT_STATE: Literal["visible"] = "visible"
 

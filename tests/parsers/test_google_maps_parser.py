@@ -1,11 +1,12 @@
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.models.route_option import RouteOption
-from app.parsers.google_maps_parser import GoogleMapsParser
-from app.parsers.google_maps_parser import _parse_locator
-from app.parsers.google_maps_parser import _parse_text
-from app.parsers.google_maps_parser import _extract_summary
+from app.parsers.google_maps_parser import (
+    GoogleMapsParser,
+    _extract_summary,
+    _parse_locator,
+    _parse_text,
+)
 from app.utils.text_converter import TextConverter
 
 
@@ -137,6 +138,7 @@ def test_parse_respects_parser_max_routes():
     assert parser.call_count == 3
     assert locator.nth.call_count == 3
 
+
 def test_parse_locator():
     card = MagicMock()
     card.inner_text.return_value = """
@@ -148,6 +150,7 @@ QL1A
     option = _parse_locator(card)
 
     assert option is not None
+
 
 def test_parse_text_returns_none_when_distance_conversion_fails(monkeypatch):
     monkeypatch.setattr(
@@ -164,6 +167,7 @@ QL1A
 
     assert _parse_text(text) is None
 
+
 def test_parse_text_returns_none_when_duration_conversion_fails(monkeypatch):
     monkeypatch.setattr(
         TextConverter,
@@ -178,6 +182,7 @@ QL1A
 """
 
     assert _parse_text(text) is None
+
 
 def test_extract_summary_skips_single_character():
     text = """

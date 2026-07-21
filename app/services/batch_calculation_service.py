@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
-
 from app.services.calculation_service import CalculationService
-
 
 ProgressCallback = Callable[
     [int, int, RouteRequest, RouteResult],
@@ -27,7 +24,6 @@ class BatchCalculationService:
         requests: Iterable[RouteRequest],
         progress_callback: ProgressCallback | None = None,
     ) -> list[RouteResult]:
-
         requests = list(requests)
 
         total = len(requests)

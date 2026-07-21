@@ -9,9 +9,7 @@ Nếu Google thay đổi giao diện, chỉ cần sửa file này.
 
 from __future__ import annotations
 
-from playwright.sync_api import Locator
-from playwright.sync_api import Page
-
+from playwright.sync_api import Locator, Page
 
 # =============================================================================
 # Internal Selectors

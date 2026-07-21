@@ -1,8 +1,6 @@
 import pytest
 
-from app.parsers.google_maps_parser import _parse_text
-from app.parsers.google_maps_parser import _extract_distance
-
+from app.parsers.google_maps_parser import _extract_distance, _parse_text
 
 # ==========================================================
 # Happy Path
@@ -212,6 +210,7 @@ QL1A
 
     assert route is not None
     assert route.summary == "QL1A"
+
 
 def test_extract_distance_after_duration():
     text = """

@@ -4,10 +4,10 @@ import pytest
 
 from app.utils.text_converter import TextConverter
 
-
 # ==========================================================
 # distance_to_km()
 # ==========================================================
+
 
 @pytest.mark.parametrize(
     ("text", "expected"),
@@ -71,6 +71,7 @@ def test_distance_to_km_invalid(text: str | None) -> None:
 # ==========================================================
 # duration_to_minutes()
 # ==========================================================
+
 
 @pytest.mark.parametrize(
     ("text", "expected"),
@@ -137,6 +138,7 @@ def test_duration_hours_and_minutes(text: str, expected: int) -> None:
 def test_duration_invalid(text: str | None) -> None:
     assert TextConverter.duration_to_minutes(text) is None
 
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
@@ -147,6 +149,7 @@ def test_duration_invalid(text: str | None) -> None:
 )
 def test_distance_trim(text: str, expected: float) -> None:
     assert TextConverter.distance_to_km(text) == pytest.approx(expected)
+
 
 @pytest.mark.parametrize(
     ("text", "expected"),
@@ -160,6 +163,5 @@ def test_distance_trim(text: str, expected: float) -> None:
 )
 def test_ignore_case(text: str, expected: float | int) -> None:
     assert (
-        TextConverter.distance_to_km(text)
-        or TextConverter.duration_to_minutes(text)
+        TextConverter.distance_to_km(text) or TextConverter.duration_to_minutes(text)
     ) == pytest.approx(expected)

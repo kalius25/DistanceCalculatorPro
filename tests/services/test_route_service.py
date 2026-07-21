@@ -10,7 +10,6 @@ from app.models.route_result import RouteResult
 from app.providers.base_provider import BaseProvider
 from app.services.route_service import RouteService
 
-
 # ==========================================================
 # Helpers
 # ==========================================================
@@ -124,15 +123,10 @@ def test_calculate_same_location(
     provider = make_provider()
     service = RouteService(provider)
 
-    result = service.calculate(
-        make_request(origin, destination)
-    )
+    result = service.calculate(make_request(origin, destination))
 
     assert result.success is False
-    assert (
-        result.error
-        == "Origin and destination cannot be the same."
-    )
+    assert result.error == "Origin and destination cannot be the same."
 
     provider.calculate.assert_not_called()
 
@@ -257,9 +251,7 @@ def test_request_strip_before_validation(
 
     service = RouteService(provider)
 
-    result = service.calculate(
-        make_request(origin, destination)
-    )
+    result = service.calculate(make_request(origin, destination))
 
     assert result.success is True
 

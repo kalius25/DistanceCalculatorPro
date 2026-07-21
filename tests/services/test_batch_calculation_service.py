@@ -120,16 +120,11 @@ def test_calculate_with_callback():
 
 
 def test_calculate_generator():
-    requests = (
-        make_request(f"A{i}", f"B{i}")
-        for i in range(3)
-    )
+    requests = (make_request(f"A{i}", f"B{i}") for i in range(3))
 
     calculation_service = MagicMock()
 
-    calculation_service.calculate.side_effect = (
-        lambda request: make_result(request)
-    )
+    calculation_service.calculate.side_effect = lambda request: make_result(request)
 
     service = BatchCalculationService(calculation_service)
 

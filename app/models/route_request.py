@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
-from app.enums.travel_mode import TravelMode
 from app.enums.route_preference import RoutePreference
+from app.enums.travel_mode import TravelMode
 
 
 @dataclass(slots=True)

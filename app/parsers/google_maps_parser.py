@@ -19,8 +19,7 @@ from __future__ import annotations
 
 import re
 
-from playwright.sync_api import Locator
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 
 from app import config
 from app.engines.google_maps_locator import GoogleMapsLocator
@@ -151,6 +150,7 @@ def _extract_summary(text: str) -> str:
 
     return ""
 
+
 def _parse_text(text: str) -> RouteOption | None:
     """Convert one Google Maps route text into RouteOption."""
 
@@ -191,10 +191,12 @@ def _parse_text(text: str) -> RouteOption | None:
         },
     )
 
+
 def _parse_locator(card: Locator) -> RouteOption | None:
     """Convert one Playwright Locator into RouteOption."""
 
     return _parse_text(card.inner_text())
+
 
 # =============================================================================
 # Public Parser

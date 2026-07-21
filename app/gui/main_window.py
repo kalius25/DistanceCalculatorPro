@@ -1,7 +1,8 @@
 from PySide6.QtWidgets import (
-    QFileDialog,
     QComboBox,
+    QFileDialog,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -9,7 +10,6 @@ from PySide6.QtWidgets import (
     QTableView,
     QVBoxLayout,
     QWidget,
-    QHeaderView,
 )
 
 from app.models.excel_table_model import ExcelTableModel
@@ -18,7 +18,6 @@ from app.services.excel_service import ExcelService
 
 class MainWindow(QMainWindow):
     def __init__(self):
-
         super().__init__()
 
         self.setWindowTitle("Distance Calculator Pro")
@@ -32,7 +31,6 @@ class MainWindow(QMainWindow):
         self.build_ui()
 
     def build_ui(self):
-
         widget = QWidget()
 
         self.setCentralWidget(widget)
@@ -108,7 +106,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.status)
 
     def choose_file(self):
-
         filename, _ = QFileDialog.getOpenFileName(
             self, "Chọn File Excel", "", "Excel (*.xlsx)"
         )
@@ -139,7 +136,6 @@ class MainWindow(QMainWindow):
             self.status.setText(str(ex))
 
     def load_preview(self, sheet_name: str):
-
         if not sheet_name:
             return
 

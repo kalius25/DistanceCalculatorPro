@@ -4,10 +4,10 @@ import pytest
 
 from app.services.excel_service import ExcelService
 
-
 # ==========================================================
 # Constructor
 # ==========================================================
+
 
 def test_init():
     service = ExcelService()
@@ -19,6 +19,7 @@ def test_init():
 # ==========================================================
 # Workbook
 # ==========================================================
+
 
 @patch("app.services.excel_service.load_workbook")
 def test_open_workbook(mock_load):
@@ -56,6 +57,7 @@ def test_get_sheet_names():
 # Worksheet
 # ==========================================================
 
+
 def test_get_worksheet_without_workbook():
     service = ExcelService()
 
@@ -80,12 +82,11 @@ def test_get_worksheet():
 # Header
 # ==========================================================
 
+
 def test_read_headers():
     worksheet = MagicMock()
 
-    worksheet.iter_rows.return_value = iter([
-        ("Name", None, 123)
-    ])
+    worksheet.iter_rows.return_value = iter([("Name", None, 123)])
 
     service = ExcelService()
     service.get_worksheet = MagicMock(return_value=worksheet)
@@ -99,13 +100,16 @@ def test_read_headers():
 # Preview
 # ==========================================================
 
+
 def test_read_preview():
     worksheet = MagicMock()
 
-    worksheet.iter_rows.return_value = iter([
-        ("A", None, 1),
-        ("B", 2, None),
-    ])
+    worksheet.iter_rows.return_value = iter(
+        [
+            ("A", None, 1),
+            ("B", 2, None),
+        ]
+    )
 
     service = ExcelService()
     service.get_worksheet = MagicMock(return_value=worksheet)
@@ -133,13 +137,16 @@ def test_read_preview_empty():
 # Read All
 # ==========================================================
 
+
 def test_read_all():
     worksheet = MagicMock()
 
-    worksheet.iter_rows.return_value = iter([
-        ("A", None),
-        (None, "B"),
-    ])
+    worksheet.iter_rows.return_value = iter(
+        [
+            ("A", None),
+            (None, "B"),
+        ]
+    )
 
     service = ExcelService()
     service.get_worksheet = MagicMock(return_value=worksheet)

@@ -1,12 +1,18 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 
+# Virtual env
 .venv/
 
-logs/*.log
+# Build
+build/
+dist/
 
+# Logs
+logs/
+
+# Runtime data
 data/cache/*
 !data/cache/.gitkeep
 
@@ -16,8 +22,11 @@ data/output/*
 data/temp/*
 !data/temp/.gitkeep
 
-logs/
+# Coverage
+htmlcov/
+.coverage
+.pytest_cache/
 
-data/temp
-
-build/
+# IDE
+.vscode/
+.idea/

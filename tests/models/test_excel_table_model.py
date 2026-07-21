@@ -1,5 +1,4 @@
-from PySide6.QtCore import QModelIndex
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QModelIndex, Qt
 
 from app.models.excel_table_model import ExcelTableModel
 
@@ -81,10 +80,13 @@ def test_data_wrong_role():
 
     index = model.index(0, 0)
 
-    assert model.data(
-        index,
-        Qt.ItemDataRole.EditRole,
-    ) is None
+    assert (
+        model.data(
+            index,
+            Qt.ItemDataRole.EditRole,
+        )
+        is None
+    )
 
 
 def test_header_horizontal():
@@ -108,15 +110,12 @@ def test_header_horizontal_out_of_range():
         [],
     )
 
-    assert (
-        model.headerData(
-            5,
-            Qt.Orientation.Horizontal,
-        )
-        == super(ExcelTableModel, model).headerData(
-            5,
-            Qt.Orientation.Horizontal,
-        )
+    assert model.headerData(
+        5,
+        Qt.Orientation.Horizontal,
+    ) == super(ExcelTableModel, model).headerData(
+        5,
+        Qt.Orientation.Horizontal,
     )
 
 
@@ -126,15 +125,12 @@ def test_header_vertical():
         [[1]],
     )
 
-    assert (
-        model.headerData(
-            0,
-            Qt.Orientation.Vertical,
-        )
-        == super(ExcelTableModel, model).headerData(
-            0,
-            Qt.Orientation.Vertical,
-        )
+    assert model.headerData(
+        0,
+        Qt.Orientation.Vertical,
+    ) == super(ExcelTableModel, model).headerData(
+        0,
+        Qt.Orientation.Vertical,
     )
 
 

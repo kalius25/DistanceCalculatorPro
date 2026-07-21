@@ -7,16 +7,18 @@ Quản lý Playwright Browser.
 
 from __future__ import annotations
 
-from playwright.sync_api import Browser
-from playwright.sync_api import BrowserContext
-from playwright.sync_api import Page
-from playwright.sync_api import Playwright
-from playwright.sync_api import sync_playwright
 from types import TracebackType
 
-from app.exceptions.engine_exception import EngineException
+from playwright.sync_api import (
+    Browser,
+    BrowserContext,
+    Page,
+    Playwright,
+    sync_playwright,
+)
 
 from app import config
+from app.exceptions.engine_exception import EngineException
 
 
 class BrowserManager:
@@ -28,7 +30,6 @@ class BrowserManager:
         self,
         headless: bool = config.HEADLESS,
     ) -> None:
-
         self._headless = headless
 
         self._playwright: Playwright | None = None
@@ -40,7 +41,6 @@ class BrowserManager:
     # =====================================================
 
     def start(self) -> None:
-
         if self._browser is not None:
             return
 
@@ -55,7 +55,6 @@ class BrowserManager:
     # =====================================================
 
     def new_page(self) -> Page:
-
         if self._context is None:
             raise EngineException("Browser chưa được khởi động.")
 
@@ -66,7 +65,6 @@ class BrowserManager:
     # =====================================================
 
     def close(self) -> None:
-
         if self._context is not None:
             self._context.close()
             self._context = None
@@ -84,7 +82,6 @@ class BrowserManager:
     # =====================================================
 
     def __enter__(self) -> BrowserManager:
-
         self.start()
 
         return self
@@ -95,5 +92,4 @@ class BrowserManager:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-
         self.close()

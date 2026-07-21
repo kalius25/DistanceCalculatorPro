@@ -1,5 +1,4 @@
-from unittest.mock import MagicMock
-
+from unittest.mock import MagicMock, patch
 
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
@@ -136,10 +135,6 @@ def test_browser_context_closed():
     browser.__enter__.assert_called_once()
     browser.__exit__.assert_called_once()
 
-from unittest.mock import MagicMock
-from unittest.mock import patch
-
-from app.providers.google_web_provider import GoogleWebProvider
 
 def test_constructor_creates_default_engine():
     browser = MagicMock()

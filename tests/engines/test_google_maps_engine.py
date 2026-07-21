@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+
 import pytest
 
 from app.engines.google_maps_engine import GoogleMapsEngine
@@ -25,6 +26,7 @@ def make_route():
         duration_minutes=15,
     )
 
+
 def test_validate_empty_origin():
     request = make_request()
     request.origin = ""
@@ -32,12 +34,14 @@ def test_validate_empty_origin():
     with pytest.raises(ValueError, match="Origin"):
         GoogleMapsEngine._validate_request(request)
 
+
 def test_validate_empty_destination():
     request = make_request()
     request.destination = ""
 
     with pytest.raises(ValueError, match="Destination"):
         GoogleMapsEngine._validate_request(request)
+
 
 @pytest.mark.parametrize(
     "timeout",
@@ -54,8 +58,10 @@ def test_validate_timeout(timeout):
     with pytest.raises(ValueError, match="Timeout"):
         GoogleMapsEngine._validate_request(request)
 
+
 def test_validate_success():
     GoogleMapsEngine._validate_request(make_request())
+
 
 def test_select_travel_mode_invalid():
     engine = GoogleMapsEngine()
@@ -71,6 +77,7 @@ def test_select_travel_mode_invalid():
             page,
             request,
         )
+
 
 def test_select_travel_mode_driving():
     engine = GoogleMapsEngine()
@@ -89,6 +96,7 @@ def test_select_travel_mode_driving():
     )
 
     locator.click.assert_called_once()
+
 
 def test_fill_route_input(monkeypatch):
     locator = MagicMock()
@@ -109,6 +117,7 @@ def test_fill_route_input(monkeypatch):
 
     locator.wait_for.assert_called_once()
     locator.fill.assert_called_once_with("Can Tho")
+
 
 def test_find_routes(monkeypatch):
     page = MagicMock()
@@ -155,4 +164,3 @@ def test_find_routes(monkeypatch):
     route_panel.wait_for.assert_called_once()
 
     assert routes == parser_result
-
