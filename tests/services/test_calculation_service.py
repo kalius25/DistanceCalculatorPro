@@ -1,7 +1,8 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
+from app.exceptions import ErrorCode, ValidationException
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
@@ -43,15 +44,30 @@ def test_validate_success():
 def test_validate_empty_origin():
     request = make_request(origin="   ")
 
-    with pytest.raises(ValueError, match="Origin is empty"):
+    with pytest.raises(
+        ValidationException,
+        match="Origin is empty.",
+    ) as exc:
         CalculationService._validate(request)
 
+    assert exc.value.error_code is ErrorCode.VALIDATION_ERROR
+    assert exc.value.context == {
+        "field": "origin",
+    }
 
 def test_validate_empty_destination():
     request = make_request(destination=" ")
 
-    with pytest.raises(ValueError, match="Destination is empty"):
+    with pytest.raises(
+        ValidationException,
+        match="Destination is empty.",
+    ) as exc:
         CalculationService._validate(request)
+
+    assert exc.value.error_code is ErrorCode.VALIDATION_ERROR
+    assert exc.value.context == {
+        "field": "destination",
+    }
 
 
 def test_select_best_route_single():
@@ -135,14 +151,8 @@ def test_calculate_provider_exception():
 
     service = CalculationService(provider)
 
-    with patch("app.services.calculation_service.traceback.print_exc"):
-        result = service.calculate(request)
-
-    assert result.success is False
-    assert result.request is request
-    assert result.provider == provider.__class__.__name__
-    assert result.error == "boom"
-
+    with pytest.raises(RuntimeError, match="boom"):
+        service.calculate(request)
 
 def test_calculate_validation_exception():
     request = make_request(origin="")
@@ -151,10 +161,17 @@ def test_calculate_validation_exception():
 
     service = CalculationService(provider)
 
-    with patch("app.services.calculation_service.traceback.print_exc"):
-        result = service.calculate(request)
+    result = service.calculate(request)
 
     provider.calculate.assert_not_called()
 
     assert result.success is False
     assert result.error == "Origin is empty."
+    assert result.error_code is ErrorCode.VALIDATION_ERROR
+    assert result.context == {
+        "field": "origin",
+    }
+    assert isinstance(
+        result.exception,
+        ValidationException,
+    )

@@ -51,4 +51,5 @@ class GoogleWebProvider(BaseProvider):
                 error=str(ex),
                 error_code=ex.error_code,
                 context=ex.context,
+                exception=ex,
             )

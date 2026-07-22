@@ -23,12 +23,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Literal
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator, Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from app import config
 from app.engines.base_engine import BaseEngine
 from app.engines.google_maps_locator import GoogleMapsLocator
 from app.enums.travel_mode import TravelMode
+from app.exceptions import EngineException, ErrorCode, ParserException
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.parsers.google_maps_parser import GoogleMapsParser
@@ -76,40 +79,74 @@ class GoogleMapsEngine(BaseEngine):
 
         NotImplementedError
             If travel mode is unsupported.
+
+        ParserException
+            If route parsing fails.
+
+        EngineException
+            If a Playwright operation fails.
         """
 
         self._validate_request(request)
 
-        page.goto(
-            config.GOOGLE_MAPS_URL,
-            timeout=config.BROWSER_TIMEOUT,
-        )
+        context = {
+            "origin": request.origin,
+            "destination": request.destination,
+            "travel_mode": request.travel_mode.value,
+            "timeout": request.timeout,
+        }
 
-        self._fill_route_input(
-            page=page,
-            index=0,
-            value=request.origin,
-        )
+        try:
+            page.goto(
+                config.GOOGLE_MAPS_URL,
+                timeout=config.BROWSER_TIMEOUT,
+            )
 
-        self._fill_route_input(
-            page=page,
-            index=1,
-            value=request.destination,
-        )
+            self._fill_route_input(
+                page=page,
+                index=0,
+                value=request.origin,
+            )
 
-        self._select_travel_mode(
-            page=page,
-            request=request,
-        )
+            self._fill_route_input(
+                page=page,
+                index=1,
+                value=request.destination,
+            )
 
-        route_panel = GoogleMapsLocator.route_panel(page)
+            self._select_travel_mode(
+                page=page,
+                request=request,
+            )
 
-        route_panel.wait_for(
-            state=_WAIT_STATE,
-            timeout=request.timeout * 1000,
-        )
+            route_panel = GoogleMapsLocator.route_panel(page)
 
-        return GoogleMapsParser.parse(page)
+            route_panel.wait_for(
+                state=_WAIT_STATE,
+                timeout=request.timeout * 1000,
+            )
+
+            return GoogleMapsParser.parse(page)
+
+        except ParserException:
+            raise
+
+        except PlaywrightTimeoutError as ex:
+            raise EngineException(
+                "Google Maps request timed out.",
+                error_code=ErrorCode.ENGINE_ERROR,
+                cause=ex,
+                context=context,
+            ) from ex
+
+        except PlaywrightError as ex:
+            raise EngineException(
+                "Google Maps browser operation failed.",
+                error_code=ErrorCode.ENGINE_ERROR,
+                cause=ex,
+                context=context,
+            ) from ex
+
 
     @staticmethod
     def _validate_request(

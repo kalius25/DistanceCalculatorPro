@@ -31,6 +31,8 @@ class RouteResult:
 
     context: dict[str, Any] = field(default_factory=dict)
 
+    exception: Exception | None = None
+
     @property
     def best_route(self) -> RouteOption | None:
         """

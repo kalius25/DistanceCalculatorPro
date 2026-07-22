@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import traceback
-
+from app.exceptions import DistanceCalculatorError, ValidationException
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.providers.base_provider import BaseProvider
@@ -15,7 +14,6 @@ class CalculationService:
         self,
         request: RouteRequest,
     ) -> RouteResult:
-
         try:
             self._validate(request)
 
@@ -26,25 +24,36 @@ class CalculationService:
 
             return result
 
-        except Exception as ex:
-            traceback.print_exc()
-
+        except DistanceCalculatorError as ex:
             return RouteResult(
                 success=False,
                 request=request,
                 provider=self.provider.__class__.__name__,
                 error=str(ex),
+                error_code=ex.error_code,
+                context=ex.context,
+                exception=ex,
             )
 
     @staticmethod
     def _validate(request: RouteRequest):
 
         if not request.origin.strip():
-            raise ValueError("Origin is empty.")
+            raise ValidationException(
+                "Origin is empty.",
+                context={
+                    "field": "origin",
+                },
+            )
 
         if not request.destination.strip():
-            raise ValueError("Destination is empty.")
-
+            raise ValidationException(
+                "Destination is empty.",
+                context={
+                    "field": "destination",
+                },
+            )
+    
     @staticmethod
     def _select_best_route(result: RouteResult) -> int:
 

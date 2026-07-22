@@ -7,6 +7,7 @@ from .engine_exception import EngineException
 from .error_code import ErrorCode
 from .parser_exception import ParserException
 from .provider_exception import ProviderException
+from .validation_exception import ValidationException
 
 __all__ = [
     "DistanceCalculatorError",
@@ -14,4 +15,5 @@ __all__ = [
     "EngineException",
     "ParserException",
     "ProviderException",
+    "ValidationException",
 ]
