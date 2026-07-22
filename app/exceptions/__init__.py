@@ -1,14 +1,16 @@
 """
-Application exceptions.
+Exception package for DistanceCalculatorPro.
 """
 
-from app.exceptions.base_exception import DistanceCalculatorError
-from app.exceptions.engine_exception import EngineException
-from app.exceptions.parser_exception import ParserException
-from app.exceptions.provider_exception import ProviderException
+from .base_exception import DistanceCalculatorError
+from .engine_exception import EngineException
+from .error_code import ErrorCode
+from .parser_exception import ParserException
+from .provider_exception import ProviderException
 
 __all__ = [
     "DistanceCalculatorError",
+    "ErrorCode",
     "EngineException",
     "ParserException",
     "ProviderException",

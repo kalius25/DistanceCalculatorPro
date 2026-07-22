@@ -259,6 +259,18 @@ DR-004 (Backward Compatibility First)
 
 Mục tiêu là giảm Git Diff, tăng khả năng review và giảm rủi ro.
 
+CS-812 — Exception Package Export
+
+Rule
+
+Mọi Exception có thể được sử dụng bên ngoài package phải được export qua app.exceptions.__init__.
+
+Điều này mang lại nhiều lợi ích:
+
+Chỉ có một điểm truy cập duy nhất vào toàn bộ Exception Framework.
+Các module khác không cần biết cấu trúc thư mục nội bộ.
+Sau này nếu đổi tên file hoặc tổ chức lại package, chỉ cần cập nhật __init__.py mà không phải sửa toàn bộ các câu lệnh import trong dự án.
+
 CS-900 Code Review Checklist
 
 Trước khi đóng một Work Package, tự kiểm tra:
