@@ -271,6 +271,204 @@ Chỉ có một điểm truy cập duy nhất vào toàn bộ Exception Framewor
 Các module khác không cần biết cấu trúc thư mục nội bộ.
 Sau này nếu đổi tên file hoặc tổ chức lại package, chỉ cần cập nhật __init__.py mà không phải sửa toàn bộ các câu lệnh import trong dự án.
 
+CS-813 — Exception Chaining
+
+Rule
+
+Khi chuyển đổi từ exception của thư viện hoặc Python sang exception của ứng dụng:
+
+Phải sử dụng raise ... from ... để giữ nguyên chuỗi nguyên nhân.
+Phải truyền cause=<exception> vào DistanceCalculatorError hoặc subclass của nó.
+Không được làm mất traceback gốc.
+
+Ví dụ:
+
+try:
+    driver.get(url)
+except TimeoutError as e:
+    raise EngineException(
+        "Navigation timeout",
+        cause=e,
+        context={
+            "url": url,
+            "timeout": timeout,
+        },
+    ) from e
+
+Lợi ích:
+
+Giữ đầy đủ traceback.
+Dễ debug.
+cause và context luôn đồng bộ.
+Thống nhất cách xử lý lỗi trên toàn dự án.
+
+CS-814 — Exception Translation Boundary
+
+Đây là một quy tắc rất quan trọng trong các hệ thống nhiều tầng.
+
+Rule
+
+Chỉ chuyển đổi (translate) exception tại ranh giới giữa hai tầng kiến trúc.
+
+Ví dụ:
+
+Selenium
+        ↓
+EngineException
+        ↓
+ProviderException
+        ↓
+Application
+
+Không nên làm như:
+
+TimeoutError
+↓
+EngineException
+↓
+ParserException
+↓
+ProviderException
+↓
+Application
+
+vì sẽ tạo quá nhiều lớp bao bọc (wrapping) không cần thiết.
+
+Ví dụ đúng:
+
+try:
+    driver.get(url)
+except TimeoutError as e:
+    raise EngineException(
+        "Navigation timeout",
+        cause=e,
+    ) from e
+
+Sau đó tầng trên chỉ để exception đi qua:
+
+try:
+    browser.open(url)
+except EngineException:
+    raise
+
+không bọc lại nếu không thay đổi ngữ nghĩa của lỗi.
+
+Điều này giữ cho traceback ngắn gọn, rõ ràng và đúng bản chất của lỗi.
+
+CS-815 — One Translation Per Boundary
+
+Quy tắc:
+
+Một exception chỉ được dịch (translate) tối đa một lần khi đi qua một ranh giới kiến trúc.
+
+Ví dụ:
+
+Selenium Exception
+        │
+        ▼
+EngineException
+        │
+        ▼
+Application
+
+Đúng.
+
+Không nên:
+
+Selenium
+    │
+    ▼
+EngineException
+    │
+    ▼
+ProviderException
+    │
+    ▼
+ParserException
+    │
+    ▼
+ApplicationException
+
+Việc bọc lại nhiều tầng sẽ:
+
+làm traceback dài và khó đọc;
+che mất nguyên nhân gốc;
+tạo nhiều exception không mang thêm ngữ nghĩa.
+
+Nếu một tầng không thay đổi ngữ nghĩa của lỗi, hãy để exception đi qua thay vì bọc lại. Điều này bổ sung và làm rõ hơn cho CS-814 — Exception Translation Boundary.
+
+CS-816 — Exception to Result Boundary
+
+Rule
+
+Chỉ các lớp đóng vai trò Application Boundary (Provider, CLI, API Controller...) mới được chuyển DistanceCalculatorError thành Result Object.
+
+Ví dụ:
+
+EngineException
+        │
+        ▼
+GoogleWebProvider
+        │
+        ▼
+RouteResult(success=False)
+
+Đây là hành vi được phép.
+
+Nhưng:
+
+EngineException
+        │
+        ▼
+ProviderException
+
+thì không nên, nếu không thay đổi ngữ nghĩa của lỗi.
+
+CS-816 giúp phân biệt rõ:
+
+Translation (Exception → Exception)
+Transformation (Exception → Result)
+
+CS-817 — Public Property Coverage
+Standard ID
+
+CS-817
+
+Title
+
+Public Property Coverage
+
+Status
+
+Approved
+
+Category
+
+Testing Standard
+
+Rule
+
+Mọi public property hoặc public method có chứa logic xử lý (không chỉ trả về trực tiếp một trường dữ liệu) phải có unit test bao phủ đầy đủ.
+
+Ít nhất phải kiểm thử:
+
+Trường hợp thông thường (Happy Path).
+Trường hợp biên (Boundary Cases).
+Trường hợp dữ liệu không hợp lệ nếu có.
+Scope
+
+Áp dụng cho:
+
+@property
+Computed Property
+Read-only Property
+Helper Method được public
+
+Không áp dụng cho:
+
+Getter chỉ trả về một field.
+Dataclass field thông thường.
+
 CS-900 Code Review Checklist
 
 Trước khi đóng một Work Package, tự kiểm tra:

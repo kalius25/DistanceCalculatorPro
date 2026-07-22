@@ -1,5 +1,8 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from app.exceptions import EngineException, ErrorCode
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.providers.google_web_provider import GoogleWebProvider
@@ -105,7 +108,15 @@ def test_calculate_exception():
     browser, context = make_browser()
 
     engine = MagicMock()
-    engine.find_routes.side_effect = RuntimeError("Google timeout")
+
+    engine.find_routes.side_effect = EngineException(
+        "Google timeout",
+        cause=TimeoutError("Navigation timeout"),
+        context={
+            "timeout": 30,
+            "provider": "google_web",
+        },
+    )
 
     provider = GoogleWebProvider(
         browser=browser,
@@ -115,9 +126,19 @@ def test_calculate_exception():
     result = provider.calculate(request)
 
     assert result.success is False
+
     assert result.provider == "google_web"
+
     assert result.error == "Google timeout"
 
+    assert result.error_code is ErrorCode.ENGINE_ERROR
+
+    assert result.context == {
+        "timeout": 30,
+        "provider": "google_web",
+    }
+
+    engine.find_routes.assert_called_once()
 
 def test_browser_context_closed():
     request = make_request()
@@ -153,3 +174,20 @@ def test_constructor_creates_default_engine():
     engine_cls.assert_called_once_with()
     assert provider._engine is fake_engine
     assert provider._browser is browser
+
+def test_calculate_unexpected_exception():
+    request = make_request()
+
+    browser, context = make_browser()
+
+    engine = MagicMock()
+
+    engine.find_routes.side_effect = RuntimeError("Unexpected bug")
+
+    provider = GoogleWebProvider(
+        browser=browser,
+        engine=engine,
+    )
+
+    with pytest.raises(RuntimeError, match="Unexpected bug"):
+        provider.calculate(request)
