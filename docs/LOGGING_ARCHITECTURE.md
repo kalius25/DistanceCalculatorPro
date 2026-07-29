@@ -155,3 +155,7 @@ Kiến trúc Logging
       ┌─────────────┬──────────────┬──────────────┐
       │             │              │              │
 CalculationService Provider Engine Parser
+
+LOG-012 – Handler ownership
+
+LoggingManager chỉ được remove hoặc close những handler do chính nó tạo. External handler phải được giữ nguyên.
