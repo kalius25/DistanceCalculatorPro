@@ -1,36 +1,30 @@
 """
-Configuration package.
+Application configuration package.
 
-This package defines immutable configuration models and the configuration
-loader used by the application.
-
-Architecture:
-    ConfigurationLoader
-            │
-            ▼
-        AppConfig
-            │
-            ├── BrowserConfig
-            ├── ProviderConfig
-            ├── LoggingConfig
-            ├── ExcelConfig
-            └── DebugConfig
+This package exposes the configuration loader and immutable
+configuration models used by the application.
 """
 
-from .configuration_loader import ConfigurationLoader
-from .models.app_config import AppConfig
-from .models.browser_config import BrowserConfig
-from .models.debug_config import DebugConfig
-from .models.excel_config import ExcelConfig
-from .models.logging_config import LoggingConfig
-from .models.provider_config import ProviderConfig
+from app.configuration.configuration_loader import (
+    ConfigurationLoader,
+)
+from app.configuration.models import (
+    AppConfig,
+    BrowserConfig,
+    DebugConfig,
+    ExcelConfig,
+    GoogleMapsConfig,
+    LoggingConfig,
+    ProviderConfig,
+)
 
 __all__ = [
     "AppConfig",
     "BrowserConfig",
-    "ProviderConfig",
-    "LoggingConfig",
-    "ExcelConfig",
-    "DebugConfig",
     "ConfigurationLoader",
+    "DebugConfig",
+    "ExcelConfig",
+    "GoogleMapsConfig",
+    "LoggingConfig",
+    "ProviderConfig",
 ]

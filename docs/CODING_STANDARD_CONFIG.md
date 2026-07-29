@@ -190,3 +190,25 @@ DI-003 – Dependency assembly belongs outside business components
 Các component như Provider, Service, Controller không được tự lắp ráp dependency graph.
 
 Assembly cuối cùng thuộc Composition Root.
+
+DI-004 – Providers orchestrate only
+
+Provider không chứa business logic.
+
+Provider chỉ:
+
+chuẩn bị dependency
+gọi engine
+chuyển exception
+trả model
+DI-005 – Infrastructure owns resources
+
+Browser lifecycle thuộc:
+
+BrowserManager
+
+không thuộc:
+
+GoogleWebProvider
+
+Provider chỉ sử dụng BrowserManager.

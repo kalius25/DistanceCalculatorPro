@@ -46,3 +46,11 @@ def test_debug_default_values():
     assert config.debug.save_html is False
     assert config.debug.save_screenshot is False
     assert config.debug.save_json is False
+
+def test_google_maps_default_values():
+    config = ConfigurationLoader.load()
+
+    assert config.google_maps.base_url == (
+        "https://www.google.com/maps/dir/?api=1"
+    )
+    assert config.google_maps.action_timeout == 30_000

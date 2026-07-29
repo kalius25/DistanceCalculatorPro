@@ -2,11 +2,12 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from app.configuration.models import (
+from app.configuration import (
     AppConfig,
     BrowserConfig,
     DebugConfig,
     ExcelConfig,
+    GoogleMapsConfig,
     LoggingConfig,
     ProviderConfig,
 )
@@ -65,7 +66,6 @@ def test_browser_config_is_frozen():
     with pytest.raises(FrozenInstanceError):
         config.timeout = 60
 
-
 def test_app_config_creation():
     app_config = AppConfig(
         browser=BrowserConfig(
@@ -75,7 +75,13 @@ def test_app_config_creation():
             viewport_width=1920,
             viewport_height=1080,
             user_agent=None,
-           locale="vi-VN",
+            locale="vi-VN",
+        ),
+        google_maps=GoogleMapsConfig(
+            base_url=(
+                "https://www.google.com/maps/dir/?api=1"
+            ),
+            action_timeout=30_000,
         ),
         provider=ProviderConfig(
             retry_count=3,
@@ -99,12 +105,10 @@ def test_app_config_creation():
     )
 
     assert app_config.browser.timeout == 30_000
-    assert app_config.provider.retry_count == 3
-    assert (
-        app_config.provider.default_provider
-        is ProviderType.GOOGLE_MAPS_WEB
+    assert app_config.google_maps.base_url == (
+        "https://www.google.com/maps/dir/?api=1"
     )
-
+    assert app_config.google_maps.action_timeout == 30_000
 
 def test_app_config_is_frozen():
     app_config = AppConfig(
@@ -116,6 +120,12 @@ def test_app_config_is_frozen():
             viewport_height=1080,
             user_agent=None,
             locale="vi-VN",
+        ),
+        google_maps=GoogleMapsConfig(
+            base_url=(
+                "https://www.google.com/maps/dir/?api=1"
+            ),
+            action_timeout=30_000,
         ),
         provider=ProviderConfig(
             retry_count=3,
@@ -139,16 +149,10 @@ def test_app_config_is_frozen():
     )
 
     with pytest.raises(FrozenInstanceError):
-        app_config.browser = BrowserConfig(
-            headless=True,
-            timeout=30_000,
-            slow_mo=0,
-            viewport_width=1920,
-            viewport_height=1080,
-            user_agent=None,
-            locale="vi-VN",
+        app_config.google_maps = GoogleMapsConfig(
+            base_url="https://example.com",
+            action_timeout=60_000,
         )
-
 
 def test_configuration_models_use_slots():
     browser_config = BrowserConfig(

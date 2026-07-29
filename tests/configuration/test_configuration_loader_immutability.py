@@ -38,3 +38,9 @@ def test_debug_configuration_is_immutable():
 
     with pytest.raises(FrozenInstanceError):
         config.debug.save_html = True
+
+def test_google_maps_configuration_is_immutable():
+    config = ConfigurationLoader.load()
+
+    with pytest.raises(FrozenInstanceError):
+        config.google_maps.action_timeout = 60_000

@@ -4,6 +4,7 @@ from app.configuration import (
     ConfigurationLoader,
     DebugConfig,
     ExcelConfig,
+    GoogleMapsConfig,
     LoggingConfig,
     ProviderConfig,
 )
@@ -23,6 +24,7 @@ def test_load_creates_all_configuration_sections():
     assert isinstance(config.logging, LoggingConfig)
     assert isinstance(config.excel, ExcelConfig)
     assert isinstance(config.debug, DebugConfig)
+    assert isinstance(config.google_maps, GoogleMapsConfig)
 
 
 def test_load_returns_new_instance_each_time():

@@ -2,8 +2,11 @@ from unittest.mock import MagicMock
 
 import pytest
 from playwright.sync_api import Error as PlaywrightError
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import (
+    TimeoutError as PlaywrightTimeoutError,
+)
 
+from app.configuration.models import GoogleMapsConfig
 from app.engines.google_maps_engine import GoogleMapsEngine
 from app.enums.travel_mode import TravelMode
 from app.exceptions import (
@@ -13,6 +16,39 @@ from app.exceptions import (
 )
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
+
+
+@pytest.fixture
+def engine_config() -> GoogleMapsConfig:
+    return GoogleMapsConfig(
+        base_url=(
+            "https://www.google.com/maps/dir/?api=1"
+        ),
+        action_timeout=30_000,
+    )
+
+
+@pytest.fixture
+def locator():
+    return MagicMock()
+
+
+@pytest.fixture
+def parser():
+    return MagicMock()
+
+
+@pytest.fixture
+def engine(
+    engine_config,
+    locator,
+    parser,
+):
+    return GoogleMapsEngine(
+        config=engine_config,
+        locator=locator,
+        parser=parser,
+    )
 
 
 def make_request():
@@ -34,11 +70,30 @@ def make_route():
     )
 
 
+def test_constructor_stores_dependencies(
+    engine_config,
+    locator,
+    parser,
+):
+    engine = GoogleMapsEngine(
+        config=engine_config,
+        locator=locator,
+        parser=parser,
+    )
+
+    assert engine._config is engine_config
+    assert engine._locator is locator
+    assert engine._parser is parser
+
+
 def test_validate_empty_origin():
     request = make_request()
     request.origin = ""
 
-    with pytest.raises(ValueError, match="Origin"):
+    with pytest.raises(
+        ValueError,
+        match="Origin",
+    ):
         GoogleMapsEngine._validate_request(request)
 
 
@@ -46,7 +101,10 @@ def test_validate_empty_destination():
     request = make_request()
     request.destination = ""
 
-    with pytest.raises(ValueError, match="Destination"):
+    with pytest.raises(
+        ValueError,
+        match="Destination",
+    ):
         GoogleMapsEngine._validate_request(request)
 
 
@@ -62,38 +120,42 @@ def test_validate_timeout(timeout):
     request = make_request()
     request.timeout = timeout
 
-    with pytest.raises(ValueError, match="Timeout"):
+    with pytest.raises(
+        ValueError,
+        match="Timeout",
+    ):
         GoogleMapsEngine._validate_request(request)
 
 
 def test_validate_success():
-    GoogleMapsEngine._validate_request(make_request())
+    GoogleMapsEngine._validate_request(
+        make_request()
+    )
 
 
-def test_select_travel_mode_invalid():
-    engine = GoogleMapsEngine()
-
-    page = MagicMock()
-
+def test_select_travel_mode_invalid(
+    engine,
+):
     request = make_request()
-
     request.travel_mode = MagicMock()
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(
+        NotImplementedError,
+        match="Unsupported travel mode",
+    ):
         engine._select_travel_mode(
-            page,
+            MagicMock(),
             request,
         )
 
 
-def test_select_travel_mode_driving():
-    engine = GoogleMapsEngine()
-
+def test_select_travel_mode_driving(
+    engine,
+):
     page = MagicMock()
-
     locator = MagicMock()
 
-    engine._TRAVEL_MODE_LOCATORS = {
+    engine._travel_mode_locators = {
         TravelMode.DRIVING: lambda _: locator,
     }
 
@@ -102,180 +164,193 @@ def test_select_travel_mode_driving():
         make_request(),
     )
 
-    locator.click.assert_called_once()
-
-
-def test_fill_route_input(monkeypatch):
-    locator = MagicMock()
-
-    from app.engines import google_maps_engine
-
-    monkeypatch.setattr(
-        google_maps_engine.GoogleMapsLocator,
-        "route_input",
-        lambda *_: locator,
+    locator.click.assert_called_once_with(
+        timeout=30_000,
     )
 
-    GoogleMapsEngine._fill_route_input(
-        MagicMock(),
+
+def test_fill_route_input(
+    engine,
+    locator,
+):
+    page = MagicMock()
+    route_input = MagicMock()
+
+    locator.route_input.return_value = route_input
+
+    engine._fill_route_input(
+        page,
         index=0,
         value="Can Tho",
     )
 
-    locator.wait_for.assert_called_once()
-    locator.fill.assert_called_once_with("Can Tho")
+    locator.route_input.assert_called_once_with(
+        page,
+        0,
+    )
+
+    route_input.wait_for.assert_called_once_with(
+        state="visible",
+        timeout=30_000,
+    )
+
+    route_input.fill.assert_called_once_with(
+        "Can Tho"
+    )
 
 
-def test_find_routes(monkeypatch):
+def test_find_routes(
+    engine,
+    locator,
+    parser,
+):
     page = MagicMock()
-
     route_panel = MagicMock()
-
     parser_result = [make_route()]
 
-    from app.engines import google_maps_engine
+    locator.route_panel.return_value = route_panel
+    parser.parse.return_value = parser_result
 
-    monkeypatch.setattr(
-        google_maps_engine.GoogleMapsLocator,
-        "route_panel",
-        lambda *_: route_panel,
-    )
+    engine._fill_route_input = MagicMock()
+    engine._select_travel_mode = MagicMock()
 
-    monkeypatch.setattr(
-        google_maps_engine.GoogleMapsParser,
-        "parse",
-        lambda *_: parser_result,
-    )
+    request = make_request()
 
-    monkeypatch.setattr(
-        GoogleMapsEngine,
-        "_fill_route_input",
-        lambda *args, **kwargs: None,
-    )
-
-    monkeypatch.setattr(
-        GoogleMapsEngine,
-        "_select_travel_mode",
-        lambda *args, **kwargs: None,
-    )
-
-    engine = GoogleMapsEngine()
-
-    routes = engine.find_routes(
+    result = engine.find_routes(
         page,
-        make_request(),
+        request,
     )
 
-    page.goto.assert_called_once()
+    page.goto.assert_called_once_with(
+        "https://www.google.com/maps/dir/?api=1",
+        timeout=30_000,
+    )
 
-    route_panel.wait_for.assert_called_once()
+    assert engine._fill_route_input.call_count == 2
 
-    assert routes == parser_result
+    engine._fill_route_input.assert_any_call(
+        page=page,
+        index=0,
+        value="Can Tho",
+    )
 
-def test_find_routes_timeout_raises_engine_exception():
+    engine._fill_route_input.assert_any_call(
+        page=page,
+        index=1,
+        value="Ho Chi Minh",
+    )
+
+    engine._select_travel_mode.assert_called_once_with(
+        page=page,
+        request=request,
+    )
+
+    locator.route_panel.assert_called_once_with(
+        page
+    )
+
+    route_panel.wait_for.assert_called_once_with(
+        state="visible",
+        timeout=30_000,
+    )
+
+    parser.parse.assert_called_once_with(page)
+
+    assert result == parser_result
+
+
+def test_find_routes_timeout_raises_engine_exception(
+    engine,
+):
     page = MagicMock()
-
     request = make_request()
 
     page.goto.side_effect = PlaywrightTimeoutError(
-        "Navigation timeout",
+        "Navigation timeout"
     )
 
-    engine = GoogleMapsEngine()
-
-    with pytest.raises(EngineException) as exc:
+    with pytest.raises(
+        EngineException,
+    ) as exc_info:
         engine.find_routes(
             page,
             request,
         )
 
-    ex = exc.value
+    exception = exc_info.value
 
-    assert ex.error_code is ErrorCode.ENGINE_ERROR
+    assert (
+        exception.error_code
+        is ErrorCode.ENGINE_ERROR
+    )
 
     assert isinstance(
-        ex.cause,
+        exception.cause,
         PlaywrightTimeoutError,
     )
 
-    assert ex.context == {
+    assert exception.context == {
         "origin": request.origin,
         "destination": request.destination,
         "travel_mode": request.travel_mode.value,
         "timeout": request.timeout,
     }
 
-def test_find_routes_playwright_error_raises_engine_exception():
-    page = MagicMock()
 
+def test_find_routes_playwright_error(
+    engine,
+):
+    page = MagicMock()
     request = make_request()
 
     page.goto.side_effect = PlaywrightError(
-        "Browser crashed",
+        "Browser crashed"
     )
 
-    engine = GoogleMapsEngine()
-
-    with pytest.raises(EngineException) as exc:
+    with pytest.raises(
+        EngineException,
+    ) as exc_info:
         engine.find_routes(
             page,
             request,
         )
 
-    ex = exc.value
+    exception = exc_info.value
 
-    assert ex.error_code is ErrorCode.ENGINE_ERROR
+    assert (
+        exception.error_code
+        is ErrorCode.ENGINE_ERROR
+    )
 
     assert isinstance(
-        ex.cause,
+        exception.cause,
         PlaywrightError,
     )
 
-    assert ex.context == {
+    assert exception.context == {
         "origin": request.origin,
         "destination": request.destination,
         "travel_mode": request.travel_mode.value,
         "timeout": request.timeout,
     }
 
+
 def test_find_routes_reraises_parser_exception(
-    monkeypatch,
+    engine,
+    locator,
+    parser,
 ):
     page = MagicMock()
-
     route_panel = MagicMock()
 
-    from app.engines import google_maps_engine
+    locator.route_panel.return_value = route_panel
 
-    monkeypatch.setattr(
-        google_maps_engine.GoogleMapsLocator,
-        "route_panel",
-        lambda *_: route_panel,
+    parser.parse.side_effect = ParserException(
+        "Parse failed"
     )
 
-    monkeypatch.setattr(
-        google_maps_engine.GoogleMapsParser,
-        "parse",
-        lambda *_: (
-            _ for _ in ()
-        ).throw(
-            ParserException("Parse failed"),
-        ),
-    )
-
-    monkeypatch.setattr(
-        GoogleMapsEngine,
-        "_fill_route_input",
-        lambda *args, **kwargs: None,
-    )
-
-    monkeypatch.setattr(
-        GoogleMapsEngine,
-        "_select_travel_mode",
-        lambda *args, **kwargs: None,
-    )
-
-    engine = GoogleMapsEngine()
+    engine._fill_route_input = MagicMock()
+    engine._select_travel_mode = MagicMock()
 
     with pytest.raises(
         ParserException,
