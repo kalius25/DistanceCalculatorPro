@@ -19,7 +19,9 @@ from playwright.sync_api import (
 
 from app import config
 from app.exceptions.engine_exception import EngineException
+from app.logging import LoggingManager
 
+logger = LoggingManager.get_logger(__name__)
 
 class BrowserManager:
     """

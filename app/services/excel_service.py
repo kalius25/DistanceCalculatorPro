@@ -2,6 +2,9 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
+from app.logging import LoggingManager
+
+logger = LoggingManager.get_logger(__name__)
 
 class ExcelService:
     """

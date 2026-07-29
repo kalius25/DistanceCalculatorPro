@@ -32,9 +32,12 @@ from app.engines.base_engine import BaseEngine
 from app.engines.google_maps_locator import GoogleMapsLocator
 from app.enums.travel_mode import TravelMode
 from app.exceptions import EngineException, ErrorCode, ParserException
+from app.logging import LoggingManager
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.parsers.google_maps_parser import GoogleMapsParser
+
+logger = LoggingManager.get_logger(__name__)
 
 _WAIT_STATE: Literal["visible"] = "visible"
 

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
+from app.logging import LoggingManager
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.services.calculation_service import CalculationService
+
+logger = LoggingManager.get_logger(__name__)
 
 ProgressCallback = Callable[
     [int, int, RouteRequest, RouteResult],

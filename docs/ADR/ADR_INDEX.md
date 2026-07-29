@@ -55,6 +55,11 @@ ADR-023	ADR Update Workflow	Approved	None
 ADR-024	Decision Immutability	Approved	None
 ADR-025	Standards Reference Registry	Approved	None
 ADR-026	ADR Scope Definition	Approved	None
+ADR-027 Rich Exception Model	Approved	None
+ADR-028 Centralized ErrorCode Registry	Approved	None
+ADR-029 Default ErrorCode by Exception Type	Approved	None
+ADR-030 Canonical Domain Models	Approved	None
+ADR-031  Logging Architecture	Approved	None
 
 ADR Status Definition
 Status	Ý nghĩa

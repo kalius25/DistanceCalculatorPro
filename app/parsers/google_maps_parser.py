@@ -23,8 +23,11 @@ from playwright.sync_api import Locator, Page
 
 from app import config
 from app.engines.google_maps_locator import GoogleMapsLocator
+from app.logging import LoggingManager
 from app.models.route_option import RouteOption
 from app.utils.text_converter import TextConverter
+
+logger = LoggingManager.get_logger(__name__)
 
 # =============================================================================
 # Internal Regex

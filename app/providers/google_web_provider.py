@@ -3,10 +3,12 @@ from __future__ import annotations
 from app.engines.base_engine import BaseEngine
 from app.engines.browser_manager import BrowserManager
 from app.exceptions import DistanceCalculatorError
+from app.logging import LoggingManager
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.providers.base_provider import BaseProvider
 
+logger = LoggingManager.get_logger(__name__)
 
 class GoogleWebProvider(BaseProvider):
     def __init__(
