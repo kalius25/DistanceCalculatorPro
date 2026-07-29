@@ -5,12 +5,13 @@ from app.enums.provider_type import ProviderType
 def test_browser_default_values():
     config = ConfigurationLoader.load()
 
-    assert config.browser.headless is True
-    assert config.browser.timeout == 30
+    assert config.browser.headless is False
+    assert config.browser.timeout == 30_000
     assert config.browser.slow_mo == 0
     assert config.browser.viewport_width == 1920
     assert config.browser.viewport_height == 1080
     assert config.browser.user_agent is None
+    assert config.browser.locale == "vi-VN"
 
 
 def test_provider_default_values():

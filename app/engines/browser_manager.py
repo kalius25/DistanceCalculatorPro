@@ -1,8 +1,7 @@
 """
-Distance Calculator Pro
+Distance Calculator Pro.
 
-Browser Manager
-Quản lý Playwright Browser.
+Playwright browser lifecycle management.
 """
 
 from __future__ import annotations
@@ -17,56 +16,92 @@ from playwright.sync_api import (
     sync_playwright,
 )
 
-from app import config
+from app.configuration.models import BrowserConfig
 from app.exceptions.engine_exception import EngineException
-from app.logging import LoggingManager
 
-logger = LoggingManager.get_logger(__name__)
 
 class BrowserManager:
-    """
-    Quản lý vòng đời của Playwright.
-    """
+    """Manage the Playwright browser lifecycle."""
 
     def __init__(
         self,
-        headless: bool = config.HEADLESS,
+        config: BrowserConfig,
     ) -> None:
-        self._headless = headless
+        """
+        Initialize the browser manager.
+
+        Parameters
+        ----------
+        config:
+            Browser-specific immutable configuration.
+        """
+        self._config = config
 
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
 
-    # =====================================================
-    # Start
-    # =====================================================
-
     def start(self) -> None:
+        """
+        Start Playwright and create a configured browser context.
+
+        Calling this method repeatedly does not create duplicate browser
+        instances while a managed browser is already active.
+        """
         if self._browser is not None:
             return
 
         self._playwright = sync_playwright().start()
 
-        self._browser = self._playwright.chromium.launch(headless=self._headless)
+        self._browser = self._playwright.chromium.launch(
+            headless=self._config.headless,
+            slow_mo=self._config.slow_mo,
+        )
 
-        self._context = self._browser.new_context(locale=config.DEFAULT_LOCALE)
+        context_options: dict[str, object] = {
+            "locale": self._config.locale,
+            "viewport": {
+                "width": self._config.viewport_width,
+                "height": self._config.viewport_height,
+            },
+        }
 
-    # =====================================================
-    # Page
-    # =====================================================
+        if self._config.user_agent is not None:
+            context_options["user_agent"] = (
+                self._config.user_agent
+            )
+
+        self._context = self._browser.new_context(
+            **context_options,
+        )
+
+        self._context.set_default_timeout(
+            self._config.timeout,
+        )
 
     def new_page(self) -> Page:
+        """
+        Create a new page in the managed browser context.
+
+        Raises
+        ------
+        EngineException
+            If the browser context has not been started.
+        """
         if self._context is None:
-            raise EngineException("Browser chưa được khởi động.")
+            raise EngineException(
+                "Browser chưa được khởi động."
+            )
 
         return self._context.new_page()
 
-    # =====================================================
-    # Close
-    # =====================================================
-
     def close(self) -> None:
+        """
+        Close all managed Playwright resources.
+
+        The method is safe to call repeatedly or when one or more
+        resources have already been closed.
+        """
         if self._context is not None:
             self._context.close()
             self._context = None
@@ -79,11 +114,8 @@ class BrowserManager:
             self._playwright.stop()
             self._playwright = None
 
-    # =====================================================
-    # Context Manager
-    # =====================================================
-
     def __enter__(self) -> BrowserManager:
+        """Start the browser and return this manager."""
         self.start()
 
         return self
@@ -94,4 +126,5 @@ class BrowserManager:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
+        """Close managed resources when leaving the context."""
         self.close()

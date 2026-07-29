@@ -156,25 +156,6 @@ def test_browser_context_closed():
     browser.__enter__.assert_called_once()
     browser.__exit__.assert_called_once()
 
-
-def test_constructor_creates_default_engine():
-    browser = MagicMock()
-
-    fake_engine = MagicMock()
-
-    with patch(
-        "app.engines.google_maps_engine.GoogleMapsEngine",
-        return_value=fake_engine,
-    ) as engine_cls:
-        provider = GoogleWebProvider(
-            browser=browser,
-            engine=None,
-        )
-
-    engine_cls.assert_called_once_with()
-    assert provider._engine is fake_engine
-    assert provider._browser is browser
-
 def test_calculate_unexpected_exception():
     request = make_request()
 
@@ -191,3 +172,38 @@ def test_calculate_unexpected_exception():
 
     with pytest.raises(RuntimeError, match="Unexpected bug"):
         provider.calculate(request)
+
+def test_constructor_stores_injected_dependencies():
+    browser = MagicMock()
+    engine = MagicMock()
+
+    provider = GoogleWebProvider(
+        browser=browser,
+        engine=engine,
+    )
+
+    assert provider._browser is browser
+    assert provider._engine is engine
+
+def test_constructor_does_not_create_default_dependencies():
+    browser = MagicMock()
+    engine = MagicMock()
+
+    with (
+        patch(
+            "app.providers.google_web_provider.BrowserManager",
+        ) as browser_class,
+        patch(
+            "app.providers.google_web_provider.GoogleMapsEngine",
+        ) as engine_class,
+    ):
+        provider = GoogleWebProvider(
+            browser=browser,
+            engine=engine,
+        )
+
+    browser_class.assert_not_called()
+    engine_class.assert_not_called()
+
+    assert provider._browser is browser
+    assert provider._engine is engine

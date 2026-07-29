@@ -42,12 +42,13 @@ class ConfigurationLoader:
 
         return AppConfig(
             browser=BrowserConfig(
-                headless=True,
-                timeout=30,
+                headless=False,
+                timeout=30_000,
                 slow_mo=0,
                 viewport_width=1920,
                 viewport_height=1080,
                 user_agent=None,
+                locale="vi-VN",
             ),
             provider=ProviderConfig(
                 retry_count=3,

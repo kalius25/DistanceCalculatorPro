@@ -1,34 +1,57 @@
+"""
+Distance Calculator Pro.
+
+Google Maps web provider implementation.
+"""
+
 from __future__ import annotations
 
-from app.engines.base_engine import BaseEngine
 from app.engines.browser_manager import BrowserManager
-from app.exceptions import DistanceCalculatorError
-from app.logging import LoggingManager
+from app.engines.google_maps_engine import GoogleMapsEngine
+from app.exceptions import EngineException
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.providers.base_provider import BaseProvider
 
-logger = LoggingManager.get_logger(__name__)
 
 class GoogleWebProvider(BaseProvider):
+    """
+    Calculate routes through the Google Maps web interface.
+
+    BrowserManager and GoogleMapsEngine are created externally and
+    injected through the constructor.
+    """
+
+    PROVIDER_NAME = "google_web"
+
     def __init__(
         self,
-        browser: BrowserManager | None = None,
-        engine: BaseEngine | None = None,
+        browser: BrowserManager,
+        engine: GoogleMapsEngine,
     ) -> None:
-        self._browser = browser or BrowserManager()
+        """
+        Initialize the provider with its required dependencies.
 
-        if engine is None:
-            from app.engines.google_maps_engine import GoogleMapsEngine
-
-            engine = GoogleMapsEngine()
-
+        Parameters
+        ----------
+        browser:
+            Browser lifecycle manager.
+        engine:
+            Google Maps route extraction engine.
+        """
+        self._browser = browser
         self._engine = engine
 
     def calculate(
         self,
         request: RouteRequest,
     ) -> RouteResult:
+        """
+        Calculate routes for the supplied request.
+
+        EngineException is converted into a failed RouteResult.
+        Unexpected exceptions are intentionally allowed to propagate.
+        """
         try:
             with self._browser as browser:
                 page = browser.new_page()
@@ -41,17 +64,17 @@ class GoogleWebProvider(BaseProvider):
             return RouteResult(
                 success=True,
                 request=request,
-                provider="google_web",
+                provider=self.PROVIDER_NAME,
                 routes=routes,
             )
 
-        except DistanceCalculatorError as ex:
+        except EngineException as exc:
             return RouteResult(
                 success=False,
                 request=request,
-                provider="google_web",
-                error=str(ex),
-                error_code=ex.error_code,
-                context=ex.context,
-                exception=ex,
+                provider=self.PROVIDER_NAME,
+                error=str(exc),
+                error_code=exc.error_code,
+                context=exc.context,
+                exception=exc,
             )

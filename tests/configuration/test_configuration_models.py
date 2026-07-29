@@ -16,20 +16,22 @@ from app.enums.provider_type import ProviderType
 def test_browser_config_equality():
     config1 = BrowserConfig(
         headless=True,
-        timeout=30,
+        timeout=30_000,
         slow_mo=0,
         viewport_width=1920,
         viewport_height=1080,
         user_agent=None,
+        locale="vi-VN",
     )
 
     config2 = BrowserConfig(
         headless=True,
-        timeout=30,
+        timeout=30_000,
         slow_mo=0,
         viewport_width=1920,
         viewport_height=1080,
         user_agent=None,
+        locale="vi-VN",
     )
 
     assert config1 == config2
@@ -38,11 +40,12 @@ def test_browser_config_equality():
 def test_browser_config_repr_contains_class_name():
     config = BrowserConfig(
         headless=True,
-        timeout=30,
+        timeout=30_000,
         slow_mo=0,
         viewport_width=1920,
         viewport_height=1080,
         user_agent=None,
+        locale="vi-VN",
     )
 
     assert "BrowserConfig" in repr(config)
@@ -51,11 +54,12 @@ def test_browser_config_repr_contains_class_name():
 def test_browser_config_is_frozen():
     config = BrowserConfig(
         headless=True,
-        timeout=30,
+        timeout=30_000,
         slow_mo=0,
         viewport_width=1920,
         viewport_height=1080,
         user_agent=None,
+        locale="vi-VN",
     )
 
     with pytest.raises(FrozenInstanceError):
@@ -66,11 +70,12 @@ def test_app_config_creation():
     app_config = AppConfig(
         browser=BrowserConfig(
             headless=True,
-            timeout=30,
+            timeout=30_000,
             slow_mo=0,
             viewport_width=1920,
             viewport_height=1080,
             user_agent=None,
+           locale="vi-VN",
         ),
         provider=ProviderConfig(
             retry_count=3,
@@ -93,7 +98,7 @@ def test_app_config_creation():
         ),
     )
 
-    assert app_config.browser.timeout == 30
+    assert app_config.browser.timeout == 30_000
     assert app_config.provider.retry_count == 3
     assert (
         app_config.provider.default_provider
@@ -105,11 +110,12 @@ def test_app_config_is_frozen():
     app_config = AppConfig(
         browser=BrowserConfig(
             headless=True,
-            timeout=30,
+            timeout=30_000,
             slow_mo=0,
             viewport_width=1920,
             viewport_height=1080,
             user_agent=None,
+            locale="vi-VN",
         ),
         provider=ProviderConfig(
             retry_count=3,
@@ -134,23 +140,25 @@ def test_app_config_is_frozen():
 
     with pytest.raises(FrozenInstanceError):
         app_config.browser = BrowserConfig(
-            headless=False,
-            timeout=60,
+            headless=True,
+            timeout=30_000,
             slow_mo=0,
-            viewport_width=1280,
-            viewport_height=720,
+            viewport_width=1920,
+            viewport_height=1080,
             user_agent=None,
+            locale="vi-VN",
         )
 
 
 def test_configuration_models_use_slots():
     browser_config = BrowserConfig(
         headless=True,
-        timeout=30,
+        timeout=30_000,
         slow_mo=0,
         viewport_width=1920,
         viewport_height=1080,
         user_agent=None,
+        locale="vi-VN",
     )
 
     assert not hasattr(browser_config, "__dict__")
