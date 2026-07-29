@@ -369,3 +369,48 @@ Version	Thay đổi
 1.0	Khởi tạo Module Contract
 1.2	Bổ sung Ownership và Design Principles
 2.0.0	Chuẩn hóa cấu trúc theo nhóm MC-000 → MC-500, bổ sung State Lifetime, State Consistency và thống nhất với SS v2.0.0
+
+
+Coding Standard mới
+
+Đến thời điểm này, chúng ta đã chính thức bổ sung các quy tắc:
+
+CFG-001
+
+Chỉ ConfigurationLoader được tạo AppConfig.
+
+CFG-002
+
+Chỉ Composition Root được phép gọi ConfigurationLoader.load().
+
+CFG-003
+
+Không sử dụng Global Config.
+
+CFG-004
+
+Ưu tiên truyền đúng Configuration Section thay vì toàn bộ AppConfig.
+
+CFG-005
+
+Configuration phải immutable.
+
+@dataclass(frozen=True)
+CFG-006
+
+Loader không chứa:
+
+validation
+logging
+business logic
+environment
+file parsing
+CFG-007
+
+Không đọc JSON/YAML/ENV ngoài Loader.
+
+CFG-008 ✅
+
+Tất cả Configuration Models đều dùng
+
+@dataclass(frozen=True, slots=True)
