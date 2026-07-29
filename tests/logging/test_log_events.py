@@ -1,34 +1,89 @@
 from __future__ import annotations
 
-from enum import Enum
 from unittest.mock import Mock
 
 from app.logging import LoggingEvents
-from app.services.calculation_service import CalculationService
 
 
-def test_calculation_failed_uses_logger_exception_for_active_exception():
+def test_calculation_started(
+    monkeypatch,
+):
     logger = Mock()
+
+    location_fields = {
+        "origin_hash": "origin-hash",
+        "destination_hash": "destination-hash",
+    }
+
+    monkeypatch.setattr(
+        (
+            "app.logging.log_events."
+            "LocationLogPolicy.build"
+        ),
+        lambda **kwargs: location_fields,
+    )
+
+    LoggingEvents.calculation_started(
+        logger,
+        origin="Can Tho",
+        destination="Ho Chi Minh City",
+    )
+
+    logger.info.assert_called_once_with(
+        "CALCULATION_STARTED",
+        extra={
+            "event": "CALCULATION_STARTED",
+            "origin_hash": "origin-hash",
+            "destination_hash": (
+                "destination-hash"
+            ),
+        },
+    )
+
+
+def test_calculation_completed():
+    logger = Mock()
+
+    LoggingEvents.calculation_completed(
+        logger,
+        provider="google_web",
+        route_count=3,
+    )
+
+    logger.info.assert_called_once_with(
+        "CALCULATION_COMPLETED",
+        extra={
+            "event": "CALCULATION_COMPLETED",
+            "provider": "google_web",
+            "route_count": 3,
+        },
+    )
+
+
+def test_calculation_failed_uses_active_exception():
+    logger = Mock()
+    exception = ValueError(
+        "Origin is empty.",
+    )
 
     LoggingEvents.calculation_failed(
         logger,
         provider="GoogleWebProvider",
         error_code="VALIDATION_ERROR",
         error_message="Origin is empty.",
-        exception=ValueError("Origin is empty."),
+        exception=exception,
         exception_is_active=True,
     )
 
     logger.exception.assert_called_once_with(
-        (
-            "CALCULATION_FAILED"
-            " | provider=%s"
-            " | error_code=%s"
-            " | error=%s"
-        ),
-        "GoogleWebProvider",
-        "VALIDATION_ERROR",
-        "Origin is empty.",
+        "CALCULATION_FAILED",
+        extra={
+            "event": "CALCULATION_FAILED",
+            "provider": "GoogleWebProvider",
+            "error_code": "VALIDATION_ERROR",
+            "error_message": "Origin is empty.",
+            "exception_type": "ValueError",
+        },
     )
 
     logger.error.assert_not_called()
@@ -36,7 +91,9 @@ def test_calculation_failed_uses_logger_exception_for_active_exception():
 
 def test_calculation_failed_logs_preserved_exception():
     logger = Mock()
-    exception = RuntimeError("Engine failed.")
+    exception = RuntimeError(
+        "Engine failed.",
+    )
 
     LoggingEvents.calculation_failed(
         logger,
@@ -47,15 +104,14 @@ def test_calculation_failed_logs_preserved_exception():
     )
 
     logger.error.assert_called_once_with(
-        (
-            "CALCULATION_FAILED"
-            " | provider=%s"
-            " | error_code=%s"
-            " | error=%s"
-        ),
-        "google_web",
-        "ENGINE_ERROR",
-        "Engine failed.",
+        "CALCULATION_FAILED",
+        extra={
+            "event": "CALCULATION_FAILED",
+            "provider": "google_web",
+            "error_code": "ENGINE_ERROR",
+            "error_message": "Engine failed.",
+            "exception_type": "RuntimeError",
+        },
         exc_info=exception,
     )
 
@@ -73,47 +129,34 @@ def test_calculation_failed_without_exception():
     )
 
     logger.error.assert_called_once_with(
-        (
-            "CALCULATION_FAILED"
-            " | provider=%s"
-            " | error_code=%s"
-            " | error=%s"
-        ),
-        "google_web",
-        "UNKNOWN_ERROR",
-        "Unknown error.",
+        "CALCULATION_FAILED",
+        extra={
+            "event": "CALCULATION_FAILED",
+            "provider": "google_web",
+            "error_code": "UNKNOWN_ERROR",
+            "error_message": "Unknown error.",
+        },
     )
 
     logger.exception.assert_not_called()
 
 
-class SampleErrorCode(Enum):
-    ENGINE_ERROR = "ENGINE_ERROR"
+def test_provider_selected():
+    logger = Mock()
 
-
-def test_get_error_code_value_when_none():
-    assert (
-        CalculationService._get_error_code_value(None)
-        == "UNKNOWN_ERROR"
+    LoggingEvents.provider_selected(
+        logger,
+        provider="GoogleWebProvider",
     )
 
-
-def test_get_error_code_value_from_enum():
-    assert (
-        CalculationService._get_error_code_value(
-            SampleErrorCode.ENGINE_ERROR,
-        )
-        == "ENGINE_ERROR"
+    logger.info.assert_called_once_with(
+        "PROVIDER_SELECTED",
+        extra={
+            "event": "PROVIDER_SELECTED",
+            "provider": "GoogleWebProvider",
+        },
     )
 
-
-def test_get_error_code_value_from_plain_string():
-    assert (
-        CalculationService._get_error_code_value(
-            "CUSTOM_ERROR",
-        )
-        == "CUSTOM_ERROR"
-    )
 
 def test_engine_started():
     logger = Mock()
@@ -122,6 +165,9 @@ def test_engine_started():
 
     logger.info.assert_called_once_with(
         "ENGINE_STARTED",
+        extra={
+            "event": "ENGINE_STARTED",
+        },
     )
 
 
@@ -132,6 +178,9 @@ def test_engine_completed():
 
     logger.info.assert_called_once_with(
         "ENGINE_COMPLETED",
+        extra={
+            "event": "ENGINE_COMPLETED",
+        },
     )
 
 
@@ -142,6 +191,9 @@ def test_parser_started():
 
     logger.info.assert_called_once_with(
         "PARSER_STARTED",
+        extra={
+            "event": "PARSER_STARTED",
+        },
     )
 
 
@@ -154,6 +206,22 @@ def test_parser_completed():
     )
 
     logger.info.assert_called_once_with(
-        "PARSER_COMPLETED | routes=%d",
-        3,
+        "PARSER_COMPLETED",
+        extra={
+            "event": "PARSER_COMPLETED",
+            "route_count": 3,
+        },
     )
+
+def test_extra_omits_none_values():
+    result = LoggingEvents._extra(
+        "TEST_EVENT",
+        provider="google_web",
+        error_code=None,
+    )
+
+    assert result == {
+        "event": "TEST_EVENT",
+        "provider": "google_web",
+    }
+

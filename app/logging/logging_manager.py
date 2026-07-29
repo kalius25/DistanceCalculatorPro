@@ -9,13 +9,14 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from app.logging.formatter import StructuredJsonFormatter
+
 from .config import (
     LOG_DIRECTORY,
     LOG_FILENAME,
     LOG_LEVEL,
     LOGGER_NAME,
 )
-from .formatter import DefaultFormatter
 
 
 class LoggingManager:
@@ -39,7 +40,7 @@ class LoggingManager:
         logger.propagate = False
 
         if not logger.handlers:
-            formatter = DefaultFormatter()
+            formatter = StructuredJsonFormatter()
 
             # Console Handler
             console_handler = logging.StreamHandler()

@@ -1,20 +1,49 @@
 """
-Logging event catalog.
-
-Provides standardized application events for logging.
+Structured logging event catalog.
 
 Business modules must use LoggingEvents instead of calling
-logger.info(), logger.debug(), logger.warning(), logger.error(),
-or logger.exception() directly.
+logger methods directly.
+
+Each event uses:
+- a stable event name as the log message;
+- structured metadata through logging's ``extra`` argument.
 """
 
 from __future__ import annotations
 
 from logging import Logger
+from typing import Any
+
+from app.logging.location_log_policy import (
+    LocationLogPolicy,
+)
+from app.logging.sensitive_data import (
+    SensitiveDataSanitizer,
+)
 
 
 class LoggingEvents:
-    """Catalog of standardized application logging events."""
+    """Catalog of standardized structured logging events."""
+
+    @staticmethod
+    def _extra(
+        event: str,
+        **fields: Any,
+    ) -> dict[str, Any]:
+        """Build sanitized structured metadata."""
+
+        raw_fields = {
+            "event": event,
+            **{
+                key: value
+                for key, value in fields.items()
+                if value is not None
+            },
+        }
+
+        return SensitiveDataSanitizer.sanitize_mapping(
+            raw_fields,
+        )
 
     @staticmethod
     def calculation_started(
@@ -25,10 +54,19 @@ class LoggingEvents:
     ) -> None:
         """Log the start of a route calculation."""
 
+        event = "CALCULATION_STARTED"
+
+        location_fields = LocationLogPolicy.build(
+            origin=origin,
+            destination=destination,
+        )
+
         logger.info(
-            "CALCULATION_STARTED | origin=%s | destination=%s",
-            origin,
-            destination,
+            event,
+            extra=LoggingEvents._extra(
+                event,
+                **location_fields,
+            ),
         )
 
     @staticmethod
@@ -40,10 +78,15 @@ class LoggingEvents:
     ) -> None:
         """Log the successful completion of a route calculation."""
 
+        event = "CALCULATION_COMPLETED"
+
         logger.info(
-            "CALCULATION_COMPLETED | provider=%s | routes=%d",
-            provider,
-            route_count,
+            event,
+            extra=LoggingEvents._extra(
+                event,
+                provider=provider,
+                route_count=route_count,
+            ),
         )
 
     @staticmethod
@@ -59,59 +102,45 @@ class LoggingEvents:
         """
         Log a failed route calculation.
 
-        Parameters
-        ----------
-        logger:
-            Logger owned by the calling module.
+        Active exceptions use logger.exception() so Python captures the
+        currently handled traceback.
 
-        provider:
-            Provider involved in the calculation.
-
-        error_code:
-            Stable application error code.
-
-        error_message:
-            Human-readable error description.
-
-        exception:
-            Original exception when available.
-
-        exception_is_active:
-            True when this method is called from inside the active
-            exception handler. In that case logger.exception() is used.
+        Preserved exceptions returned by a provider use logger.error()
+        with exc_info=exception.
         """
 
-        message = (
-            "CALCULATION_FAILED"
-            " | provider=%s"
-            " | error_code=%s"
-            " | error=%s"
-        )
+        event = "CALCULATION_FAILED"
 
-        arguments = (
-            provider,
-            error_code,
-            error_message,
+        extra = LoggingEvents._extra(
+            event,
+            provider=provider,
+            error_code=error_code,
+            error_message=error_message,
+            exception_type=(
+                type(exception).__name__
+                if exception is not None
+                else None
+            ),
         )
 
         if exception_is_active:
             logger.exception(
-                message,
-                *arguments,
+                event,
+                extra=extra,
             )
             return
 
         if exception is not None:
             logger.error(
-                message,
-                *arguments,
+                event,
+                extra=extra,
                 exc_info=exception,
             )
             return
 
         logger.error(
-            message,
-            *arguments,
+            event,
+            extra=extra,
         )
 
     @staticmethod
@@ -122,9 +151,14 @@ class LoggingEvents:
     ) -> None:
         """Log the provider selected for calculation."""
 
+        event = "PROVIDER_SELECTED"
+
         logger.info(
-            "PROVIDER_SELECTED | provider=%s",
-            provider,
+            event,
+            extra=LoggingEvents._extra(
+                event,
+                provider=provider,
+            ),
         )
 
     @staticmethod
@@ -133,8 +167,13 @@ class LoggingEvents:
     ) -> None:
         """Log the start of an engine operation."""
 
+        event = "ENGINE_STARTED"
+
         logger.info(
-            "ENGINE_STARTED",
+            event,
+            extra=LoggingEvents._extra(
+                event,
+            ),
         )
 
     @staticmethod
@@ -143,8 +182,13 @@ class LoggingEvents:
     ) -> None:
         """Log the successful completion of an engine operation."""
 
+        event = "ENGINE_COMPLETED"
+
         logger.info(
-            "ENGINE_COMPLETED",
+            event,
+            extra=LoggingEvents._extra(
+                event,
+            ),
         )
 
     @staticmethod
@@ -153,8 +197,13 @@ class LoggingEvents:
     ) -> None:
         """Log the start of a parser operation."""
 
+        event = "PARSER_STARTED"
+
         logger.info(
-            "PARSER_STARTED",
+            event,
+            extra=LoggingEvents._extra(
+                event,
+            ),
         )
 
     @staticmethod
@@ -165,7 +214,13 @@ class LoggingEvents:
     ) -> None:
         """Log the successful completion of a parser operation."""
 
+        event = "PARSER_COMPLETED"
+
         logger.info(
-            "PARSER_COMPLETED | routes=%d",
-            route_count,
+            event,
+            extra=LoggingEvents._extra(
+                event,
+                route_count=route_count,
+            ),
         )
+
