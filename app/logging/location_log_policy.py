@@ -26,14 +26,8 @@ class LocationLogPolicy:
 
         if APP_MODE is AppMode.DEVELOPMENT:
             return {
-                "origin": (
-                    SensitiveDataSanitizer
-                    .sanitize(origin)
-                ),
-                "destination": (
-                    SensitiveDataSanitizer
-                    .sanitize(destination)
-                ),
+                "origin": (SensitiveDataSanitizer.sanitize(origin)),
+                "destination": (SensitiveDataSanitizer.sanitize(destination)),
             }
 
         return {
@@ -49,14 +43,8 @@ class LocationLogPolicy:
             "destination_length": len(
                 destination.strip(),
             ),
-            "origin_hash": (
-                SensitiveDataSanitizer
-                .fingerprint(origin)
-            ),
-            "destination_hash": (
-                SensitiveDataSanitizer
-                .fingerprint(destination)
-            ),
+            "origin_hash": (SensitiveDataSanitizer.fingerprint(origin)),
+            "destination_hash": (SensitiveDataSanitizer.fingerprint(destination)),
         }
 
 

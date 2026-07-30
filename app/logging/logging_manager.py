@@ -30,7 +30,7 @@ class LoggingManager:
 
     Business modules must only request loggers through get_logger().
     """
-    
+
     _MANAGED_HANDLER_ATTRIBUTE = "_distance_calculator_managed"
 
     _initialized = False
@@ -143,7 +143,6 @@ class LoggingManager:
         cls._initialized = True
 
         return logger
-
 
     @classmethod
     def get_logger(

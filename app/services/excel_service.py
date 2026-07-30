@@ -6,6 +6,7 @@ from app.logging import LoggingManager
 
 logger = LoggingManager.get_logger(__name__)
 
+
 class ExcelService:
     """
     Xử lý đọc dữ liệu Excel.

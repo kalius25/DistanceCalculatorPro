@@ -1,0 +1,39 @@
+QWidget {
+    background: #202124;
+    color: #e8eaed;
+    font-family: "Segoe UI", "Noto Sans", sans-serif;
+    font-size: 10pt;
+}
+QMenuBar, QMenu, QToolBar, QStatusBar {
+    background: #292a2d;
+}
+QListWidget#lstNavigation {
+    background: #292a2d;
+    border: 0;
+    border-right: 1px solid #3c4043;
+    padding: 8px;
+}
+QListWidget#lstNavigation::item {
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 6px;
+}
+QListWidget#lstNavigation::item:selected {
+    background: #3c4b63;
+    color: #8ab4f8;
+}
+QLabel#lblPageTitle {
+    font-size: 18pt;
+    font-weight: 600;
+}
+QLabel#lblPageDescription {
+    color: #bdc1c6;
+}
+QToolBar {
+    border-bottom: 1px solid #3c4043;
+    spacing: 6px;
+    padding: 4px 8px;
+}
+QStatusBar {
+    border-top: 1px solid #3c4043;
+}

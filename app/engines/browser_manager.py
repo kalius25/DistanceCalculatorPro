@@ -67,9 +67,7 @@ class BrowserManager:
         }
 
         if self._config.user_agent is not None:
-            context_options["user_agent"] = (
-                self._config.user_agent
-            )
+            context_options["user_agent"] = self._config.user_agent
 
         self._context = self._browser.new_context(
             **context_options,
@@ -89,9 +87,7 @@ class BrowserManager:
             If the browser context has not been started.
         """
         if self._context is None:
-            raise EngineException(
-                "Browser chưa được khởi động."
-            )
+            raise EngineException("Browser chưa được khởi động.")
 
         return self._context.new_page()
 
