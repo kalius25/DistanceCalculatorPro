@@ -29,6 +29,7 @@ def test_constructor():
     controller = CalculationController(excel)
 
     assert controller._excel is excel
+    assert controller.excel_service is excel
 
 
 def test_get_sheet_names():

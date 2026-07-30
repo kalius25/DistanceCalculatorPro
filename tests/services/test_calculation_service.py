@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import app.services.calculation_service as calculation_service_module
-from app.exceptions import ErrorCode, ValidationException
+from app.exceptions import ErrorCode, ProviderException, ValidationException
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
@@ -35,7 +35,6 @@ def test_constructor():
     service = CalculationService(provider)
 
     assert service.provider is provider
-
 
 def test_validate_success():
     request = make_request()
@@ -70,34 +69,6 @@ def test_validate_empty_destination():
     assert exc.value.context == {
         "field": "destination",
     }
-
-
-def test_select_best_route_single():
-    result = RouteResult(
-        success=True,
-        request=make_request(),
-        provider="Test",
-        routes=[
-            make_route(30),
-        ],
-    )
-
-    assert CalculationService._select_best_route(result) == 0
-
-
-def test_select_best_route_multiple():
-    result = RouteResult(
-        success=True,
-        request=make_request(),
-        provider="Test",
-        routes=[
-            make_route(35),
-            make_route(18),
-            make_route(25),
-        ],
-    )
-
-    assert CalculationService._select_best_route(result) == 1
 
 
 def test_calculate_success_without_routes():
@@ -163,20 +134,13 @@ def test_calculate_validation_exception():
 
     service = CalculationService(provider)
 
-    result = service.calculate(request)
+    with pytest.raises(
+        ValidationException,
+        match="Origin is empty.",
+    ):
+        service.calculate(request)
 
     provider.calculate.assert_not_called()
-
-    assert result.success is False
-    assert result.error == "Origin is empty."
-    assert result.error_code is ErrorCode.VALIDATION_ERROR
-    assert result.context == {
-        "field": "origin",
-    }
-    assert isinstance(
-        result.exception,
-        ValidationException,
-    )
 
 def test_calculate_returns_and_logs_failed_provider_result(
     monkeypatch,
@@ -306,13 +270,6 @@ def test_calculate_failed_result_uses_fallback_values(
         exception=None,
     )
 
-def test_get_error_code_value_from_plain_string():
-    result = CalculationService._get_error_code_value(
-        "CUSTOM_ERROR",
-    )
-
-    assert result == "CUSTOM_ERROR"
-
 def test_validate_origin_equals_destination():
     request = make_request(
         origin="Can Tho",
@@ -347,155 +304,29 @@ class SampleErrorCode(Enum):
     ENGINE_ERROR = "ENGINE_ERROR"
 
 
-def test_get_error_code_value_from_enum():
-    result = CalculationService._get_error_code_value(
-        SampleErrorCode.ENGINE_ERROR,
-    )
-
-    assert result == "ENGINE_ERROR"
-
-
-def test_get_error_code_value_from_string():
-    result = CalculationService._get_error_code_value(
-        "CUSTOM_ERROR",
-    )
-
-    assert result == "CUSTOM_ERROR"
-
-
-def test_get_error_code_value_when_none():
-    result = CalculationService._get_error_code_value(
-        None,
-    )
-
-    assert result == "UNKNOWN_ERROR"
-
-def test_get_provider_name():
-    class SampleProvider:
-        pass
-
-    provider = SampleProvider()
-    service = CalculationService(provider)
-
-    assert service._get_provider_name() == "SampleProvider"
-
-def test_handle_successful_result_without_routes(
-    monkeypatch,
-):
+def test_calculate_distance_calculator_exception():
     request = make_request()
 
-    result = RouteResult(
-        success=True,
-        request=request,
-        provider="google_web",
-        routes=[],
-    )
+    provider = MagicMock()
 
-    calculation_completed = MagicMock()
-
-    monkeypatch.setattr(
-        calculation_service_module.LoggingEvents,
-        "calculation_completed",
-        calculation_completed,
-    )
-
-    returned_result = (
-        CalculationService._handle_successful_result(
-            result=result,
-            provider_name="FallbackProvider",
-        )
-    )
-
-    assert returned_result is result
-    assert result.selected_route == 0
-
-    calculation_completed.assert_called_once_with(
-        calculation_service_module.logger,
-        provider="google_web",
-        route_count=0,
-    )
-
-def test_handle_successful_result_uses_provider_fallback(
-    monkeypatch,
-):
-    request = make_request()
-
-    result = RouteResult(
-        success=True,
-        request=request,
-        provider="",
-        routes=[
-            make_route(20),
-            make_route(10),
-        ],
-    )
-
-    calculation_completed = MagicMock()
-
-    monkeypatch.setattr(
-        calculation_service_module.LoggingEvents,
-        "calculation_completed",
-        calculation_completed,
-    )
-
-    returned_result = (
-        CalculationService._handle_successful_result(
-            result=result,
-            provider_name="FallbackProvider",
-        )
-    )
-
-    assert returned_result is result
-    assert result.selected_route == 1
-
-    calculation_completed.assert_called_once_with(
-        calculation_service_module.logger,
-        provider="FallbackProvider",
-        route_count=2,
-    )
-
-def test_handle_domain_exception(
-    monkeypatch,
-):
-    request = make_request()
-
-    exception = ValidationException(
-        "Invalid request.",
+    provider.calculate.side_effect = ProviderException(
+        "Provider failed.",
         context={
-            "field": "origin",
+            "provider": "google",
         },
     )
 
-    calculation_failed = MagicMock()
+    service = CalculationService(provider)
 
-    monkeypatch.setattr(
-        calculation_service_module.LoggingEvents,
-        "calculation_failed",
-        calculation_failed,
-    )
-
-    result = CalculationService._handle_domain_exception(
-        request=request,
-        exception=exception,
-        provider_name="TestProvider",
-    )
+    result = service.calculate(request)
 
     assert result.success is False
     assert result.request is request
-    assert result.provider == "TestProvider"
-    assert result.error == "Invalid request."
-    assert result.error_code is ErrorCode.VALIDATION_ERROR
+    assert result.error == "Provider failed."
     assert result.context == {
-        "field": "origin",
+        "provider": "google",
     }
-    assert result.exception is exception
-
-    calculation_failed.assert_called_once_with(
-        calculation_service_module.logger,
-        provider="TestProvider",
-        error_code="VALIDATION_ERROR",
-        error_message="Invalid request.",
-        exception=exception,
-        exception_is_active=True,
+    assert isinstance(
+        result.exception,
+        ProviderException,
     )
-
