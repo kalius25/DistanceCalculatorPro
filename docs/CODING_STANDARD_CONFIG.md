@@ -212,3 +212,70 @@ không thuộc:
 GoogleWebProvider
 
 Provider chỉ sử dụng BrowserManager.
+
+DI-007 – Services receive capabilities, not constructors
+Service phải nhận dependency đã hoàn chỉnh qua constructor.
+
+Service không nhận class, factory function hoặc configuration rồi tự tạo
+provider, trừ khi bản thân service được định nghĩa rõ là factory.
+
+Áp dụng:
+
+CalculationService(
+    provider=google_web_provider,
+)
+
+Không áp dụng:
+
+CalculationService(
+    provider_type=ProviderType.GOOGLE_MAPS_WEB,
+)
+
+và không:
+
+self._provider = GoogleWebProvider(...)
+SRV-001 – Application services coordinate business workflows
+Application service chịu trách nhiệm:
+
+- validation ở cấp use case;
+- gọi dependency;
+- áp dụng quy tắc nghiệp vụ;
+- tạo hoặc hoàn thiện result;
+- phát sự kiện logging ở cấp use case.
+
+Service không chịu trách nhiệm:
+
+- browser lifecycle;
+- HTML parsing;
+- Playwright interaction;
+- provider construction;
+- configuration loading;
+- dependency selection.
+SRV-002 – Unexpected exceptions remain visible
+
+CalculationService chỉ chuyển đổi:
+
+DistanceCalculatorError
+
+thành:
+
+RouteResult(success=False)
+
+Các lỗi lập trình hoặc lỗi ngoài domain như:
+
+RuntimeError
+TypeError
+AttributeError
+
+tiếp tục được raise.
+
+Điều này phù hợp với test hiện tại:
+
+with pytest.raises(RuntimeError, match="boom"):
+    service.calculate(request)
+
+Không nên thêm:
+
+except Exception:
+
+vì sẽ che giấu lỗi lập trình.

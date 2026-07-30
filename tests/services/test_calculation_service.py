@@ -369,3 +369,133 @@ def test_get_error_code_value_when_none():
     )
 
     assert result == "UNKNOWN_ERROR"
+
+def test_get_provider_name():
+    class SampleProvider:
+        pass
+
+    provider = SampleProvider()
+    service = CalculationService(provider)
+
+    assert service._get_provider_name() == "SampleProvider"
+
+def test_handle_successful_result_without_routes(
+    monkeypatch,
+):
+    request = make_request()
+
+    result = RouteResult(
+        success=True,
+        request=request,
+        provider="google_web",
+        routes=[],
+    )
+
+    calculation_completed = MagicMock()
+
+    monkeypatch.setattr(
+        calculation_service_module.LoggingEvents,
+        "calculation_completed",
+        calculation_completed,
+    )
+
+    returned_result = (
+        CalculationService._handle_successful_result(
+            result=result,
+            provider_name="FallbackProvider",
+        )
+    )
+
+    assert returned_result is result
+    assert result.selected_route == 0
+
+    calculation_completed.assert_called_once_with(
+        calculation_service_module.logger,
+        provider="google_web",
+        route_count=0,
+    )
+
+def test_handle_successful_result_uses_provider_fallback(
+    monkeypatch,
+):
+    request = make_request()
+
+    result = RouteResult(
+        success=True,
+        request=request,
+        provider="",
+        routes=[
+            make_route(20),
+            make_route(10),
+        ],
+    )
+
+    calculation_completed = MagicMock()
+
+    monkeypatch.setattr(
+        calculation_service_module.LoggingEvents,
+        "calculation_completed",
+        calculation_completed,
+    )
+
+    returned_result = (
+        CalculationService._handle_successful_result(
+            result=result,
+            provider_name="FallbackProvider",
+        )
+    )
+
+    assert returned_result is result
+    assert result.selected_route == 1
+
+    calculation_completed.assert_called_once_with(
+        calculation_service_module.logger,
+        provider="FallbackProvider",
+        route_count=2,
+    )
+
+def test_handle_domain_exception(
+    monkeypatch,
+):
+    request = make_request()
+
+    exception = ValidationException(
+        "Invalid request.",
+        context={
+            "field": "origin",
+        },
+    )
+
+    calculation_failed = MagicMock()
+
+    monkeypatch.setattr(
+        calculation_service_module.LoggingEvents,
+        "calculation_failed",
+        calculation_failed,
+    )
+
+    result = CalculationService._handle_domain_exception(
+        request=request,
+        exception=exception,
+        provider_name="TestProvider",
+    )
+
+    assert result.success is False
+    assert result.request is request
+    assert result.provider == "TestProvider"
+    assert result.error == "Invalid request."
+    assert result.error_code is ErrorCode.VALIDATION_ERROR
+    assert result.context == {
+        "field": "origin",
+    }
+    assert result.exception is exception
+
+    calculation_failed.assert_called_once_with(
+        calculation_service_module.logger,
+        provider="TestProvider",
+        error_code="VALIDATION_ERROR",
+        error_message="Invalid request.",
+        exception=exception,
+        exception_is_active=True,
+    )
+

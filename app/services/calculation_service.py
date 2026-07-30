@@ -20,13 +20,36 @@ logger = LoggingManager.get_logger(__name__)
 
 
 class CalculationService:
-    """Coordinate route calculation and select the best route."""
+    """
+    Coordinate route calculation and select the best route.
+
+    The service receives its route provider through constructor
+    injection. It does not create, select, or configure providers.
+    """
 
     def __init__(
         self,
         provider: BaseProvider,
     ) -> None:
-        self.provider = provider
+        """
+        Initialize the calculation service.
+
+        Parameters
+        ----------
+        provider:
+            Provider used to perform route calculations.
+        """
+        self._provider = provider
+
+    @property
+    def provider(self) -> BaseProvider:
+        """
+        Return the injected route provider.
+
+        This property preserves one-level compatibility for existing
+        callers while keeping the dependency internally private.
+        """
+        return self._provider
 
     def calculate(
         self,
@@ -35,11 +58,16 @@ class CalculationService:
         """
         Calculate routes for the supplied request.
 
-        The service validates the request, invokes the configured
-        provider and selects the best available route.
-        """
+        Processing sequence:
+        1. Validate the request.
+        2. Log calculation start.
+        3. Invoke the injected provider.
+        4. Process provider failure or success.
+        5. Select the best route when routes are available.
 
-        provider_name = self.provider.__class__.__name__
+        Unexpected exceptions are intentionally allowed to propagate.
+        """
+        provider_name = self._get_provider_name()
 
         try:
             self._validate(request)
@@ -55,55 +83,105 @@ class CalculationService:
                 provider=provider_name,
             )
 
-            result = self.provider.calculate(request)
+            result = self._provider.calculate(request)
 
             if not result.success:
-                LoggingEvents.calculation_failed(
-                    logger,
-                    provider=result.provider or provider_name,
-                    error_code=self._get_error_code_value(
-                        result.error_code,
-                    ),
-                    error_message=result.error or "Unknown error.",
-                    exception=result.exception,
+                return self._handle_failed_result(
+                    result=result,
+                    provider_name=provider_name,
                 )
 
-                return result
+            return self._handle_successful_result(
+                result=result,
+                provider_name=provider_name,
+            )
 
-            if result.routes:
-                result.selected_route = self._select_best_route(
+        except DistanceCalculatorError as exc:
+            return self._handle_domain_exception(
+                request=request,
+                exception=exc,
+                provider_name=provider_name,
+            )
+
+    def _get_provider_name(self) -> str:
+        """Return the injected provider class name."""
+        return self._provider.__class__.__name__
+
+    @staticmethod
+    def _handle_failed_result(
+        *,
+        result: RouteResult,
+        provider_name: str,
+    ) -> RouteResult:
+        """
+        Log and return a failed provider result unchanged.
+        """
+        LoggingEvents.calculation_failed(
+            logger,
+            provider=result.provider or provider_name,
+            error_code=CalculationService._get_error_code_value(
+                result.error_code,
+            ),
+            error_message=result.error or "Unknown error.",
+            exception=result.exception,
+        )
+
+        return result
+
+    @staticmethod
+    def _handle_successful_result(
+        *,
+        result: RouteResult,
+        provider_name: str,
+    ) -> RouteResult:
+        """
+        Select the best route and log successful completion.
+        """
+        if result.routes:
+            result.selected_route = (
+                CalculationService._select_best_route(
                     result,
                 )
-
-            LoggingEvents.calculation_completed(
-                logger,
-                provider=result.provider or provider_name,
-                route_count=len(result.routes),
             )
 
-            return result
+        LoggingEvents.calculation_completed(
+            logger,
+            provider=result.provider or provider_name,
+            route_count=len(result.routes),
+        )
 
-        except DistanceCalculatorError as ex:
-            LoggingEvents.calculation_failed(
-                logger,
-                provider=provider_name,
-                error_code=self._get_error_code_value(
-                    ex.error_code,
-                ),
-                error_message=str(ex),
-                exception=ex,
-                exception_is_active=True,
-            )
+        return result
 
-            return RouteResult(
-                success=False,
-                request=request,
-                provider=provider_name,
-                error=str(ex),
-                error_code=ex.error_code,
-                context=ex.context,
-                exception=ex,
-            )
+    @staticmethod
+    def _handle_domain_exception(
+        *,
+        request: RouteRequest,
+        exception: DistanceCalculatorError,
+        provider_name: str,
+    ) -> RouteResult:
+        """
+        Convert an application-domain exception into RouteResult.
+        """
+        LoggingEvents.calculation_failed(
+            logger,
+            provider=provider_name,
+            error_code=CalculationService._get_error_code_value(
+                exception.error_code,
+            ),
+            error_message=str(exception),
+            exception=exception,
+            exception_is_active=True,
+        )
+
+        return RouteResult(
+            success=False,
+            request=request,
+            provider=provider_name,
+            error=str(exception),
+            error_code=exception.error_code,
+            context=exception.context,
+            exception=exception,
+        )
 
     @staticmethod
     def _get_error_code_value(
@@ -112,10 +190,9 @@ class CalculationService:
         """
         Convert an error code to a stable logging value.
 
-        Supports Enum-based error codes and plain strings without
-        coupling the service to a specific ErrorCode implementation.
+        Enum-based error codes and plain strings are supported without
+        coupling the service to a concrete ErrorCode implementation.
         """
-
         if error_code is None:
             return "UNKNOWN_ERROR"
 
@@ -134,9 +211,13 @@ class CalculationService:
     def _validate(
         request: RouteRequest,
     ) -> None:
-        """Validate a route calculation request."""
+        """
+        Validate a route calculation request.
+        """
+        origin = request.origin.strip()
+        destination = request.destination.strip()
 
-        if not request.origin.strip():
+        if not origin:
             raise ValidationException(
                 "Origin is empty.",
                 context={
@@ -144,7 +225,7 @@ class CalculationService:
                 },
             )
 
-        if not request.destination.strip():
+        if not destination:
             raise ValidationException(
                 "Destination is empty.",
                 context={
@@ -152,10 +233,7 @@ class CalculationService:
                 },
             )
 
-        if (
-            request.origin.strip()
-            == request.destination.strip()
-        ):
+        if origin == destination:
             raise ValidationException(
                 "Origin and destination cannot be the same.",
                 context={
@@ -175,7 +253,6 @@ class CalculationService:
         1. Shortest duration.
         2. Shortest distance.
         """
-
         return min(
             range(len(result.routes)),
             key=lambda index: (
@@ -183,3 +260,8 @@ class CalculationService:
                 result.routes[index].distance_km,
             ),
         )
+
+
+__all__ = [
+    "CalculationService",
+]
