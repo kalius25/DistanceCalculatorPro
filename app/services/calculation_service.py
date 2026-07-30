@@ -87,7 +87,9 @@ class CalculationService:
                 logger,
                 provider=result.provider or provider_name,
                 error_code=(
-                    result.error_code.value if result.error_code else "UNKNOWN_ERROR"
+                    result.error_code.value
+                    if result.error_code
+                    else "UNKNOWN_ERROR"
                 ),
                 error_message=result.error or "Unknown error.",
                 exception=result.exception,

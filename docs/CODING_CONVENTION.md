@@ -563,15 +563,32 @@ Mã nguồn Presentation Layer chỉ được xem là hoàn thành khi:
 
 # 26. Dependency Management
 
-Nội dung:
+* Dự án chỉ sử dụng một file `requirements.txt`.
+* Dependency được phân nhóm bằng comment theo mục đích và Sprint.
+* Mỗi thư viện phải có ghi chú ngắn về mục đích sử dụng.
+* Chỉ thêm thư viện khi Sprint hiện tại thực sự sử dụng.
+* Không xóa dependency vẫn còn được mã nguồn sử dụng.
+* Mọi thay đổi dependency phải được commit cùng mã nguồn sử dụng dependency đó.
 
-Chỉ có một requirements.txt.
-Phân nhóm bằng comment.
-Mỗi thư viện phải có ghi chú.
-Không xóa dependency đang sử dụng.
-Khi thêm dependency phải ghi rõ Sprint.
+---
 
-Như vậy nguyên tắc sẽ được lưu ở 2 nơi:
+# 27. Anonymous Callback
 
-Development Principles (quy định cấp dự án)
-Coding Convention (quy định cách lập trình)
+Ưu tiên private handler có tên rõ nghĩa thay cho `lambda` khi kết nối signal UI.
+
+Ví dụ nên dùng:
+
+```python
+self._action_settings.triggered.connect(self._show_settings_page)
+```
+
+Không nên dùng:
+
+```python
+self._action_settings.triggered.connect(
+    lambda: self._navigation.setCurrentRow(2)
+)
+```
+
+`lambda` chỉ được dùng khi biểu thức rất ngắn, không tái sử dụng và không làm
+mất ý nghĩa của hành vi giao diện.

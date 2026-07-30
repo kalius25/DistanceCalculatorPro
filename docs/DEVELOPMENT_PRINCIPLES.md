@@ -173,6 +173,12 @@ Không refactor chỉ vì sở thích cá nhân.
 
 ---
 
-# DP-013 — Incremental Dependency Principle
+# DP-013 Incremental Dependency Principle
 
-Chỉ bổ sung thư viện vào requirements.txt khi Sprint hiện tại thực sự bắt đầu sử dụng thư viện đó. Không cài đặt trước các dependency chưa dùng.
+Chỉ bổ sung thư viện vào `requirements.txt` khi Sprint hiện tại thực sự bắt đầu
+sử dụng thư viện đó.
+
+Không cài đặt trước dependency chưa dùng.
+
+Dự án chỉ duy trì một file `requirements.txt`; các nhóm dependency được phân
+chia bằng comment và cập nhật cùng Sprint phát sinh nhu cầu.

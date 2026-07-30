@@ -34,7 +34,11 @@ class LoggingEvents:
 
         raw_fields = {
             "event": event,
-            **{key: value for key, value in fields.items() if value is not None},
+            **{
+                key: value
+                for key, value in fields.items()
+                if value is not None
+            },
         }
 
         return SensitiveDataSanitizer.sanitize_mapping(
@@ -113,7 +117,9 @@ class LoggingEvents:
             error_code=error_code,
             error_message=error_message,
             exception_type=(
-                type(exception).__name__ if exception is not None else None
+                type(exception).__name__
+                if exception is not None
+                else None
             ),
         )
 
@@ -217,3 +223,4 @@ class LoggingEvents:
                 route_count=route_count,
             ),
         )
+

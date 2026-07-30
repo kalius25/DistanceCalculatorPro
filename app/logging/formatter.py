@@ -78,12 +78,16 @@ class StructuredJsonFormatter(logging.Formatter):
         )
 
         if record.exc_info:
-            payload["exception"] = self.formatException(record.exc_info)
+            payload["exception"] = (
+                self.formatException(record.exc_info)
+            )
         elif record.exc_text:
             payload["exception"] = record.exc_text
 
         if record.stack_info:
-            payload["stack_info"] = self.formatStack(record.stack_info)
+            payload["stack_info"] = (
+                self.formatStack(record.stack_info)
+            )
 
         return json.dumps(
             payload,
@@ -124,8 +128,7 @@ class StructuredJsonFormatter(logging.Formatter):
             if (
                 key not in _STANDARD_LOG_RECORD_FIELDS
                 and not key.startswith("_")
-                and key
-                not in {
+                and key not in {
                     "event",
                 }
             )

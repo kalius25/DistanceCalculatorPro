@@ -1,6 +1,6 @@
-from pathlib import Path
-
 from PySide6.QtWidgets import QApplication
+
+from .resource_manager import ResourceManager
 
 
 class ThemeManager:
@@ -8,8 +8,8 @@ class ThemeManager:
 
     SUPPORTED_THEMES = ("light", "dark")
 
-    def __init__(self, styles_directory: Path) -> None:
-        self._styles_directory = styles_directory
+    def __init__(self, resource_manager: ResourceManager) -> None:
+        self._resource_manager = resource_manager
         self._current_theme = "light"
 
     @property
@@ -21,10 +21,11 @@ class ThemeManager:
         if normalized_theme not in self.SUPPORTED_THEMES:
             supported = ", ".join(self.SUPPORTED_THEMES)
             raise ValueError(
-                f"Unsupported theme '{theme_name}'. Supported themes: {supported}."
+                f"Unsupported theme '{theme_name}'. "
+                f"Supported themes: {supported}."
             )
 
-        theme_path = self._styles_directory / f"{normalized_theme}.qss"
+        theme_path = self._resource_manager.style_path(normalized_theme)
         if not theme_path.is_file():
             raise FileNotFoundError(f"Theme file not found: {theme_path}")
 

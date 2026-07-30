@@ -77,7 +77,9 @@ class GoogleMapsEngine(BaseEngine):
             TravelMode,
             Callable[[Page], Locator],
         ] = {
-            TravelMode.DRIVING: (self._locator.transport_driving),
+            TravelMode.DRIVING: (
+                self._locator.transport_driving
+            ),
         }
 
     def find_routes(
@@ -154,13 +156,19 @@ class GoogleMapsEngine(BaseEngine):
     ) -> None:
         """Validate the route request."""
         if not request.origin.strip():
-            raise ValueError("Origin cannot be empty.")
+            raise ValueError(
+                "Origin cannot be empty."
+            )
 
         if not request.destination.strip():
-            raise ValueError("Destination cannot be empty.")
+            raise ValueError(
+                "Destination cannot be empty."
+            )
 
         if request.timeout <= 0:
-            raise ValueError("Timeout must be greater than zero.")
+            raise ValueError(
+                "Timeout must be greater than zero."
+            )
 
     def _fill_route_input(
         self,
@@ -188,11 +196,16 @@ class GoogleMapsEngine(BaseEngine):
         request: RouteRequest,
     ) -> None:
         """Select the requested travel mode."""
-        locator_factory = self._travel_mode_locators.get(request.travel_mode)
+        locator_factory = (
+            self._travel_mode_locators.get(
+                request.travel_mode
+            )
+        )
 
         if locator_factory is None:
             raise NotImplementedError(
-                "Unsupported travel mode: " f"{request.travel_mode}"
+                "Unsupported travel mode: "
+                f"{request.travel_mode}"
             )
 
         locator_factory(page).click(
