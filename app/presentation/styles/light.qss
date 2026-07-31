@@ -236,3 +236,12 @@ QTableView#tblDataPreview QHeaderView::section {
     padding: 6px;
     font-weight: 600;
 }
+
+QFrame#frmColumnMapping {
+    background-color: #ffffff;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+}
+QLabel#lblMappingStatus { color: #64748b; }
+QLabel#lblMappingStatus[valid="true"] { color: #15803d; font-weight: 600; }
+QLabel#lblMappingStatus[valid="false"] { color: #b45309; }

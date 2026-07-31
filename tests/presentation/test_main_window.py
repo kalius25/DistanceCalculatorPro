@@ -466,3 +466,28 @@ def test_close_event_persists_window_state(
         window._toolbar.isVisible()
     )
     assert event.isAccepted()
+
+
+def test_select_workbook_handles_inspection_failure(
+    window: MainWindow,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+    tmp_path: Path,
+) -> None:
+    workbook = tmp_path / "broken.xlsx"
+    workbook.touch()
+    workbook_inspector.inspect.side_effect = ValueError("Invalid workbook")
+
+    with patch.object(QMessageBox, "critical") as critical:
+        window._select_workbook(str(workbook))
+
+    assert window._home_page.selected_file == str(workbook)
+    assert window._home_page._workspace_status.text() == (
+        "Inspection failed · Invalid workbook"
+    )
+    critical.assert_called_once_with(
+        window,
+        "Workbook inspection failed",
+        "The workbook could not be inspected.\n\nInvalid workbook",
+    )
+    settings_manager.add_recent_file.assert_not_called()

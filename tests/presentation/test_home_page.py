@@ -258,7 +258,7 @@ def test_workbook_inspection_is_rendered_and_sheet_can_change(qtbot: object) -> 
 
     assert page.workbook_info == info
     assert page._sheet_selector.count() == 2
-    assert page._file_size_value.text() == "2.0 KB"
+    assert page._file_size_value.text() == "2.0 KB (2,048 bytes)"
     assert page._row_count_value.text() == "1,200"
     assert page._preview_model.rowCount() == 2
     assert page._preview_model.columnCount() == 4
@@ -267,6 +267,46 @@ def test_workbook_inspection_is_rendered_and_sheet_can_change(qtbot: object) -> 
     with qtbot.waitSignal(page.sheet_changed):  # type: ignore[attr-defined]
         page._sheet_selector.setCurrentIndex(1)
     assert page._row_count_value.text() == "5"
+
+
+def test_successful_inspection_automatically_hides_file_panels(
+    qtbot: object,
+) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.show()
+    info = WorkbookInfo(
+        file_path="routes.xlsx",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=2048,
+        modified_at=datetime(2026, 7, 31, 10, 30),
+        worksheets=(
+            WorksheetInfo(
+                "Routes",
+                2,
+                3,
+                ("Origin", "Destination", "Distance"),
+                (("A", "B", "8.6"),),
+            ),
+        ),
+    )
+
+    page.set_inspection(info)
+
+    assert page._toggle_source_panels_button.isChecked()
+    assert not page._source_panels_container.isVisible()
+    assert page._toggle_source_panels_button.text() == "Show file panels"
+
+    page._toggle_source_panels_button.click()
+
+    assert page._source_panels_container.isVisible()
+    assert page._toggle_source_panels_button.text() == "Hide file panels"
 
 
 def test_inspection_error_clears_metadata(qtbot: object) -> None:
@@ -381,3 +421,269 @@ def test_invalid_preview_row_limit_is_ignored(qtbot: object) -> None:
     page._on_preview_row_limit_changed("7")
 
     assert page._preview_row_limit == 20
+
+
+def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    info = WorkbookInfo(
+        file_path="routes.xlsx",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=2048,
+        modified_at=datetime(2026, 7, 31, 10, 30),
+        worksheets=(
+            WorksheetInfo(
+                "Routes",
+                10,
+                3,
+                ("TỌA ĐỘ NƠI ĐI", "TỌA ĐỘ NƠI ĐẾN", "KẾT QUẢ"),
+            ),
+        ),
+    )
+
+    with qtbot.waitSignal(page.column_mapping_changed):  # type: ignore[attr-defined]
+        page.set_inspection(info)
+
+    assert page._origin_column_selector.currentText() == "TỌA ĐỘ NƠI ĐI"
+    assert page._destination_column_selector.currentText() == "TỌA ĐỘ NƠI ĐẾN"
+    assert page._result_column_selector.currentText() == "KẾT QUẢ"
+    assert page._mapping_valid
+    assert page._mapping_status.text() == "Mapping ready"
+
+
+def test_column_mapping_rejects_duplicate_roles(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.csv",
+            file_name="routes.csv",
+            file_type="CSV",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 7, 31),
+            worksheets=(
+                WorksheetInfo("routes", 2, 3, ("From", "To", "Distance")),
+            ),
+        )
+    )
+
+    page._destination_column_selector.setCurrentText("From")
+
+    assert not page._mapping_valid
+    assert page._mapping_status.text() == "Each role must use a different column"
+
+
+def test_column_mapping_resets_when_inspection_is_cleared(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.clear_inspection()
+
+    assert page._origin_column_selector.count() == 1
+    assert page._destination_column_selector.count() == 1
+    assert page._result_column_selector.count() == 1
+    assert not page._mapping_valid
+
+
+def test_workbook_without_worksheets_shows_empty_inspector_state(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    info = WorkbookInfo(
+        file_path="empty.xlsx",
+        file_name="empty.xlsx",
+        file_type="XLSX",
+        file_size_bytes=0,
+        modified_at=datetime(2026, 7, 31, 15, 0),
+        worksheets=(),
+    )
+
+    page.set_inspection(info)
+
+    assert page._workspace_status.text() == "Workbook contains no worksheets"
+    assert page._row_count_value.text() == "0"
+    assert page._column_count_value.text() == "0"
+    assert page._headers_status_value.text() == "No"
+
+
+def test_drag_leave_resets_drop_zone(qtbot: object) -> None:
+    from PySide6.QtGui import QDragLeaveEvent
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page._drop_zone.setProperty("dragActive", True)
+
+    page.dragLeaveEvent(QDragLeaveEvent())
+
+    assert page._drop_zone.property("dragActive") is False
+
+
+def test_preview_extends_missing_headers_and_handles_no_rows(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    info = WorkbookInfo(
+        file_path="wide.xlsx",
+        file_name="wide.xlsx",
+        file_type="XLSX",
+        file_size_bytes=1,
+        modified_at=datetime(2026, 7, 31, 15, 0),
+        worksheets=(
+            WorksheetInfo("Wide", 1, 3, ("Only header",), ()),
+        ),
+    )
+
+    page.set_inspection(info)
+
+    assert page._preview_model.columnCount() == 3
+    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Column 2"
+    assert page._preview_title.text() == "Data Preview (no data rows)"
+
+
+def test_preview_limit_change_without_current_worksheet_is_safe(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._on_preview_row_limit_changed("50")
+
+    assert page._preview_row_limit == 50
+
+
+def test_unknown_sheet_name_is_ignored(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=1,
+            modified_at=datetime(2026, 7, 31, 15, 0),
+            worksheets=(WorksheetInfo("Routes", 1, 1, ("A",)),),
+        )
+    )
+
+    with qtbot.assertNotEmitted(page.sheet_changed):  # type: ignore[attr-defined]
+        page._on_sheet_changed("Missing")
+
+
+def test_file_size_formatter_covers_bytes_kilobytes_and_megabytes() -> None:
+    assert HomePage._format_file_size(100) == "100 B"
+    assert HomePage._format_file_size(2048) == "2.0 KB"
+    assert HomePage._format_file_size(2 * 1024 * 1024) == "2.0 MB"
+
+
+def test_column_mapping_without_matching_keywords_remains_unselected(
+    qtbot: object,
+) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="generic.xlsx",
+            file_name="generic.xlsx",
+            file_type="XLSX",
+            file_size_bytes=1,
+            modified_at=datetime(2026, 7, 31, 15, 0),
+            worksheets=(WorksheetInfo("Data", 2, 3, ("A", "B", "C")),),
+        )
+    )
+
+    assert page._origin_column_selector.currentData() == ""
+    assert page._destination_column_selector.currentData() == ""
+    assert page._result_column_selector.currentData() == ""
+    assert page._mapping_status.text() == (
+        "Select origin, destination and result columns"
+    )
+
+
+def test_clear_inspection_is_safe_before_widgets_are_created() -> None:
+    from types import SimpleNamespace
+
+    incomplete_page = SimpleNamespace()
+
+    HomePage.clear_inspection(incomplete_page)  # type: ignore[arg-type]
+
+    assert incomplete_page._workbook_info is None
+    assert incomplete_page._current_worksheet is None
+
+
+def test_preview_generates_headers_when_worksheet_has_none(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="headerless.csv",
+            file_name="headerless.csv",
+            file_type="CSV",
+            file_size_bytes=10,
+            modified_at=datetime(2026, 7, 31, 15, 30),
+            worksheets=(
+                WorksheetInfo(
+                    "headerless",
+                    2,
+                    2,
+                    (),
+                    (("A", "B"),),
+                ),
+            ),
+        )
+    )
+
+    assert page._preview_model.columnCount() == 2
+    assert (
+        page._preview_model.headerData(0, Qt.Orientation.Horizontal)
+        == "Column 1"
+    )
+    assert (
+        page._preview_model.headerData(1, Qt.Orientation.Horizontal)
+        == "Column 2"
+    )
+
+
+def test_sheet_change_before_inspection_is_ignored(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    with qtbot.assertNotEmitted(page.sheet_changed):  # type: ignore[attr-defined]
+        page._on_sheet_changed("Routes")
+
+    assert page.workbook_info is None

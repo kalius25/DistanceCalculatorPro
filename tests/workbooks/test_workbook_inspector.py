@@ -86,3 +86,21 @@ def test_service_rejects_missing_and_unsupported_files(tmp_path: Path) -> None:
     path.touch()
     with pytest.raises(UnsupportedWorkbookError, match="Unsupported workbook format"):
         service.inspect(str(path))
+
+
+def test_excel_reader_supports_xlsm_case_insensitively(tmp_path: Path) -> None:
+    reader = OpenPyXLWorkbookReader()
+
+    assert reader.supports(tmp_path / "book.XLSM")
+    assert not reader.supports(tmp_path / "book.csv")
+
+
+def test_csv_reader_stops_retaining_preview_after_limit(tmp_path: Path) -> None:
+    path = tmp_path / "large.csv"
+    rows = ["A,B"] + [f"{index},{index + 1}" for index in range(501)]
+    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+    sheet = CsvWorkbookReader().read_worksheets(path)[0]
+
+    assert sheet.row_count == 502
+    assert len(sheet.preview_rows) == CsvWorkbookReader.PREVIEW_ROW_LIMIT

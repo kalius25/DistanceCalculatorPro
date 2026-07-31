@@ -101,3 +101,23 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 
 - Fixed the empty-workspace header so guidance and status labels keep their top position when file panels are hidden.
 - Applied a fixed vertical size policy to the workspace header and its guidance labels.
+
+## 1.2.0-alpha11 — Automatic Focus Mode
+
+- Automatically hides Select Workbook, Recent Workbooks and File Information after workbook inspection completes.
+- Keeps the Show file panels control available so users can reopen the source panels.
+- Adds presentation coverage for automatic panel collapse and manual restore.
+
+## 1.2.0-alpha10 — Sprint 1B.4
+
+- Added Column Mapping panel to Workbook Inspector.
+- Added Origin, Destination and Result selectors.
+- Added Vietnamese and English header auto-detection.
+- Added mapping validation and tests.
+
+## Sprint 1B.4 Coverage Completion
+
+- Added branch tests for `HomePage.clear_inspection()` before widget construction.
+- Added preview coverage for worksheets without detected headers.
+- Added safe sheet-change coverage before workbook inspection exists.
+- No production behavior or coverage exclusions were changed.

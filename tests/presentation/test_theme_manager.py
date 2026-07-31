@@ -59,8 +59,7 @@ def test_apply_theme_raises_when_file_is_missing(
     manager = ThemeManager(resource_manager)
     expected_path = resource_manager.style_path("light")
 
-    with pytest.raises(
-        FileNotFoundError,
-        match=f"Theme file not found: {expected_path}",
-    ):
+    with pytest.raises(FileNotFoundError) as exc_info:
         manager.apply_theme(MagicMock(), "light")
+
+    assert str(exc_info.value) == f"Theme file not found: {expected_path}"

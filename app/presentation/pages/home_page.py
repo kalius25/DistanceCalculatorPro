@@ -36,6 +36,7 @@ class HomePage(QWidget):
     clear_recent_requested = Signal()
     file_selected = Signal(str)
     sheet_changed = Signal(str)
+    column_mapping_changed = Signal(str, str, str)
 
     SUPPORTED_EXTENSIONS = frozenset({".xlsx", ".xlsm", ".csv"})
     DEFAULT_PREVIEW_ROWS = 20
@@ -47,6 +48,7 @@ class HomePage(QWidget):
         self._workbook_info: WorkbookInfo | None = None
         self._current_worksheet: WorksheetInfo | None = None
         self._preview_row_limit = self.DEFAULT_PREVIEW_ROWS
+        self._mapping_valid = False
         self.setObjectName("pageWorkspace")
         self.setAcceptDrops(True)
         self._create_widgets()
@@ -77,6 +79,7 @@ class HomePage(QWidget):
         self._empty_file_information.setVisible(False)
         self._file_ready_label.setText("Inspecting workbook…")
         self.clear_inspection()
+        self._workspace_status.setText("Inspecting workbook…")
 
     def clear_selected_file(self) -> None:
         self._selected_file = None
@@ -119,6 +122,8 @@ class HomePage(QWidget):
             self._headers_status_value.setText("No")
             self._workspace_status.setText("Workbook contains no worksheets")
 
+        self._toggle_source_panels_button.setChecked(True)
+
     def set_inspection_error(self, message: str) -> None:
         self.clear_inspection()
         self._file_ready_label.setText("Inspection failed")
@@ -133,6 +138,8 @@ class HomePage(QWidget):
             self._inspector_frame.setVisible(False)
             self._sheet_selector.clear()
             self._preview_model.clear()
+        if hasattr(self, "_origin_column_selector"):
+            self._populate_column_mapping(())
 
     def set_recent_files(self, file_paths: list[str]) -> None:
         self._recent_files.clear()
@@ -348,6 +355,32 @@ class HomePage(QWidget):
         summary_layout.addStretch(1)
         inspector_layout.addLayout(summary_layout)
 
+        self._mapping_frame = QFrame(self._inspector_frame)
+        self._mapping_frame.setObjectName("frmColumnMapping")
+        mapping_layout = QGridLayout(self._mapping_frame)
+        mapping_layout.setContentsMargins(12, 10, 12, 10)
+        mapping_layout.setHorizontalSpacing(12)
+        mapping_layout.setVerticalSpacing(6)
+        mapping_title = QLabel("Column Mapping", self._mapping_frame)
+        mapping_title.setObjectName("lblSectionTitle")
+        mapping_layout.addWidget(mapping_title, 0, 0, 1, 3)
+        self._origin_column_selector = self._mapping_selector(
+            "Origin column", "cmbOriginColumn", mapping_layout, 1
+        )
+        self._destination_column_selector = self._mapping_selector(
+            "Destination column", "cmbDestinationColumn", mapping_layout, 2
+        )
+        self._result_column_selector = self._mapping_selector(
+            "Result column", "cmbResultColumn", mapping_layout, 3
+        )
+        self._mapping_status = QLabel(self._mapping_frame)
+        self._mapping_status.setObjectName("lblMappingStatus")
+        mapping_layout.addWidget(self._mapping_status, 4, 0, 1, 3)
+        mapping_layout.setColumnStretch(0, 1)
+        mapping_layout.setColumnStretch(1, 1)
+        mapping_layout.setColumnStretch(2, 1)
+        inspector_layout.addWidget(self._mapping_frame)
+
         preview_frame = QFrame(self._inspector_frame)
         preview_frame.setObjectName("frmPreviewPanel")
         preview_layout = QVBoxLayout(preview_frame)
@@ -436,6 +469,12 @@ class HomePage(QWidget):
         self._preview_rows_selector.currentTextChanged.connect(
             self._on_preview_row_limit_changed
         )
+        for selector in (
+            self._origin_column_selector,
+            self._destination_column_selector,
+            self._result_column_selector,
+        ):
+            selector.currentTextChanged.connect(self._on_mapping_changed)
         self._toggle_source_panels_button.toggled.connect(
             self._set_source_panels_hidden
         )
@@ -450,6 +489,7 @@ class HomePage(QWidget):
         self._column_count_value.setText(f"{worksheet.column_count:,}")
         has_headers = bool(worksheet.headers and any(worksheet.headers))
         self._headers_status_value.setText("Yes" if has_headers else "No")
+        self._populate_column_mapping(worksheet.headers)
         self._render_preview(worksheet)
 
     def _render_preview(self, worksheet: WorksheetInfo) -> None:
@@ -521,6 +561,7 @@ class HomePage(QWidget):
         ):
             label.setText("0")
         self._preview_model.clear()
+        self._populate_column_mapping(())
 
     def _on_sheet_changed(self, sheet_name: str) -> None:
         if self._workbook_info is None:
@@ -567,6 +608,99 @@ class HomePage(QWidget):
         if size_bytes < 1024 * 1024:
             return f"{size_bytes / 1024:.1f} KB"
         return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+    def _mapping_selector(
+        self,
+        caption: str,
+        object_name: str,
+        layout: QGridLayout,
+        column: int,
+    ) -> QComboBox:
+        label = QLabel(caption, self._mapping_frame)
+        label.setObjectName("lblInspectorCaption")
+        selector = QComboBox(self._mapping_frame)
+        selector.setObjectName(object_name)
+        layout.addWidget(label, 1, column - 1)
+        layout.addWidget(selector, 2, column - 1)
+        return selector
+
+    def _populate_column_mapping(self, headers: tuple[str, ...]) -> None:
+        selectors = (
+            self._origin_column_selector,
+            self._destination_column_selector,
+            self._result_column_selector,
+        )
+        for selector in selectors:
+            selector.blockSignals(True)
+            selector.clear()
+            selector.addItem("Select column…", "")
+            for index, header in enumerate(headers, start=1):
+                display_name = header or f"Column {index}"
+                selector.addItem(display_name, display_name)
+            selector.blockSignals(False)
+        self._auto_detect_mapping(headers)
+        self._validate_mapping()
+
+    def _auto_detect_mapping(self, headers: tuple[str, ...]) -> None:
+        normalized = {
+            header.casefold().strip(): header for header in headers if header
+        }
+        keyword_groups = (
+            (
+                self._origin_column_selector,
+                ("origin", "from", "điểm đi", "nơi đi", "tọa độ nơi đi"),
+            ),
+            (
+                self._destination_column_selector,
+                (
+                    "destination",
+                    "to",
+                    "điểm đến",
+                    "nơi đến",
+                    "tọa độ nơi đến",
+                ),
+            ),
+            (
+                self._result_column_selector,
+                ("result", "distance", "kết quả", "khoảng cách"),
+            ),
+        )
+        for selector, keywords in keyword_groups:
+            match = next(
+                (
+                    header
+                    for key, header in normalized.items()
+                    if any(word in key for word in keywords)
+                ),
+                None,
+            )
+            if match is not None:
+                selector.setCurrentText(match)
+
+    def _on_mapping_changed(self, _value: str) -> None:
+        self._validate_mapping()
+
+    def _validate_mapping(self) -> None:
+        origin = self._origin_column_selector.currentData() or ""
+        destination = self._destination_column_selector.currentData() or ""
+        result = self._result_column_selector.currentData() or ""
+        selected = [value for value in (origin, destination, result) if value]
+        self._mapping_valid = (
+            len(selected) == 3 and len(set(selected)) == 3
+        )
+        if self._mapping_valid:
+            self._mapping_status.setText("Mapping ready")
+            self._mapping_status.setProperty("valid", True)
+            self.column_mapping_changed.emit(origin, destination, result)
+        elif len(selected) != len(set(selected)):
+            self._mapping_status.setText("Each role must use a different column")
+            self._mapping_status.setProperty("valid", False)
+        else:
+            self._mapping_status.setText(
+                "Select origin, destination and result columns"
+            )
+            self._mapping_status.setProperty("valid", False)
+        self._refresh_style(self._mapping_status)
 
     def _create_section_frame(self, object_name: str) -> QFrame:
         frame = QFrame(self)
