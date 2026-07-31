@@ -1,3 +1,11 @@
+## 1.2.0-alpha15 — Sprint 1D.2
+
+- Made MainWindow the single owner of execution orchestration and toolbar state.
+- Added the HomePage `workspace_locked` view state and `set_workspace_locked()` API.
+- Locked and restored all calculation configuration controls through one view-only API.
+- Preserved guarded IDLE/RUNNING/PAUSED transitions and calculation request signals.
+- Extended presentation tests for lock state, transitions, toolbar text, and signal emission.
+
 ## 1.2.0-alpha14
 
 - Added Sprint 1D.1 Execution Workspace with validated Start/Stop controls.

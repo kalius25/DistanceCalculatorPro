@@ -918,14 +918,18 @@ def test_configuration_inputs_can_be_locked_and_unlocked(qtbot: object) -> None:
         page = HomePage()
     qtbot.addWidget(page)  # type: ignore[attr-defined]
 
-    page.set_configuration_enabled(False)
+    assert not page.workspace_locked
+
+    page.set_workspace_locked(True)
+    assert page.workspace_locked
     assert not page._source_panels_container.isEnabled()
     assert not page._sheet_selector.isEnabled()
     assert not page._preview_rows_selector.isEnabled()
     assert not page._mapping_frame.isEnabled()
     assert not page._provider_frame.isEnabled()
 
-    page.set_configuration_enabled(True)
+    page.set_workspace_locked(False)
+    assert not page.workspace_locked
     assert page._source_panels_container.isEnabled()
     assert page._sheet_selector.isEnabled()
     assert page._preview_rows_selector.isEnabled()

@@ -62,6 +62,7 @@ class HomePage(QWidget):
         self._mapping_valid = False
         self._provider_valid = False
         self._workspace_ready = False
+        self._workspace_locked = False
         self.setObjectName("pageWorkspace")
         self.setAcceptDrops(True)
         self._create_widgets()
@@ -114,6 +115,10 @@ class HomePage(QWidget):
     @property
     def workspace_ready(self) -> bool:
         return self._workspace_ready
+
+    @property
+    def workspace_locked(self) -> bool:
+        return self._workspace_locked
 
     @classmethod
     def accepts_file(cls, file_path: str) -> bool:
@@ -901,8 +906,10 @@ class HomePage(QWidget):
             self.workspace_ready_changed.emit(ready)
         self._refresh_style(self._workspace_readiness_status)
 
-    def set_configuration_enabled(self, enabled: bool) -> None:
-        """Enable or lock all inputs that define a calculation job."""
+    def set_workspace_locked(self, locked: bool) -> None:
+        """Lock or unlock all inputs that define a calculation job."""
+        self._workspace_locked = locked
+        enabled = not locked
         self._source_panels_container.setEnabled(enabled)
         self._sheet_selector.setEnabled(enabled)
         self._preview_rows_selector.setEnabled(enabled)

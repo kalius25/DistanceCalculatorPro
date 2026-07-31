@@ -359,6 +359,7 @@ def test_execution_actions_start_pause_resume_and_stop(
     assert not window._action_start.isEnabled()
     assert window._action_pause.isEnabled()
     assert window._action_stop.isEnabled()
+    assert window._home_page.workspace_locked
     assert not window._home_page._mapping_frame.isEnabled()
     assert window._status_label.text() == "Calculation running"
 
@@ -388,6 +389,7 @@ def test_execution_actions_start_pause_resume_and_stop(
     assert window._action_start.isEnabled()
     assert not window._action_pause.isEnabled()
     assert not window._action_stop.isEnabled()
+    assert not window._home_page.workspace_locked
     assert window._home_page._mapping_frame.isEnabled()
     assert window._status_label.text() == "Ready to calculate"
 

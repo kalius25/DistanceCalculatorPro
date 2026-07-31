@@ -434,8 +434,8 @@ class MainWindow(QMainWindow):
         if state is self._execution_state:
             return
         self._execution_state = state
-        self._home_page.set_configuration_enabled(
-            state is ExecutionState.IDLE
+        self._home_page.set_workspace_locked(
+            state is not ExecutionState.IDLE
         )
         self._update_execution_actions()
 
