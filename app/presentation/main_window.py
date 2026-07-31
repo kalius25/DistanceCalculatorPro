@@ -15,6 +15,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.workbooks import (
+    CsvWorkbookReader,
+    OpenPyXLWorkbookReader,
+    WorkbookInspectorService,
+)
+
 from .app_metadata import AppMetadata
 from .dialogs.about_dialog import AboutDialog
 from .pages.about_page import AboutPage
@@ -46,12 +52,16 @@ class MainWindow(QMainWindow):
         metadata: AppMetadata,
         theme_manager: ThemeManager,
         settings_manager: SettingsManager,
+        workbook_inspector: WorkbookInspectorService | None = None,
     ) -> None:
         super().__init__()
         self._application = application
         self._metadata = metadata
         self._theme_manager = theme_manager
         self._settings_manager = settings_manager
+        self._workbook_inspector = workbook_inspector or WorkbookInspectorService(
+            (OpenPyXLWorkbookReader(), CsvWorkbookReader())
+        )
 
         self._create_actions()
         self._create_widgets()
@@ -215,6 +225,9 @@ class MainWindow(QMainWindow):
         self._action_open.triggered.connect(self._browse_for_workbook)
         self._home_page.browse_requested.connect(self._browse_for_workbook)
         self._home_page.file_selected.connect(self._select_workbook)
+        self._home_page.clear_recent_requested.connect(
+            self._clear_recent_files
+        )
         self._action_start.triggered.connect(self._show_sprint_placeholder)
         self._action_pause.triggered.connect(self._show_sprint_placeholder)
         self._action_stop.triggered.connect(self._show_sprint_placeholder)
@@ -344,7 +357,20 @@ class MainWindow(QMainWindow):
             return
 
         normalized_path = str(path)
+        try:
+            workbook_info = self._workbook_inspector.inspect(normalized_path)
+        except (OSError, ValueError) as error:
+            self._home_page.set_selected_file(normalized_path)
+            self._home_page.set_inspection_error(str(error))
+            QMessageBox.critical(
+                self,
+                "Workbook inspection failed",
+                f"The workbook could not be inspected.\n\n{error}",
+            )
+            return
+
         self._home_page.set_selected_file(normalized_path)
+        self._home_page.set_inspection(workbook_info)
         self._settings_manager.add_recent_file(normalized_path)
         self._update_recent_files_menu()
         self._home_page.set_recent_files(self._settings_manager.recent_files())
@@ -364,7 +390,7 @@ class MainWindow(QMainWindow):
     def _show_sprint_placeholder(self) -> None:
         QMessageBox.information(
             self,
-            "Sprint 1B.1",
+            "Sprint 1B.2",
             "This command will be connected in a later sprint.",
         )
 

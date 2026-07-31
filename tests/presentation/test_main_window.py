@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
@@ -10,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from app.presentation.app_metadata import AppMetadata
 from app.presentation.main_window import MainWindow
+from app.workbooks.models import WorkbookInfo, WorksheetInfo
 
 
 @pytest.fixture
@@ -35,12 +37,29 @@ def theme_manager() -> MagicMock:
 
 
 @pytest.fixture
+def workbook_inspector(tmp_path: Path) -> MagicMock:
+    inspector = MagicMock()
+    inspector.inspect.side_effect = lambda file_path: WorkbookInfo(
+        file_path=file_path,
+        file_name=Path(file_path).name,
+        file_type=Path(file_path).suffix.lstrip(".").upper(),
+        file_size_bytes=Path(file_path).stat().st_size,
+        modified_at=datetime.fromtimestamp(
+            Path(file_path).stat().st_mtime
+        ),
+        worksheets=(WorksheetInfo("Sheet1", 1, 1, ("Header",)),),
+    )
+    return inspector
+
+
+@pytest.fixture
 def window(
     qtbot: object,
     qapp: QApplication,
     metadata: AppMetadata,
     theme_manager: MagicMock,
     settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
 ) -> MainWindow:
     with patch(
         "app.presentation.main_window.qta.icon",
@@ -51,6 +70,7 @@ def window(
             metadata=metadata,
             theme_manager=theme_manager,
             settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
         )
     qtbot.addWidget(result)  # type: ignore[attr-defined]
     result.show()
@@ -307,7 +327,7 @@ def test_execution_actions_show_information_dialog(
     assert information.call_count == 3
     information.assert_called_with(
         window,
-        "Sprint 1B.1",
+        "Sprint 1B.2",
         "This command will be connected in a later sprint.",
     )
 
@@ -395,9 +415,8 @@ def test_workspace_signals_are_connected_to_main_window(
 
     with patch.object(window, "_browse_for_workbook") as browse:
         window._home_page.browse_requested.emit()
-    # Qt stores the connected bound method at connection time. The signal is
-    # therefore verified through the real file-selected connection below.
-    browse.assert_not_called()
+
+    browse.assert_called_once_with()
 
     window._home_page.file_selected.emit(str(workbook))
 

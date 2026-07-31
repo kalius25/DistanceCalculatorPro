@@ -58,7 +58,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
             app_module.LoggingManager,
             "get_logger",
             return_value=logger,
-        ),
+        ) as get_logger,
         patch.object(
             app_module,
             "QApplication",
@@ -91,6 +91,13 @@ def test_create_application_composes_and_initializes_shell() -> None:
             "ExceptionHandler",
             return_value=exception_handler,
         ) as handler_type,
+        patch.object(app_module, "OpenPyXLWorkbookReader", return_value="excel_reader"),
+        patch.object(app_module, "CsvWorkbookReader", return_value="csv_reader"),
+        patch.object(
+            app_module,
+            "WorkbookInspectorService",
+            return_value="workbook_inspector",
+        ) as inspector_type,
         patch.object(
             app_module,
             "MainWindow",
@@ -102,9 +109,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
 
     metadata = app_module.AppMetadata()
     configure.assert_called_once_with(configuration.logging)
-    app_module.LoggingManager.get_logger.assert_called_once_with(
-        "presentation"
-    )
+    get_logger.assert_called_once_with("presentation")
     application_type.assert_called_once_with(app_module.sys.argv)
     application.setApplicationName.assert_called_once_with(metadata.name)
     application.setApplicationVersion.assert_called_once_with(metadata.version)
@@ -124,12 +129,14 @@ def test_create_application_composes_and_initializes_shell() -> None:
     theme_type.assert_called_once_with(resource_manager)
     theme_manager.apply_theme.assert_called_once_with(application, "light")
     handler_type.assert_called_once_with(logger)
+    inspector_type.assert_called_once_with(("excel_reader", "csv_reader"))
     exception_handler.install.assert_called_once_with()
     window_type.assert_called_once_with(
         application=application,
         metadata=metadata,
         theme_manager=theme_manager,
         settings_manager=settings_manager,
+        workbook_inspector="workbook_inspector",
     )
     logger.info.assert_called_once_with(
         "Presentation application initialized"

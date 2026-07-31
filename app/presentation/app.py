@@ -7,6 +7,11 @@ from PySide6.QtWidgets import QApplication
 
 from app.configuration.configuration_loader import ConfigurationLoader
 from app.logging.logging_manager import LoggingManager
+from app.workbooks import (
+    CsvWorkbookReader,
+    OpenPyXLWorkbookReader,
+    WorkbookInspectorService,
+)
 
 from .app_metadata import AppMetadata
 from .exception_handler import ExceptionHandler
@@ -56,11 +61,15 @@ def create_application() -> tuple[
     exception_handler = ExceptionHandler(logger)
     exception_handler.install()
 
+    workbook_inspector = WorkbookInspectorService(
+        (OpenPyXLWorkbookReader(), CsvWorkbookReader())
+    )
     main_window = MainWindow(
         application=application,
         metadata=metadata,
         theme_manager=theme_manager,
         settings_manager=settings_manager,
+        workbook_inspector=workbook_inspector,
     )
     logger.info("Presentation application initialized")
     return application, main_window, exception_handler, splash_screen

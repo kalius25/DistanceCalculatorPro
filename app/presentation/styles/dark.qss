@@ -189,3 +189,50 @@ QPushButton#btnBrowseWorkbook {
 QPushButton#btnBrowseWorkbook:hover {
     background: #2563eb;
 }
+
+QFrame#frmWorkbookInspector {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+}
+QLabel#lblInspectorCaption { color: #9ca3af; font-size: 11px; }
+QLabel#lblInspectorValue { color: #f9fafb; font-weight: 600; }
+QLabel#lblInspectorHeaders { color: #d1d5db; }
+
+QFrame#frmSelectionPanel, QFrame#frmRecentPanel, QFrame#frmFilePanel,
+QFrame#frmPreviewPanel, QFrame#frmSheetAbout {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+}
+QPushButton#btnClearRecent {
+    border: 0;
+    border-top: 1px solid #374151;
+    border-radius: 0;
+    background: transparent;
+    color: #60a5fa;
+    text-align: left;
+    padding: 8px 14px;
+}
+QPushButton#btnClearRecent:hover { background: #1f2937; }
+QLabel#lblFileReady[ready="true"] { color: #22c55e; font-weight: 600; }
+QLabel#lblFileReady[ready="false"] { color: #f87171; font-weight: 600; }
+QLabel#lblSummaryValue { color: #f9fafb; font-size: 14pt; font-weight: 700; }
+QLabel#lblPreviewTitle { color: #f3f4f6; font-weight: 600; }
+QTableView#tblDataPreview {
+    background: #111827;
+    alternate-background-color: #151e2d;
+    border: 1px solid #374151;
+    gridline-color: #263244;
+    color: #e5e7eb;
+    selection-background-color: #1d4ed8;
+}
+QTableView#tblDataPreview QHeaderView::section {
+    background: #1f2937;
+    color: #f3f4f6;
+    border: 0;
+    border-right: 1px solid #374151;
+    border-bottom: 1px solid #374151;
+    padding: 6px;
+    font-weight: 600;
+}

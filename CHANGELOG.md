@@ -1,3 +1,11 @@
+## 1.2.0-alpha7 — Workspace Focus Mode
+
+- Removed the duplicated About This Sheet panel.
+- Moved preview-row selection beside the worksheet selector.
+- Added 20, 50, 100, 200 and 500 row preview options.
+- Added Hide/Show file panels to maximize preview height.
+- Increased bounded reader preview capacity to 500 data rows.
+
 
 ## Sprint 1A.2-T1 — Presentation Test Foundation
 
@@ -52,11 +60,44 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Marked the conventional module launcher guard as excluded from coverage;
   `main()` itself remains fully tested.
 
-## Sprint 1B.1 — Workspace UI
+## 1.2.0-alpha4 — Sprint 1B.2
 
-- Replaced the Home placeholder with a real file-selection workspace.
-- Added drag-and-drop and native Browse support for XLSX, XLSM, and CSV files.
-- Added selected-file and recent-workbook UI states.
-- Connected MainWindow Open and Recent Files actions to workspace selection.
-- Added validation for missing and unsupported files.
-- Added Light/Dark workspace styling and full Presentation tests.
+- Added immutable workbook and worksheet metadata models.
+- Added reader abstraction with streaming CSV and read-only OpenPyXL implementations.
+- Added WorkbookInspectorService and composition-root wiring.
+- Added Workbook Inspector UI with sheet selection, dimensions, headers, size, type, and modified time.
+- Added handling for missing, unsupported, empty, and unreadable workbooks.
+- Added unit and presentation tests for the new inspection workflow.
+
+## Sprint 1B.2 Test Stability Fix
+
+- Updated the Workspace status expectation to `Inspecting workbook…`.
+- Kept `QMimeData` instances alive for synthetic drag-and-drop events.
+- Prevented PySide6 6.11 Windows access violations caused by temporary MIME data ownership.
+
+## 1.2.0-alpha5
+
+### Changed
+- Redesigned File Workspace into compact selection, recent files, and file information panels.
+- Removed the redundant Change button.
+- Expanded Workbook Inspector with a bounded 10-row data preview.
+- Added sheet summary and About this sheet details.
+- Added Clear Recent List action to the workspace.
+
+### Engineering
+- Added preview rows to `WorksheetInfo`.
+- Excel and CSV readers retain no more than 10 preview rows.
+- Added QTableView-based preview rendering.
+
+## 1.2.0-alpha6 — Sprint 1B.3 Data Preview Completion
+
+- Added a 5/10-row preview selector.
+- Added bounded, reusable preview rendering for Excel and CSV worksheets.
+- Added cell tooltips so long values remain inspectable without widening the table excessively.
+- Added content-aware column sizing with minimum and maximum width limits.
+- Preserved read-only and bounded-memory workbook inspection.
+
+## 1.2.0-alpha9
+
+- Fixed the empty-workspace header so guidance and status labels keep their top position when file panels are hidden.
+- Applied a fixed vertical size policy to the workspace header and its guidance labels.
