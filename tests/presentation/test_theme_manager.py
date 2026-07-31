@@ -2,7 +2,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from app.presentation.resource_manager import ResourceManager
 from app.presentation.theme_manager import ThemeManager
@@ -55,14 +54,13 @@ def test_apply_theme_rejects_unsupported_theme(
 
 
 def test_apply_theme_raises_when_file_is_missing(
-    qapp: QApplication,
     resource_manager: ResourceManager,
 ) -> None:
     manager = ThemeManager(resource_manager)
     expected_path = resource_manager.style_path("light")
-    expected_message = f"Theme file not found: {expected_path}"
 
-    with pytest.raises(FileNotFoundError) as exc_info:
-        manager.apply_theme(qapp, "light")
-
-    assert str(exc_info.value) == expected_message
+    with pytest.raises(
+        FileNotFoundError,
+        match=f"Theme file not found: {expected_path}",
+    ):
+        manager.apply_theme(MagicMock(), "light")

@@ -4,6 +4,7 @@ import qtawesome as qta
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -133,7 +134,8 @@ class MainWindow(QMainWindow):
         self._navigation = NavigationPanel(self)
         self._content_stack = QStackedWidget(self)
         self._content_stack.setObjectName("stkContent")
-        self._content_stack.addWidget(HomePage(self))
+        self._home_page = HomePage(self)
+        self._content_stack.addWidget(self._home_page)
         self._content_stack.addWidget(HistoryPage(self))
         self._content_stack.addWidget(SettingsPage(self))
         self._content_stack.addWidget(AboutPage(self))
@@ -210,7 +212,9 @@ class MainWindow(QMainWindow):
         self._action_dark_theme.triggered.connect(self._on_dark_theme_selected)
         self._action_settings.triggered.connect(self._show_settings_page)
         self._action_about.triggered.connect(self._show_about_dialog)
-        self._action_open.triggered.connect(self._show_sprint_placeholder)
+        self._action_open.triggered.connect(self._browse_for_workbook)
+        self._home_page.browse_requested.connect(self._browse_for_workbook)
+        self._home_page.file_selected.connect(self._select_workbook)
         self._action_start.triggered.connect(self._show_sprint_placeholder)
         self._action_pause.triggered.connect(self._show_sprint_placeholder)
         self._action_stop.triggered.connect(self._show_sprint_placeholder)
@@ -229,6 +233,7 @@ class MainWindow(QMainWindow):
         self._restore_window_state()
         self._toolbar.setVisible(self._settings_manager.toolbar_visible())
         self._update_recent_files_menu()
+        self._home_page.set_recent_files(self._settings_manager.recent_files())
         self._update_theme_state(self._theme_manager.current_theme)
         self._on_current_page_changed(self._content_stack.currentIndex())
 
@@ -310,26 +315,56 @@ class MainWindow(QMainWindow):
         clear_action = self._recent_files_menu.addAction("Clear Recent Files")
         clear_action.triggered.connect(self._clear_recent_files)
 
+    def _browse_for_workbook(self) -> None:
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open workbook",
+            "",
+            "Supported workbooks (*.xlsx *.xlsm *.csv);;"
+            "Excel workbooks (*.xlsx *.xlsm);;CSV files (*.csv)",
+        )
+        if file_path:
+            self._select_workbook(file_path)
+
+    def _select_workbook(self, file_path: str) -> None:
+        path = Path(file_path)
+        if not path.is_file():
+            QMessageBox.warning(
+                self,
+                "Workbook unavailable",
+                f"The selected workbook does not exist.\n\n{file_path}",
+            )
+            return
+        if not HomePage.accepts_file(file_path):
+            QMessageBox.warning(
+                self,
+                "Unsupported workbook",
+                "Select an .xlsx, .xlsm or .csv file.",
+            )
+            return
+
+        normalized_path = str(path)
+        self._home_page.set_selected_file(normalized_path)
+        self._settings_manager.add_recent_file(normalized_path)
+        self._update_recent_files_menu()
+        self._home_page.set_recent_files(self._settings_manager.recent_files())
+        self._navigation.setCurrentRow(self.HOME_PAGE_INDEX)
+        self._status_label.setText(f"Ready · {path.name}")
+
     def _show_recent_file_placeholder(self) -> None:
         action = self.sender()
-        if not isinstance(action, QAction):
-            return
-        file_path = str(action.data())
-        QMessageBox.information(
-            self,
-            "Recent File",
-            "Workbook opening will be connected in Sprint 1B."
-            f"\n\n{file_path}",
-        )
+        if isinstance(action, QAction):
+            self._select_workbook(str(action.data()))
 
     def _clear_recent_files(self) -> None:
         self._settings_manager.clear_recent_files()
         self._update_recent_files_menu()
+        self._home_page.set_recent_files([])
 
     def _show_sprint_placeholder(self) -> None:
         QMessageBox.information(
             self,
-            "Sprint 1A.2",
+            "Sprint 1B.1",
             "This command will be connected in a later sprint.",
         )
 

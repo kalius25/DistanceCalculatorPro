@@ -35,3 +35,28 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 
 - No Business Layer changes.
 - No new dependency.
+
+## Sprint 1A.2-T2 — Application Shell Test
+
+### Added
+
+- Comprehensive `MainWindow` tests for navigation, menus, toolbar, status bar,
+  themes, adaptive icons, recent files, dialogs, placeholders, persistence,
+  and close lifecycle.
+- Composition-root tests for `create_application()` and `main()`.
+- Coverage for normal and exceptional Qt event-loop cleanup.
+- Sprint documentation in `docs/README_SPRINT_1A2_T2.md`.
+
+### Changed
+
+- Marked the conventional module launcher guard as excluded from coverage;
+  `main()` itself remains fully tested.
+
+## Sprint 1B.1 — Workspace UI
+
+- Replaced the Home placeholder with a real file-selection workspace.
+- Added drag-and-drop and native Browse support for XLSX, XLSM, and CSV files.
+- Added selected-file and recent-workbook UI states.
+- Connected MainWindow Open and Recent Files actions to workspace selection.
+- Added validation for missing and unsupported files.
+- Added Light/Dark workspace styling and full Presentation tests.

@@ -134,3 +134,58 @@ QToolTip {
     border: 0;
     padding: 5px;
 }
+QWidget#pageWorkspace {
+    background: #171a21;
+}
+QFrame#frmDropZone {
+    background: #20242c;
+    border: 2px dashed #56647a;
+    border-radius: 12px;
+}
+QFrame#frmDropZone[dragActive="true"] {
+    background: #26354d;
+    border-color: #60a5fa;
+}
+QLabel#lblDropTitle, QLabel#lblSectionTitle {
+    font-size: 12pt;
+    font-weight: 650;
+    color: #f3f5f8;
+}
+QLabel#lblDropHint, QLabel#lblSelectedFilePath,
+QLabel#lblWorkspaceEmptyState, QLabel#lblWorkspaceStatus {
+    color: #a7b0bf;
+}
+QFrame#frmSelectedFile {
+    background: #20242c;
+    border: 1px solid #3a414e;
+    border-radius: 9px;
+}
+QLabel#lblSelectedFileName {
+    font-weight: 650;
+}
+QListWidget#lstRecentWorkbooks {
+    background: #20242c;
+    border: 1px solid #3a414e;
+    border-radius: 9px;
+    padding: 5px;
+    outline: 0;
+}
+QListWidget#lstRecentWorkbooks::item {
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 5px;
+}
+QListWidget#lstRecentWorkbooks::item:hover,
+QListWidget#lstRecentWorkbooks::item:selected {
+    background: #303d55;
+    color: #9ec5ff;
+}
+QPushButton#btnBrowseWorkbook {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+    min-height: 34px;
+}
+QPushButton#btnBrowseWorkbook:hover {
+    background: #2563eb;
+}

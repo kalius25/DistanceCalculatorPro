@@ -4,18 +4,12 @@ from PySide6.QtWidgets import QLabel
 from app.presentation.pages.about_page import AboutPage
 from app.presentation.pages.base_placeholder_page import BasePlaceholderPage
 from app.presentation.pages.history_page import HistoryPage
-from app.presentation.pages.home_page import HomePage
 from app.presentation.pages.settings_page import SettingsPage
 
 
 @pytest.mark.parametrize(
     ("page_type", "expected_title", "expected_description"),
     [
-        (
-            HomePage,
-            "Home",
-            "Batch distance calculation workspace will be implemented in Sprint 1B.",
-        ),
         (
             HistoryPage,
             "History",
