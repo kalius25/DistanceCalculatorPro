@@ -1,3 +1,13 @@
+
+## Sprint 1A.2-T1 — Presentation Test Foundation
+
+### Added
+
+- Headless Qt test environment for Presentation Layer tests.
+- Unit tests for metadata, resources, settings, themes and exception handling.
+- Widget tests for splash screen, About dialog, navigation and placeholder pages.
+- Sprint verification guide in `docs/README_SPRINT_1A2_T1.md`.
+
 # Changelog
 
 All notable changes to DistanceCalculatorPro are documented in this file.
