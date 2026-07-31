@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSettings
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from app.configuration.configuration_loader import ConfigurationLoader
@@ -12,10 +13,16 @@ from .exception_handler import ExceptionHandler
 from .main_window import MainWindow
 from .resource_manager import ResourceManager
 from .settings_manager import SettingsManager
+from .splash_screen import SplashScreen
 from .theme_manager import ThemeManager
 
 
-def create_application() -> tuple[QApplication, MainWindow, ExceptionHandler]:
+def create_application() -> tuple[
+    QApplication,
+    MainWindow,
+    ExceptionHandler,
+    SplashScreen,
+]:
     metadata = AppMetadata()
     configuration = ConfigurationLoader.load()
     LoggingManager.configure(configuration.logging)
@@ -29,6 +36,14 @@ def create_application() -> tuple[QApplication, MainWindow, ExceptionHandler]:
 
     package_directory = Path(__file__).resolve().parent
     resource_manager = ResourceManager(package_directory)
+    application.setWindowIcon(
+        QIcon(str(resource_manager.application_icon_path()))
+    )
+
+    splash_screen = SplashScreen(resource_manager)
+    splash_screen.show()
+    application.processEvents()
+
     settings_manager = SettingsManager(QSettings())
     theme_manager = ThemeManager(resource_manager)
 
@@ -48,12 +63,15 @@ def create_application() -> tuple[QApplication, MainWindow, ExceptionHandler]:
         settings_manager=settings_manager,
     )
     logger.info("Presentation application initialized")
-    return application, main_window, exception_handler
+    return application, main_window, exception_handler, splash_screen
 
 
 def main() -> int:
-    application, main_window, exception_handler = create_application()
+    application, main_window, exception_handler, splash_screen = (
+        create_application()
+    )
     main_window.show()
+    splash_screen.finish(main_window)
     try:
         return application.exec()
     finally:

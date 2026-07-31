@@ -1,24 +1,27 @@
-v1.2.0-alpha1
+# Changelog
 
-Added
+All notable changes to DistanceCalculatorPro are documented in this file.
 
-- MainWindow
-- ThemeManager
-- Navigation
-- StatusBar
-- Placeholder Pages
+## [1.2.0-alpha2] — Sprint 1A.2
 
-Changed
+### Added
 
-- Project structure
+- Application SVG icon.
+- Startup splash screen.
+- Toolbar action icons.
+- Page navigation shortcuts.
+- Recent Files menu infrastructure.
+- Persistent toolbar visibility.
+- Sprint 1A.2 documentation.
 
-Fixed
+### Changed
 
-- Relative import
-- Package execution
+- Refined Light and Dark themes.
+- Improved About dialog.
+- Improved status bar page feedback.
+- Updated presentation version to `1.2.0-alpha2`.
 
-Documentation
+### Architecture
 
-- Coding Convention
-- Design System
-- UI Style Guide
+- No Business Layer changes.
+- No new dependency.

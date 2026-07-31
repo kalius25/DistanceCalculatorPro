@@ -97,3 +97,14 @@ exclude_lines = [
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+[[tool.mypy.overrides]]
+module = ["qtawesome", "qtawesome.*"]
+ignore_missing_imports = true
+
+[tool.mypy]
+python_version = "3.13"
+
+[tool.black]
+line-length = 88
+target-version = ["py313"]

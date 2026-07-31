@@ -13,6 +13,7 @@ from playwright.sync_api import (
     BrowserContext,
     Page,
     Playwright,
+    ViewportSize,
     sync_playwright,
 )
 
@@ -42,12 +43,6 @@ class BrowserManager:
         self._context: BrowserContext | None = None
 
     def start(self) -> None:
-        """
-        Start Playwright and create a configured browser context.
-
-        Calling this method repeatedly does not create duplicate browser
-        instances while a managed browser is already active.
-        """
         if self._browser is not None:
             return
 
@@ -58,22 +53,22 @@ class BrowserManager:
             slow_mo=self._config.slow_mo,
         )
 
-        context_options: dict[str, object] = {
-            "locale": self._config.locale,
-            "viewport": {
-                "width": self._config.viewport_width,
-                "height": self._config.viewport_height,
-            },
+        viewport: ViewportSize = {
+            "width": self._config.viewport_width,
+            "height": self._config.viewport_height,
         }
 
-        if self._config.user_agent is not None:
-            context_options["user_agent"] = (
-                self._config.user_agent
+        if self._config.user_agent is None:
+            self._context = self._browser.new_context(
+                locale=self._config.locale,
+                viewport=viewport,
             )
-
-        self._context = self._browser.new_context(
-            **context_options,
-        )
+        else:
+            self._context = self._browser.new_context(
+                locale=self._config.locale,
+                viewport=viewport,
+                user_agent=self._config.user_agent,
+            )
 
         self._context.set_default_timeout(
             self._config.timeout,

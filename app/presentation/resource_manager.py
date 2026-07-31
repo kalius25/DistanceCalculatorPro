@@ -12,11 +12,21 @@ class ResourceManager:
         return self._package_directory / "styles"
 
     @property
+    def resources_directory(self) -> Path:
+        return self._package_directory / "resources"
+
+    @property
     def icons_directory(self) -> Path:
-        return self._package_directory / "resources" / "icons"
+        return self.resources_directory / "icons"
 
     def style_path(self, theme_name: str) -> Path:
         return self.styles_directory / f"{theme_name}.qss"
 
     def icon_path(self, icon_name: str) -> Path:
         return self.icons_directory / icon_name
+
+    def application_icon_path(self) -> Path:
+        return self.icon_path("app_icon.svg")
+
+    def splash_path(self) -> Path:
+        return self.resources_directory / "splash.svg"
