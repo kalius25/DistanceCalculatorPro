@@ -142,3 +142,11 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added preview coverage for worksheets without detected headers.
 - Added safe sheet-change coverage before workbook inspection exists.
 - No production behavior or coverage exclusions were changed.
+
+## 1.2.0-alpha14 — Sprint 1D.1 Revised
+
+- Removed the duplicated Execution Workspace card.
+- Placed Column Mapping and Route Provider side by side.
+- Connected toolbar Start (F5), Pause/Resume (F6), and Stop (Shift+F5).
+- Added an explicit IDLE/RUNNING/PAUSED execution state machine in MainWindow.
+- Locked workbook and route configuration while a calculation is active.

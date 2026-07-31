@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import qtawesome as qta
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -23,6 +24,7 @@ from app.workbooks import (
 
 from .app_metadata import AppMetadata
 from .dialogs.about_dialog import AboutDialog
+from .models.execution_state import ExecutionState
 from .pages.about_page import AboutPage
 from .pages.history_page import HistoryPage
 from .pages.home_page import HomePage
@@ -34,6 +36,11 @@ from .widgets.navigation_panel import NavigationPanel
 
 class MainWindow(QMainWindow):
     """Top-level presentation shell for DistanceCalculatorPro."""
+
+    calculation_requested = Signal(object)
+    calculation_pause_requested = Signal()
+    calculation_resume_requested = Signal()
+    calculation_stop_requested = Signal()
 
     HOME_PAGE_INDEX = 0
     HISTORY_PAGE_INDEX = 1
@@ -59,6 +66,7 @@ class MainWindow(QMainWindow):
         self._metadata = metadata
         self._theme_manager = theme_manager
         self._settings_manager = settings_manager
+        self._execution_state = ExecutionState.IDLE
         self._workbook_inspector = workbook_inspector or WorkbookInspectorService(
             (OpenPyXLWorkbookReader(), CsvWorkbookReader())
         )
@@ -71,6 +79,10 @@ class MainWindow(QMainWindow):
         self._create_status_bar()
         self._connect_signals()
         self._apply_initial_state()
+
+    @property
+    def execution_state(self) -> ExecutionState:
+        return self._execution_state
 
     def _create_actions(self) -> None:
         self._action_open = QAction("Open Excel", self)
@@ -228,9 +240,12 @@ class MainWindow(QMainWindow):
         self._home_page.clear_recent_requested.connect(
             self._clear_recent_files
         )
-        self._action_start.triggered.connect(self._show_sprint_placeholder)
-        self._action_pause.triggered.connect(self._show_sprint_placeholder)
-        self._action_stop.triggered.connect(self._show_sprint_placeholder)
+        self._action_start.triggered.connect(self._start_calculation)
+        self._action_pause.triggered.connect(self._toggle_pause)
+        self._action_stop.triggered.connect(self._stop_calculation)
+        self._home_page.workspace_ready_changed.connect(
+            self._on_workspace_ready_changed
+        )
         self._action_home.triggered.connect(self._show_action_page)
         self._action_history.triggered.connect(self._show_action_page)
         self._action_settings_page.triggered.connect(self._show_action_page)
@@ -249,6 +264,7 @@ class MainWindow(QMainWindow):
         self._home_page.set_recent_files(self._settings_manager.recent_files())
         self._update_theme_state(self._theme_manager.current_theme)
         self._on_current_page_changed(self._content_stack.currentIndex())
+        self._update_execution_actions()
 
     def _on_light_theme_selected(self) -> None:
         self._apply_theme("light")
@@ -387,12 +403,63 @@ class MainWindow(QMainWindow):
         self._update_recent_files_menu()
         self._home_page.set_recent_files([])
 
-    def _show_sprint_placeholder(self) -> None:
-        QMessageBox.information(
-            self,
-            "Sprint 1B.2",
-            "This command will be connected in a later sprint.",
+    def _on_workspace_ready_changed(self, _ready: bool) -> None:
+        self._update_execution_actions()
+
+    def _start_calculation(self) -> None:
+        configuration = self._home_page.workspace_configuration
+        if (
+            self._execution_state is not ExecutionState.IDLE
+            or configuration is None
+        ):
+            return
+        self._set_execution_state(ExecutionState.RUNNING)
+        self.calculation_requested.emit(configuration)
+
+    def _toggle_pause(self) -> None:
+        if self._execution_state is ExecutionState.RUNNING:
+            self._set_execution_state(ExecutionState.PAUSED)
+            self.calculation_pause_requested.emit()
+        elif self._execution_state is ExecutionState.PAUSED:
+            self._set_execution_state(ExecutionState.RUNNING)
+            self.calculation_resume_requested.emit()
+
+    def _stop_calculation(self) -> None:
+        if self._execution_state is ExecutionState.IDLE:
+            return
+        self._set_execution_state(ExecutionState.IDLE)
+        self.calculation_stop_requested.emit()
+
+    def _set_execution_state(self, state: ExecutionState) -> None:
+        if state is self._execution_state:
+            return
+        self._execution_state = state
+        self._home_page.set_configuration_enabled(
+            state is ExecutionState.IDLE
         )
+        self._update_execution_actions()
+
+    def _update_execution_actions(self) -> None:
+        idle = self._execution_state is ExecutionState.IDLE
+        running = self._execution_state is ExecutionState.RUNNING
+        paused = self._execution_state is ExecutionState.PAUSED
+
+        self._action_start.setEnabled(idle and self._home_page.workspace_ready)
+        self._action_pause.setEnabled(running or paused)
+        self._action_stop.setEnabled(running or paused)
+        self._action_open.setEnabled(idle)
+
+        self._action_pause.setText("Resume" if paused else "Pause")
+        self._action_pause.setToolTip(
+            "Resume calculation (F6)" if paused else "Pause calculation (F6)"
+        )
+
+        if running:
+            self._status_label.setText("Calculation running")
+        elif paused:
+            self._status_label.setText("Calculation paused")
+        elif self._home_page.workspace_ready:
+            self._status_label.setText("Ready to calculate")
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._settings_manager.set_window_geometry(self.saveGeometry())

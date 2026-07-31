@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from app.presentation.app_metadata import AppMetadata
 from app.presentation.main_window import MainWindow
+from app.presentation.models.execution_state import ExecutionState
 from app.workbooks.models import WorkbookInfo, WorksheetInfo
 
 
@@ -316,20 +317,106 @@ def test_clear_recent_files_updates_manager_and_menu(
     assert not actions[0].isEnabled()
 
 
-def test_execution_actions_show_information_dialog(
+def _make_workspace_ready(window: MainWindow) -> object:
+    window._home_page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 7, 31, 16, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    25,
+                    3,
+                    ("Origin", "Destination", "Distance"),
+                ),
+            ),
+        )
+    )
+    configuration = window._home_page.workspace_configuration
+    assert configuration is not None
+    return configuration
+
+
+def test_execution_actions_start_pause_resume_and_stop(
     window: MainWindow,
+    qtbot: object,
 ) -> None:
-    with patch.object(QMessageBox, "information") as information:
+    configuration = _make_workspace_ready(window)
+    assert window._action_start.isEnabled()
+    assert not window._action_pause.isEnabled()
+    assert not window._action_stop.isEnabled()
+
+    with qtbot.waitSignal(  # type: ignore[attr-defined]
+        window.calculation_requested,
+        check_params_cb=lambda emitted: emitted == configuration,
+    ):
         window._action_start.trigger()
+
+    assert window.execution_state is ExecutionState.RUNNING
+    assert not window._action_start.isEnabled()
+    assert window._action_pause.isEnabled()
+    assert window._action_stop.isEnabled()
+    assert not window._home_page._mapping_frame.isEnabled()
+    assert window._status_label.text() == "Calculation running"
+
+    with qtbot.waitSignal(  # type: ignore[attr-defined]
+        window.calculation_pause_requested
+    ):
         window._action_pause.trigger()
+
+    assert window.execution_state is ExecutionState.PAUSED
+    assert window._action_pause.text() == "Resume"
+    assert window._status_label.text() == "Calculation paused"
+
+    with qtbot.waitSignal(  # type: ignore[attr-defined]
+        window.calculation_resume_requested
+    ):
+        window._action_pause.trigger()
+
+    assert window.execution_state is ExecutionState.RUNNING
+    assert window._action_pause.text() == "Pause"
+
+    with qtbot.waitSignal(  # type: ignore[attr-defined]
+        window.calculation_stop_requested
+    ):
         window._action_stop.trigger()
 
-    assert information.call_count == 3
-    information.assert_called_with(
-        window,
-        "Sprint 1B.2",
-        "This command will be connected in a later sprint.",
-    )
+    assert window.execution_state is ExecutionState.IDLE
+    assert window._action_start.isEnabled()
+    assert not window._action_pause.isEnabled()
+    assert not window._action_stop.isEnabled()
+    assert window._home_page._mapping_frame.isEnabled()
+    assert window._status_label.text() == "Ready to calculate"
+
+
+def test_execution_actions_ignore_invalid_transitions(
+    window: MainWindow,
+    qtbot: object,
+) -> None:
+    assert window.execution_state is ExecutionState.IDLE
+    assert not window._action_start.isEnabled()
+
+    with (
+        qtbot.assertNotEmitted(  # type: ignore[attr-defined]
+            window.calculation_requested
+        ),
+        qtbot.assertNotEmitted(  # type: ignore[attr-defined]
+            window.calculation_pause_requested
+        ),
+        qtbot.assertNotEmitted(  # type: ignore[attr-defined]
+            window.calculation_resume_requested
+        ),
+        qtbot.assertNotEmitted(  # type: ignore[attr-defined]
+            window.calculation_stop_requested
+        ),
+    ):
+        window._start_calculation()
+        window._toggle_pause()
+        window._stop_calculation()
+        window._set_execution_state(ExecutionState.IDLE)
 
 
 def test_open_action_browses_and_selects_file(
