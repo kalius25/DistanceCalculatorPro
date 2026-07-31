@@ -84,6 +84,9 @@ Bao gồm các hạng mục như:
 
 # v1.2 — Modern UI
 
+**Sprint 1C.1 — Provider Configuration Workspace ✔**
+
+
 Đây là giai đoạn hiện tại.
 
 Mục tiêu là xây dựng giao diện người dùng hoàn chỉnh bằng PySide6 mà không làm thay đổi business layer hiện có.

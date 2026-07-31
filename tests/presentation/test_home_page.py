@@ -687,3 +687,212 @@ def test_sheet_change_before_inspection_is_ignored(qtbot: object) -> None:
         page._on_sheet_changed("Routes")
 
     assert page.workbook_info is None
+
+
+def test_provider_configuration_defaults_are_ready(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    assert page._provider_selector.currentText() == "Google Maps Web"
+    assert page._travel_mode_selector.currentText() == "Driving"
+    assert page._provider_valid
+    assert page._provider_status.text() == "Provider ready"
+    assert not page._avoid_tolls_checkbox.isChecked()
+    assert not page._avoid_highways_checkbox.isChecked()
+    assert not page._avoid_ferries_checkbox.isChecked()
+
+
+def test_provider_configuration_emits_selected_options(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    with qtbot.waitSignal(
+        page.provider_configuration_changed,
+        check_params_cb=lambda provider, mode, tolls, highways, ferries: (
+            provider == "Google Maps Web"
+            and mode == "walking"
+            and tolls
+            and not highways
+            and not ferries
+        ),
+    ):
+        page._travel_mode_selector.setCurrentText("Walking")
+        page._avoid_tolls_checkbox.setChecked(True)
+
+
+def test_provider_configuration_requires_provider_and_mode(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._provider_selector.setCurrentIndex(-1)
+
+    assert not page._provider_valid
+    assert page._provider_status.text() == "Select a provider and travel mode"
+    assert page._provider_status.property("valid") is False
+
+
+def test_workspace_configuration_is_not_ready_without_mapping(
+    qtbot: object,
+) -> None:
+    from app.enums.provider_type import ProviderType
+    from app.enums.travel_mode import TravelMode
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    assert page.column_mapping is None
+    assert page.provider_configuration is not None
+    assert page.provider_configuration.provider is ProviderType.GOOGLE_MAPS_WEB
+    assert page.provider_configuration.travel_mode is TravelMode.DRIVING
+    assert page.workspace_configuration is None
+    assert not page.workspace_ready
+    assert page._workspace_readiness_status.text() == "Complete column mapping"
+
+
+def test_complete_workspace_configuration_emits_ready_state(
+    qtbot: object,
+) -> None:
+    from datetime import datetime
+
+    from app.enums.provider_type import ProviderType
+    from app.enums.travel_mode import TravelMode
+    from app.presentation.workspace_configuration import WorkspaceConfiguration
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    configurations: list[WorkspaceConfiguration] = []
+    ready_states: list[bool] = []
+    page.workspace_configuration_changed.connect(configurations.append)
+    page.workspace_ready_changed.connect(ready_states.append)
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 7, 31, 16, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    2,
+                    3,
+                    ("Origin", "Destination", "Distance"),
+                ),
+            ),
+        )
+    )
+
+    configuration = page.workspace_configuration
+    assert configuration is not None
+    assert configuration.column_mapping.origin_column == "Origin"
+    assert configuration.column_mapping.destination_column == "Destination"
+    assert configuration.column_mapping.result_column == "Distance"
+    assert configuration.provider_configuration.provider is (
+        ProviderType.GOOGLE_MAPS_WEB
+    )
+    assert configuration.provider_configuration.travel_mode is TravelMode.DRIVING
+    assert page.workspace_ready
+    assert ready_states == [True]
+    assert configurations[-1] == configuration
+    assert page._workspace_readiness_status.text() == (
+        "Setup ready for calculation"
+    )
+    assert page._workspace_readiness_status.property("valid") is True
+
+
+def test_workspace_ready_transition_is_emitted_only_when_state_changes(
+    qtbot: object,
+) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 7, 31, 16, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    2,
+                    3,
+                    ("Origin", "Destination", "Distance"),
+                ),
+            ),
+        )
+    )
+    ready_states: list[bool] = []
+    page.workspace_ready_changed.connect(ready_states.append)
+
+    page._avoid_tolls_checkbox.setChecked(True)
+    page._destination_column_selector.setCurrentText("Origin")
+
+    assert ready_states == [False]
+    assert not page.workspace_ready
+    assert page.column_mapping is None
+    assert page._workspace_readiness_status.text() == "Complete column mapping"
+
+
+def test_workspace_requires_provider_when_mapping_is_complete(
+    qtbot: object,
+) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 7, 31, 16, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    2,
+                    3,
+                    ("Origin", "Destination", "Distance"),
+                ),
+            ),
+        )
+    )
+
+    page._provider_selector.setCurrentIndex(-1)
+
+    assert page.provider_configuration is None
+    assert page.workspace_configuration is None
+    assert not page.workspace_ready
+    assert page._workspace_readiness_status.text() == (
+        "Complete provider configuration"
+    )
+
+
+def test_workspace_reports_both_incomplete_sections(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._provider_selector.setCurrentIndex(-1)
+
+    assert page._workspace_readiness_status.text() == (
+        "Complete column mapping and provider configuration"
+    )
+    assert page._workspace_readiness_status.property("valid") is False

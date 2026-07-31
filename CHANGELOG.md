@@ -1,3 +1,18 @@
+## 1.2.0-alpha13
+
+- Added Sprint 1C.2 provider state integration.
+- Added immutable typed workspace configuration models.
+- Added combined mapping/provider readiness and signals.
+- Added complete readiness-state tests and theme styling.
+
+
+## 1.2.0-alpha12
+
+- Added Sprint 1C.1 Provider Configuration Workspace.
+- Added Google Maps Web provider selection.
+- Added travel-mode selection and route avoidance options.
+- Added provider readiness validation and presentation signal.
+- Added provider configuration tests and theme styling.
 ## 1.2.0-alpha7 — Workspace Focus Mode
 
 - Removed the duplicated About This Sheet panel.

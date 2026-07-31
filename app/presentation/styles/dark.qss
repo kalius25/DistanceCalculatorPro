@@ -245,3 +245,23 @@ QFrame#frmColumnMapping {
 QLabel#lblMappingStatus { color: #94a3b8; }
 QLabel#lblMappingStatus[valid="true"] { color: #4ade80; font-weight: 600; }
 QLabel#lblMappingStatus[valid="false"] { color: #fbbf24; }
+
+QFrame#frmProviderConfiguration {
+    background: #111827;
+    border: 1px solid #334155;
+    border-radius: 8px;
+}
+QLabel#lblProviderStatus { color: #94a3b8; }
+QLabel#lblProviderStatus[valid="true"] { color: #4ade80; font-weight: 600; }
+QLabel#lblProviderStatus[valid="false"] { color: #fbbf24; }
+
+QLabel#lblWorkspaceReadinessStatus {
+    color: #94a3b8;
+    font-weight: 600;
+}
+QLabel#lblWorkspaceReadinessStatus[valid="true"] {
+    color: #4ade80;
+}
+QLabel#lblWorkspaceReadinessStatus[valid="false"] {
+    color: #fbbf24;
+}

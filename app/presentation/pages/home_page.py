@@ -11,6 +11,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
     QComboBox,
     QFrame,
     QGridLayout,
@@ -26,6 +27,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.enums.provider_type import ProviderType
+from app.enums.travel_mode import TravelMode
+from app.presentation.workspace_configuration import (
+    ColumnMapping,
+    ProviderConfiguration,
+    WorkspaceConfiguration,
+)
 from app.workbooks.models import WorkbookInfo, WorksheetInfo
 
 
@@ -37,6 +45,9 @@ class HomePage(QWidget):
     file_selected = Signal(str)
     sheet_changed = Signal(str)
     column_mapping_changed = Signal(str, str, str)
+    provider_configuration_changed = Signal(str, str, bool, bool, bool)
+    workspace_configuration_changed = Signal(object)
+    workspace_ready_changed = Signal(bool)
 
     SUPPORTED_EXTENSIONS = frozenset({".xlsx", ".xlsm", ".csv"})
     DEFAULT_PREVIEW_ROWS = 20
@@ -49,6 +60,8 @@ class HomePage(QWidget):
         self._current_worksheet: WorksheetInfo | None = None
         self._preview_row_limit = self.DEFAULT_PREVIEW_ROWS
         self._mapping_valid = False
+        self._provider_valid = False
+        self._workspace_ready = False
         self.setObjectName("pageWorkspace")
         self.setAcceptDrops(True)
         self._create_widgets()
@@ -63,6 +76,44 @@ class HomePage(QWidget):
     @property
     def workbook_info(self) -> WorkbookInfo | None:
         return self._workbook_info
+
+    @property
+    def column_mapping(self) -> ColumnMapping | None:
+        if not self._mapping_valid:
+            return None
+        return ColumnMapping(
+            origin_column=str(self._origin_column_selector.currentData()),
+            destination_column=str(
+                self._destination_column_selector.currentData()
+            ),
+            result_column=str(self._result_column_selector.currentData()),
+        )
+
+    @property
+    def provider_configuration(self) -> ProviderConfiguration | None:
+        if not self._provider_valid:
+            return None
+        return ProviderConfiguration(
+            provider=ProviderType(str(self._provider_selector.currentData())),
+            travel_mode=TravelMode(
+                str(self._travel_mode_selector.currentData())
+            ),
+            avoid_tolls=self._avoid_tolls_checkbox.isChecked(),
+            avoid_highways=self._avoid_highways_checkbox.isChecked(),
+            avoid_ferries=self._avoid_ferries_checkbox.isChecked(),
+        )
+
+    @property
+    def workspace_configuration(self) -> WorkspaceConfiguration | None:
+        mapping = self.column_mapping
+        provider = self.provider_configuration
+        if mapping is None or provider is None:
+            return None
+        return WorkspaceConfiguration(mapping, provider)
+
+    @property
+    def workspace_ready(self) -> bool:
+        return self._workspace_ready
 
     @classmethod
     def accepts_file(cls, file_path: str) -> bool:
@@ -140,6 +191,8 @@ class HomePage(QWidget):
             self._preview_model.clear()
         if hasattr(self, "_origin_column_selector"):
             self._populate_column_mapping(())
+        if hasattr(self, "_workspace_readiness_status"):
+            self._update_workspace_readiness()
 
     def set_recent_files(self, file_paths: list[str]) -> None:
         self._recent_files.clear()
@@ -381,6 +434,77 @@ class HomePage(QWidget):
         mapping_layout.setColumnStretch(2, 1)
         inspector_layout.addWidget(self._mapping_frame)
 
+        self._provider_frame = QFrame(self._inspector_frame)
+        self._provider_frame.setObjectName("frmProviderConfiguration")
+        provider_layout = QGridLayout(self._provider_frame)
+        provider_layout.setContentsMargins(12, 10, 12, 10)
+        provider_layout.setHorizontalSpacing(12)
+        provider_layout.setVerticalSpacing(6)
+        provider_title = QLabel("Route Provider", self._provider_frame)
+        provider_title.setObjectName("lblSectionTitle")
+        provider_layout.addWidget(provider_title, 0, 0, 1, 3)
+
+        provider_caption = QLabel("Provider", self._provider_frame)
+        provider_caption.setObjectName("lblInspectorCaption")
+        self._provider_selector = QComboBox(self._provider_frame)
+        self._provider_selector.setObjectName("cmbRouteProvider")
+        self._provider_selector.addItem(
+            ProviderType.GOOGLE_MAPS_WEB.value,
+            ProviderType.GOOGLE_MAPS_WEB.value,
+        )
+        provider_layout.addWidget(provider_caption, 1, 0)
+        provider_layout.addWidget(self._provider_selector, 2, 0)
+
+        travel_caption = QLabel("Travel mode", self._provider_frame)
+        travel_caption.setObjectName("lblInspectorCaption")
+        self._travel_mode_selector = QComboBox(self._provider_frame)
+        self._travel_mode_selector.setObjectName("cmbTravelMode")
+        for label, mode in (
+            ("Driving", TravelMode.DRIVING),
+            ("Walking", TravelMode.WALKING),
+            ("Bicycling", TravelMode.BICYCLING),
+            ("Transit", TravelMode.TRANSIT),
+        ):
+            self._travel_mode_selector.addItem(label, mode.value)
+        provider_layout.addWidget(travel_caption, 1, 1)
+        provider_layout.addWidget(self._travel_mode_selector, 2, 1)
+
+        avoid_caption = QLabel("Route options", self._provider_frame)
+        avoid_caption.setObjectName("lblInspectorCaption")
+        provider_layout.addWidget(avoid_caption, 1, 2)
+        avoid_layout = QHBoxLayout()
+        self._avoid_tolls_checkbox = QCheckBox("Avoid tolls", self._provider_frame)
+        self._avoid_tolls_checkbox.setObjectName("chkAvoidTolls")
+        self._avoid_highways_checkbox = QCheckBox(
+            "Avoid highways", self._provider_frame
+        )
+        self._avoid_highways_checkbox.setObjectName("chkAvoidHighways")
+        self._avoid_ferries_checkbox = QCheckBox(
+            "Avoid ferries", self._provider_frame
+        )
+        self._avoid_ferries_checkbox.setObjectName("chkAvoidFerries")
+        avoid_layout.addWidget(self._avoid_tolls_checkbox)
+        avoid_layout.addWidget(self._avoid_highways_checkbox)
+        avoid_layout.addWidget(self._avoid_ferries_checkbox)
+        avoid_layout.addStretch(1)
+        provider_layout.addLayout(avoid_layout, 2, 2)
+
+        self._provider_status = QLabel(self._provider_frame)
+        self._provider_status.setObjectName("lblProviderStatus")
+        provider_layout.addWidget(self._provider_status, 3, 0, 1, 3)
+
+        self._workspace_readiness_status = QLabel(self._provider_frame)
+        self._workspace_readiness_status.setObjectName(
+            "lblWorkspaceReadinessStatus"
+        )
+        provider_layout.addWidget(
+            self._workspace_readiness_status, 4, 0, 1, 3
+        )
+        provider_layout.setColumnStretch(0, 1)
+        provider_layout.setColumnStretch(1, 1)
+        provider_layout.setColumnStretch(2, 3)
+        inspector_layout.addWidget(self._provider_frame)
+
         preview_frame = QFrame(self._inspector_frame)
         preview_frame.setObjectName("frmPreviewPanel")
         preview_layout = QVBoxLayout(preview_frame)
@@ -475,6 +599,18 @@ class HomePage(QWidget):
             self._result_column_selector,
         ):
             selector.currentTextChanged.connect(self._on_mapping_changed)
+        self._provider_selector.currentTextChanged.connect(
+            self._on_provider_configuration_changed
+        )
+        self._travel_mode_selector.currentTextChanged.connect(
+            self._on_provider_configuration_changed
+        )
+        for checkbox in (
+            self._avoid_tolls_checkbox,
+            self._avoid_highways_checkbox,
+            self._avoid_ferries_checkbox,
+        ):
+            checkbox.toggled.connect(self._on_provider_option_toggled)
         self._toggle_source_panels_button.toggled.connect(
             self._set_source_panels_hidden
         )
@@ -482,6 +618,8 @@ class HomePage(QWidget):
     def _apply_initial_state(self) -> None:
         self.clear_selected_file()
         self.set_recent_files([])
+        self._validate_provider_configuration()
+        self._update_workspace_readiness()
 
     def _show_worksheet(self, worksheet: WorksheetInfo) -> None:
         self._current_worksheet = worksheet
@@ -701,6 +839,65 @@ class HomePage(QWidget):
             )
             self._mapping_status.setProperty("valid", False)
         self._refresh_style(self._mapping_status)
+        self._update_workspace_readiness()
+
+    def _on_provider_configuration_changed(self, _value: str) -> None:
+        self._validate_provider_configuration()
+
+    def _on_provider_option_toggled(self, _checked: bool) -> None:
+        self._validate_provider_configuration()
+
+    def _validate_provider_configuration(self) -> None:
+        provider = self._provider_selector.currentData() or ""
+        travel_mode = self._travel_mode_selector.currentData() or ""
+        self._provider_valid = bool(provider and travel_mode)
+        if self._provider_valid:
+            self._provider_status.setText("Provider ready")
+            self._provider_status.setProperty("valid", True)
+            self.provider_configuration_changed.emit(
+                provider,
+                travel_mode,
+                self._avoid_tolls_checkbox.isChecked(),
+                self._avoid_highways_checkbox.isChecked(),
+                self._avoid_ferries_checkbox.isChecked(),
+            )
+        else:
+            self._provider_status.setText(
+                "Select a provider and travel mode"
+            )
+            self._provider_status.setProperty("valid", False)
+        self._refresh_style(self._provider_status)
+        self._update_workspace_readiness()
+
+    def _update_workspace_readiness(self) -> None:
+        configuration = self.workspace_configuration
+        ready = configuration is not None
+        if ready:
+            self._workspace_readiness_status.setText(
+                "Setup ready for calculation"
+            )
+            self._workspace_readiness_status.setProperty("valid", True)
+            self.workspace_configuration_changed.emit(configuration)
+        elif not self._mapping_valid and not self._provider_valid:
+            self._workspace_readiness_status.setText(
+                "Complete column mapping and provider configuration"
+            )
+            self._workspace_readiness_status.setProperty("valid", False)
+        elif not self._mapping_valid:
+            self._workspace_readiness_status.setText(
+                "Complete column mapping"
+            )
+            self._workspace_readiness_status.setProperty("valid", False)
+        else:
+            self._workspace_readiness_status.setText(
+                "Complete provider configuration"
+            )
+            self._workspace_readiness_status.setProperty("valid", False)
+
+        if ready != self._workspace_ready:
+            self._workspace_ready = ready
+            self.workspace_ready_changed.emit(ready)
+        self._refresh_style(self._workspace_readiness_status)
 
     def _create_section_frame(self, object_name: str) -> QFrame:
         frame = QFrame(self)
