@@ -265,3 +265,14 @@ QLabel#lblWorkspaceReadinessStatus[valid="true"] {
 QLabel#lblWorkspaceReadinessStatus[valid="false"] {
     color: #b45309;
 }
+
+QFrame#frmExecutionCard {
+    border: 1px solid palette(midlight);
+    border-radius: 8px;
+    padding: 2px;
+}
+QLabel#lblExecutionValue { font-weight: 600; }
+QLabel#lblExecutionStatus[ready="true"] { color: #15803d; font-weight: 600; }
+QLabel#lblExecutionStatus[ready="false"] { color: #b45309; }
+QPushButton#btnStartCalculation { min-height: 34px; font-weight: 600; }
+QPushButton#btnStopCalculation { min-height: 34px; font-weight: 600; }

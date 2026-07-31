@@ -1,3 +1,9 @@
+## 1.2.0-alpha14
+
+- Added Sprint 1D.1 Execution Workspace with validated Start/Stop controls.
+- Added execution summary and configuration locking while a job is active.
+- Added calculation request and stop request signals.
+
 ## 1.2.0-alpha13
 
 - Added Sprint 1C.2 provider state integration.

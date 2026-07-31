@@ -896,3 +896,116 @@ def test_workspace_reports_both_incomplete_sections(qtbot: object) -> None:
         "Complete column mapping and provider configuration"
     )
     assert page._workspace_readiness_status.property("valid") is False
+
+
+def test_execution_workspace_starts_and_stops_valid_job(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 7, 31, 16, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    25,
+                    3,
+                    ("Origin", "Destination", "Distance"),
+                ),
+            ),
+        )
+    )
+
+    configuration = page.workspace_configuration
+    assert configuration is not None
+    assert page._execution_card._action_button.isEnabled()
+    assert page._execution_card._rows_value.text() == "25"
+
+    with qtbot.waitSignal(  # type: ignore[attr-defined]
+        page.calculation_requested,
+        check_params_cb=lambda emitted: emitted == configuration,
+    ):
+        page._execution_card._action_button.click()
+
+    assert page._execution_running
+    assert page._execution_card.running
+    assert not page._mapping_frame.isEnabled()
+    assert not page._provider_frame.isEnabled()
+    assert not page._sheet_selector.isEnabled()
+
+    with qtbot.waitSignal(  # type: ignore[attr-defined]
+        page.calculation_stop_requested
+    ):
+        page._execution_card._action_button.click()
+
+    assert not page._execution_running
+    assert not page._execution_card.running
+    assert page._mapping_frame.isEnabled()
+    assert page._provider_frame.isEnabled()
+    assert page._sheet_selector.isEnabled()
+    assert page._execution_card._action_button.isEnabled()
+
+
+def test_execution_request_is_ignored_when_workspace_is_invalid(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    with qtbot.assertNotEmitted(  # type: ignore[attr-defined]
+        page.calculation_requested
+    ):
+        page._on_start_calculation()
+
+    assert not page._execution_running
+
+
+def test_duplicate_start_and_idle_stop_are_ignored(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    with qtbot.assertNotEmitted(  # type: ignore[attr-defined]
+        page.calculation_stop_requested
+    ):
+        page._on_stop_calculation()
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 7, 31, 16, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    2,
+                    3,
+                    ("Origin", "Destination", "Distance"),
+                ),
+            ),
+        )
+    )
+    page._on_start_calculation()
+
+    with qtbot.assertNotEmitted(  # type: ignore[attr-defined]
+        page.calculation_requested
+    ):
+        page._on_start_calculation()
+
+    page._update_execution_card(page.workspace_configuration)
+    assert page._execution_card.running

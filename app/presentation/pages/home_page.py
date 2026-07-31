@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 
 from app.enums.provider_type import ProviderType
 from app.enums.travel_mode import TravelMode
+from app.presentation.widgets.execution_card import ExecutionCard
 from app.presentation.workspace_configuration import (
     ColumnMapping,
     ProviderConfiguration,
@@ -48,6 +49,9 @@ class HomePage(QWidget):
     provider_configuration_changed = Signal(str, str, bool, bool, bool)
     workspace_configuration_changed = Signal(object)
     workspace_ready_changed = Signal(bool)
+    calculation_requested = Signal(object)
+    calculation_stop_requested = Signal()
+    
 
     SUPPORTED_EXTENSIONS = frozenset({".xlsx", ".xlsm", ".csv"})
     DEFAULT_PREVIEW_ROWS = 20
@@ -62,6 +66,7 @@ class HomePage(QWidget):
         self._mapping_valid = False
         self._provider_valid = False
         self._workspace_ready = False
+        self._execution_running = False
         self.setObjectName("pageWorkspace")
         self.setAcceptDrops(True)
         self._create_widgets()
@@ -193,6 +198,8 @@ class HomePage(QWidget):
             self._populate_column_mapping(())
         if hasattr(self, "_workspace_readiness_status"):
             self._update_workspace_readiness()
+        if hasattr(self, "_execution_card"):
+            self._execution_card.reset()
 
     def set_recent_files(self, file_paths: list[str]) -> None:
         self._recent_files.clear()
@@ -505,6 +512,9 @@ class HomePage(QWidget):
         provider_layout.setColumnStretch(2, 3)
         inspector_layout.addWidget(self._provider_frame)
 
+        self._execution_card = ExecutionCard(self._inspector_frame)
+        inspector_layout.addWidget(self._execution_card)
+
         preview_frame = QFrame(self._inspector_frame)
         preview_frame.setObjectName("frmPreviewPanel")
         preview_layout = QVBoxLayout(preview_frame)
@@ -613,6 +623,12 @@ class HomePage(QWidget):
             checkbox.toggled.connect(self._on_provider_option_toggled)
         self._toggle_source_panels_button.toggled.connect(
             self._set_source_panels_hidden
+        )
+        self._execution_card.start_requested.connect(
+            self._on_start_calculation
+        )
+        self._execution_card.stop_requested.connect(
+            self._on_stop_calculation
         )
 
     def _apply_initial_state(self) -> None:
@@ -898,6 +914,51 @@ class HomePage(QWidget):
             self._workspace_ready = ready
             self.workspace_ready_changed.emit(ready)
         self._refresh_style(self._workspace_readiness_status)
+        self._update_execution_card(configuration)
+
+    def _update_execution_card(
+        self, configuration: WorkspaceConfiguration | None
+    ) -> None:
+        if self._execution_running:
+            return
+        worksheet = self._current_worksheet
+        workbook = self._workbook_info
+        if configuration is None or worksheet is None or workbook is None:
+            self._execution_card.set_ready(False)
+            return
+        provider = configuration.provider_configuration
+        self._execution_card.set_summary(
+            workbook_name=workbook.file_name,
+            row_count=worksheet.row_count,
+            provider=provider.provider.value,
+            travel_mode=provider.travel_mode.value,
+        )
+        self._execution_card.set_ready(True)
+
+    def _on_start_calculation(self) -> None:
+        configuration = self.workspace_configuration
+        if configuration is None or self._execution_running:
+            return
+        self._execution_running = True
+        self._set_configuration_enabled(False)
+        self._execution_card.set_running(True)
+        self.calculation_requested.emit(configuration)
+
+    def _on_stop_calculation(self) -> None:
+        if not self._execution_running:
+            return
+        self._execution_running = False
+        self._set_configuration_enabled(True)
+        self._execution_card.set_running(False)
+        self._execution_card.set_ready(self.workspace_ready)
+        self.calculation_stop_requested.emit()
+
+    def _set_configuration_enabled(self, enabled: bool) -> None:
+        self._source_panels_container.setEnabled(enabled)
+        self._sheet_selector.setEnabled(enabled)
+        self._preview_rows_selector.setEnabled(enabled)
+        self._mapping_frame.setEnabled(enabled)
+        self._provider_frame.setEnabled(enabled)
 
     def _create_section_frame(self, object_name: str) -> QFrame:
         frame = QFrame(self)
@@ -920,3 +981,6 @@ class HomePage(QWidget):
         block.addWidget(value, alignment=Qt.AlignmentFlag.AlignCenter)
         parent_layout.addLayout(block, 1)
         return value
+
+    def _update_toolbar_state(self) -> None:
+        """Update toolbar buttons according to execution state."""
