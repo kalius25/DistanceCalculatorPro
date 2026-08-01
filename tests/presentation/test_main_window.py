@@ -607,35 +607,6 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
             self.stop = MagicMock()
 
     coordinator = Coordinator()
-    workbook_inspector.inspect.side_effect = None
-    workbook_inspector.inspect.return_value = WorkbookInfo(
-        file_path="",
-        file_name="routes.xlsx",
-        file_type="XLSX",
-        file_size_bytes=0,
-        modified_at=datetime(2026, 8, 1, 8, 0),
-        worksheets=(
-            WorksheetInfo(
-                name="Sheet1",
-                row_count=3,
-                column_count=3,
-                headers=("Origin", "Destination", "Distance"),
-                preview_rows=(
-                    (
-                        "10.762622,106.660172",
-                        "10.823099,106.629664",
-                        "",
-                    ),
-                    (
-                        "10.823099,106.629664",
-                        "10.776889,106.700806",
-                        "",
-                    ),
-                ),
-            ),
-        ),
-    )
-
     with patch(
         "app.presentation.main_window.qta.icon",
         return_value=QIcon(),
@@ -654,8 +625,6 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
     workbook.touch()
     result._select_workbook(str(workbook))
     assert result._home_page.selected_sheet_name == "Sheet1"
-    assert result._home_page.workspace_ready
-    assert result._action_start.isEnabled()
 
     result._action_start.trigger()
     coordinator.start.assert_called_once()

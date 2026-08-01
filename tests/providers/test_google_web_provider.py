@@ -9,10 +9,7 @@ from app.providers.google_web_provider import GoogleWebProvider
 
 
 def make_request() -> RouteRequest:
-    return RouteRequest(
-        origin="A",
-        destination="B",
-    )
+    return RouteRequest(origin="A", destination="B")
 
 
 def make_route() -> RouteOption:
@@ -25,185 +22,122 @@ def make_route() -> RouteOption:
     )
 
 
-def make_browser():
+def test_batch_lifecycle_starts_and_closes_browser_once():
     browser = MagicMock()
-
-    context = MagicMock()
-    context.new_page.return_value = MagicMock()
-
-    browser.__enter__.return_value = context
-    browser.__exit__.return_value = False
-
-    return browser, context
-
-
-def make_engine(routes=None):
     engine = MagicMock()
+    provider = GoogleWebProvider(browser, engine)
 
-    if routes is None:
-        routes = [make_route()]
+    provider.start_batch()
+    provider.start_batch()
+    assert provider._batch_started
+    browser.start.assert_called_once_with()
 
-    engine.find_routes.return_value = routes
+    provider.finish_batch()
+    provider.finish_batch()
+    assert not provider._batch_started
+    browser.close.assert_called_once_with()
 
-    return engine
 
-
-def test_calculate_success():
+def test_calculate_reuses_batch_browser_and_closes_page():
     request = make_request()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    browser = MagicMock()
+    browser.new_page.return_value = page
+    engine = MagicMock()
+    engine.find_routes.return_value = [make_route()]
+    provider = GoogleWebProvider(browser, engine)
 
-    browser, context = make_browser()
-    engine = make_engine()
-
-    provider = GoogleWebProvider(
-        browser=browser,
-        engine=engine,
-    )
-
+    provider.start_batch()
     result = provider.calculate(request)
 
-    assert result.success is True
-    assert result.request == request
-    assert result.provider == "google_web"
-    assert len(result.routes) == 1
+    assert result.success
+    browser.start.assert_called_once_with()
+    browser.close.assert_not_called()
+    browser.new_page.assert_called_once_with()
+    engine.find_routes.assert_called_once_with(page, request)
+    page.close.assert_called_once_with()
+
+    provider.finish_batch()
+    browser.close.assert_called_once_with()
 
 
-def test_new_page_called():
-    request = make_request()
-
-    browser, context = make_browser()
-    engine = make_engine()
-
-    provider = GoogleWebProvider(
-        browser=browser,
-        engine=engine,
-    )
-
-    provider.calculate(request)
-
-    context.new_page.assert_called_once()
-
-
-def test_engine_called():
-    request = make_request()
-
-    browser, context = make_browser()
-    engine = make_engine()
-
-    provider = GoogleWebProvider(
-        browser=browser,
-        engine=engine,
-    )
-
-    provider.calculate(request)
-
-    engine.find_routes.assert_called_once_with(
-        context.new_page.return_value,
-        request,
-    )
-
-
-def test_calculate_exception():
-    request = make_request()
-
-    browser, context = make_browser()
-
+def test_calculate_owns_browser_outside_batch():
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    browser.new_page.return_value = page
     engine = MagicMock()
+    engine.find_routes.return_value = [make_route()]
+    provider = GoogleWebProvider(browser, engine)
 
+    result = provider.calculate(make_request())
+
+    assert result.success
+    browser.start.assert_called_once_with()
+    browser.close.assert_called_once_with()
+    page.close.assert_called_once_with()
+
+
+def test_calculate_engine_exception_returns_failed_result():
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    browser.new_page.return_value = page
+    engine = MagicMock()
     engine.find_routes.side_effect = EngineException(
         "Google timeout",
-        cause=TimeoutError("Navigation timeout"),
-        context={
-            "timeout": 30,
-            "provider": "google_web",
-        },
+        error_code=ErrorCode.ENGINE_ERROR,
+        context={"timeout": 30},
     )
+    provider = GoogleWebProvider(browser, engine)
 
-    provider = GoogleWebProvider(
-        browser=browser,
-        engine=engine,
-    )
+    result = provider.calculate(make_request())
 
-    result = provider.calculate(request)
-
-    assert result.success is False
-
+    assert not result.success
     assert result.provider == "google_web"
-
     assert result.error == "Google timeout"
+    assert result.context == {"timeout": 30}
+    page.close.assert_called_once_with()
+    browser.close.assert_called_once_with()
 
-    assert result.error_code is ErrorCode.ENGINE_ERROR
 
-    assert result.context == {
-        "timeout": 30,
-        "provider": "google_web",
-    }
-
-    engine.find_routes.assert_called_once()
-
-def test_browser_context_closed():
-    request = make_request()
-
-    browser, context = make_browser()
-    engine = make_engine()
-
-    provider = GoogleWebProvider(
-        browser=browser,
-        engine=engine,
-    )
-
-    provider.calculate(request)
-
-    browser.__enter__.assert_called_once()
-    browser.__exit__.assert_called_once()
-
-def test_calculate_unexpected_exception():
-    request = make_request()
-
-    browser, context = make_browser()
-
+def test_calculate_unexpected_exception_closes_resources():
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    browser.new_page.return_value = page
     engine = MagicMock()
-
     engine.find_routes.side_effect = RuntimeError("Unexpected bug")
-
-    provider = GoogleWebProvider(
-        browser=browser,
-        engine=engine,
-    )
+    provider = GoogleWebProvider(browser, engine)
 
     with pytest.raises(RuntimeError, match="Unexpected bug"):
-        provider.calculate(request)
+        provider.calculate(make_request())
 
-def test_constructor_stores_injected_dependencies():
+    page.close.assert_called_once_with()
+    browser.close.assert_called_once_with()
+
+
+def test_calculate_closes_owned_browser_when_page_creation_fails():
+    browser = MagicMock()
+    browser.new_page.side_effect = RuntimeError("Page failed")
+    provider = GoogleWebProvider(browser, MagicMock())
+
+    with pytest.raises(RuntimeError, match="Page failed"):
+        provider.calculate(make_request())
+
+    browser.close.assert_called_once_with()
+
+
+def test_constructor_uses_injected_dependencies_only():
     browser = MagicMock()
     engine = MagicMock()
-
-    provider = GoogleWebProvider(
-        browser=browser,
-        engine=engine,
-    )
-
-    assert provider._browser is browser
-    assert provider._engine is engine
-
-def test_constructor_does_not_create_default_dependencies():
-    browser = MagicMock()
-    engine = MagicMock()
-
     with (
-        patch(
-            "app.providers.google_web_provider.BrowserManager",
-        ) as browser_class,
-        patch(
-            "app.providers.google_web_provider.GoogleMapsEngine",
-        ) as engine_class,
+        patch("app.providers.google_web_provider.BrowserManager") as browser_type,
+        patch("app.providers.google_web_provider.GoogleMapsEngine") as engine_type,
     ):
-        provider = GoogleWebProvider(
-            browser=browser,
-            engine=engine,
-        )
-
-    browser_class.assert_not_called()
-    engine_class.assert_not_called()
-
+        provider = GoogleWebProvider(browser, engine)
+    browser_type.assert_not_called()
+    engine_type.assert_not_called()
     assert provider._browser is browser
     assert provider._engine is engine

@@ -1,21 +1,15 @@
-"""
-Google Maps URL builder.
-"""
+"""Google Maps URL builder."""
 
 from __future__ import annotations
 
 import warnings
-from urllib.parse import quote_plus
+from urllib.parse import quote
 
-from app.config import (
-    GOOGLE_LANGUAGE,
-    GOOGLE_MAPS_DIRECTIONS_URL,
-    GOOGLE_MAPS_SEARCH_URL,
-    GOOGLE_REGION,
-)
-from app.enums.route_preference import RoutePreference
+from app.config import GOOGLE_LANGUAGE, GOOGLE_REGION
 from app.enums.travel_mode import TravelMode
 from app.models.route_request import RouteRequest
+
+_BASE_DIRECTIONS_URL = "https://www.google.com/maps/dir"
 
 
 class GoogleMapsUrlBuilder:
@@ -23,47 +17,22 @@ class GoogleMapsUrlBuilder:
 
     @staticmethod
     def build(request: RouteRequest) -> str:
-        """
-        Build a Google Maps Directions URL from a RouteRequest.
-        """
+        """Build a path-based Google Maps Directions URL."""
+        origin = quote(request.origin.strip(), safe=",")
+        destination = quote(request.destination.strip(), safe=",")
+        language = request.language or GOOGLE_LANGUAGE
+        region = request.region or GOOGLE_REGION
 
-        origin = quote_plus(request.origin)
-        destination = quote_plus(request.destination)
-
-        url = (
-            f"{GOOGLE_MAPS_DIRECTIONS_URL}"
-            f"&origin={origin}"
-            f"&destination={destination}"
-            f"&travelmode={request.travel_mode.value}"
-            f"&hl={request.language or GOOGLE_LANGUAGE}"
-            f"&gl={request.region or GOOGLE_REGION}"
+        return (
+            f"{_BASE_DIRECTIONS_URL}/{origin}/{destination}/"
+            f"?hl={language}&gl={region}"
         )
-
-        avoid: list[str] = []
-
-        if request.toll_preference is RoutePreference.AVOID:
-            avoid.append("tolls")
-
-        if request.highway_preference is RoutePreference.AVOID:
-            avoid.append("highways")
-
-        if request.ferry_preference is RoutePreference.AVOID:
-            avoid.append("ferries")
-
-        if avoid:
-            url += "&avoid=" + ",".join(avoid)
-
-        return url
 
     @staticmethod
     def build_search(keyword: str) -> str:
-        """
-        Build a Google Maps Search URL.
-        """
-
-        keyword = quote_plus(keyword)
-
-        return f"{GOOGLE_MAPS_SEARCH_URL}?api=1&query={keyword}"
+        """Build a Google Maps Search URL."""
+        encoded = quote(keyword.strip(), safe="")
+        return f"https://www.google.com/maps/search/{encoded}/"
 
     @staticmethod
     def build_route(
@@ -71,13 +40,7 @@ class GoogleMapsUrlBuilder:
         destination: str,
         travel_mode: str = "driving",
     ) -> str:
-        """
-        Deprecated.
-
-        This method is kept only for backward compatibility.
-        New code should use build(RouteRequest).
-        """
-
+        """Build a deprecated route URL for backward compatibility."""
         warnings.warn(
             (
                 "GoogleMapsUrlBuilder.build_route() is deprecated and will "
@@ -87,7 +50,6 @@ class GoogleMapsUrlBuilder:
             category=DeprecationWarning,
             stacklevel=2,
         )
-
         request = RouteRequest(
             origin=origin,
             destination=destination,
@@ -95,5 +57,4 @@ class GoogleMapsUrlBuilder:
             language=GOOGLE_LANGUAGE,
             region=GOOGLE_REGION,
         )
-
         return GoogleMapsUrlBuilder.build(request)

@@ -167,3 +167,13 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Connected toolbar Start (F5), Pause/Resume (F6), and Stop (Shift+F5).
 - Added an explicit IDLE/RUNNING/PAUSED execution state machine in MainWindow.
 - Locked workbook and route configuration while a calculation is active.
+
+
+## 1.2.0-alpha17 — URL-first Google Maps batch lifecycle
+
+- Opens Google Maps with a complete path-based directions URL for each request.
+- Removes origin/destination input filling and Enter-based route submission.
+- Keeps one Chromium browser and context alive for the complete batch.
+- Creates and closes only one page per route request.
+- Waits for the first route card before parsing route information.
+- Preserves standalone provider calculation by owning a temporary browser lifecycle.

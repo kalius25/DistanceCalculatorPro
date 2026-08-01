@@ -27,7 +27,7 @@ _TRANSPORT_DRIVING = 'button[data-travel_mode="0"]'
 
 _ROUTE_PANEL = 'div[role="main"]'
 
-_ROUTE_CARDS = "div.XdKEzd"
+_ROUTE_CARDS = "div.XdKEzd, div[data-trip-index]"
 
 
 class GoogleMapsLocator:

@@ -30,6 +30,14 @@ class CalculationService:
     ) -> None:
         self._provider = provider
 
+    def start_batch(self) -> None:
+        """Start provider resources for one batch."""
+        self._provider.start_batch()
+
+    def finish_batch(self) -> None:
+        """Release provider resources after one batch."""
+        self._provider.finish_batch()
+
     @property
     def provider(self) -> BaseProvider:
         """

@@ -17,3 +17,9 @@ def test_calculate_raises_not_implemented():
 
     with pytest.raises(NotImplementedError):
         provider.calculate(None)
+
+
+def test_default_batch_lifecycle_is_no_op():
+    provider = DummyProvider()
+    assert provider.start_batch() is None
+    assert provider.finish_batch() is None

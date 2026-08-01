@@ -1,10 +1,8 @@
-"""
-Distance Calculator Pro.
-
-Google Maps web provider implementation.
-"""
+"""Google Maps web provider implementation."""
 
 from __future__ import annotations
+
+from playwright.sync_api import Error as PlaywrightError
 
 from app.engines.browser_manager import BrowserManager
 from app.engines.google_maps_engine import GoogleMapsEngine
@@ -15,12 +13,7 @@ from app.providers.base_provider import BaseProvider
 
 
 class GoogleWebProvider(BaseProvider):
-    """
-    Calculate routes through the Google Maps web interface.
-
-    BrowserManager and GoogleMapsEngine are created externally and
-    injected through the constructor.
-    """
+    """Calculate a batch of routes with one shared browser lifecycle."""
 
     PROVIDER_NAME = "google_web"
 
@@ -29,45 +22,38 @@ class GoogleWebProvider(BaseProvider):
         browser: BrowserManager,
         engine: GoogleMapsEngine,
     ) -> None:
-        """
-        Initialize the provider with its required dependencies.
-
-        Parameters
-        ----------
-        browser:
-            Browser lifecycle manager.
-        engine:
-            Google Maps route extraction engine.
-        """
         self._browser = browser
         self._engine = engine
+        self._batch_started = False
 
-    def calculate(
-        self,
-        request: RouteRequest,
-    ) -> RouteResult:
-        """
-        Calculate routes for the supplied request.
+    def start_batch(self) -> None:
+        if self._batch_started:
+            return
+        self._browser.start()
+        self._batch_started = True
 
-        EngineException is converted into a failed RouteResult.
-        Unexpected exceptions are intentionally allowed to propagate.
-        """
+    def finish_batch(self) -> None:
+        if not self._batch_started:
+            return
+        self._browser.close()
+        self._batch_started = False
+
+    def calculate(self, request: RouteRequest) -> RouteResult:
+        """Calculate one route while reusing the batch browser context."""
+        owns_browser = not self._batch_started
+        if owns_browser:
+            self.start_batch()
+
+        page = None
         try:
-            with self._browser as browser:
-                page = browser.new_page()
-
-                routes = self._engine.find_routes(
-                    page,
-                    request,
-                )
-
+            page = self._browser.new_page()
+            routes = self._engine.find_routes(page, request)
             return RouteResult(
                 success=True,
                 request=request,
                 provider=self.PROVIDER_NAME,
                 routes=routes,
             )
-
         except EngineException as exc:
             return RouteResult(
                 success=False,
@@ -78,3 +64,12 @@ class GoogleWebProvider(BaseProvider):
                 context=exc.context,
                 exception=exc,
             )
+        finally:
+            if page is not None:
+                try:
+                    if not page.is_closed():
+                        page.close()
+                except PlaywrightError:
+                    pass
+            if owns_browser:
+                self.finish_batch()

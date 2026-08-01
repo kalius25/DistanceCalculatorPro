@@ -330,3 +330,13 @@ def test_calculate_distance_calculator_exception():
         result.exception,
         ProviderException,
     )
+
+def test_batch_lifecycle_is_delegated_to_provider():
+    provider = MagicMock()
+    service = CalculationService(provider)
+
+    service.start_batch()
+    service.finish_batch()
+
+    provider.start_batch.assert_called_once_with()
+    provider.finish_batch.assert_called_once_with()

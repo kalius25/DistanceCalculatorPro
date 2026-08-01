@@ -165,3 +165,27 @@ def test_calculate_waits_before_processing():
 
     assert service.calculate([request], wait_if_paused=wait) == [result]
     wait.assert_called_once_with()
+
+
+def test_calculate_wraps_non_empty_requests_in_batch_lifecycle():
+    request = make_request("A", "B")
+    result = make_result(request)
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    service = BatchCalculationService(calculation_service)
+
+    assert service.calculate([request]) == [result]
+    calculation_service.start_batch.assert_called_once_with()
+    calculation_service.finish_batch.assert_called_once_with()
+
+
+def test_calculate_finishes_batch_when_calculation_raises():
+    request = make_request("A", "B")
+    calculation_service = MagicMock()
+    calculation_service.calculate.side_effect = RuntimeError("failed")
+    service = BatchCalculationService(calculation_service)
+
+    import pytest
+    with pytest.raises(RuntimeError, match="failed"):
+        service.calculate([request])
+    calculation_service.finish_batch.assert_called_once_with()
