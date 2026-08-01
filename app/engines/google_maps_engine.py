@@ -9,16 +9,20 @@ from playwright.sync_api import Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from app.configuration.models import GoogleMapsConfig
+from app.diagnostics import DiagnosticsManager
 from app.engines.base_engine import BaseEngine
 from app.engines.google_maps_locator import GoogleMapsLocator
 from app.engines.google_maps_url_builder import GoogleMapsUrlBuilder
 from app.enums.travel_mode import TravelMode
 from app.exceptions import EngineException, ErrorCode, ParserException
+from app.logging import LoggingManager
 from app.models.route_option import RouteOption
 from app.models.route_request import RouteRequest
 from app.parsers.google_maps_parser import GoogleMapsParser
 
 _WAIT_STATE: Literal["visible"] = "visible"
+
+logger = LoggingManager.get_logger(__name__)
 
 
 class GoogleMapsEngine(BaseEngine):
@@ -29,10 +33,12 @@ class GoogleMapsEngine(BaseEngine):
         config: GoogleMapsConfig,
         locator: GoogleMapsLocator,
         parser: GoogleMapsParser,
+        diagnostics: DiagnosticsManager | None = None,
     ) -> None:
         self._config = config
         self._locator = locator
         self._parser = parser
+        self._diagnostics = diagnostics or DiagnosticsManager()
 
     def find_routes(
         self,
@@ -50,6 +56,11 @@ class GoogleMapsEngine(BaseEngine):
         url = GoogleMapsUrlBuilder.build(request)
 
         try:
+            self._diagnostics.trace_browser(
+                logger,
+                "GOOGLE_MAPS_NAVIGATION_STARTED",
+                url=url,
+            )
             page.goto(
                 url,
                 timeout=self._config.action_timeout,
@@ -62,11 +73,40 @@ class GoogleMapsEngine(BaseEngine):
                 state=_WAIT_STATE,
                 timeout=request.timeout * 1000,
             )
-            return self._parser.parse(page)
+            route_count = route_cards.count()
+            self._diagnostics.trace_browser(
+                logger,
+                "GOOGLE_MAPS_ROUTE_CARDS_FOUND",
+                route_card_count=route_count,
+            )
+            routes = self._parser.parse(page, self._diagnostics)
+            self._diagnostics.capture_page(
+                page,
+                label="google_maps_success",
+                payload={
+                    "url": url,
+                    "route_card_count": route_count,
+                    "parsed_route_count": len(routes),
+                    "routes": [
+                        {
+                            "summary": route.summary,
+                            "distance_km": route.distance_km,
+                            "duration_minutes": route.duration_minutes,
+                            "has_toll": route.has_toll,
+                            "has_ferry": route.has_ferry,
+                            "has_highway": route.has_highway,
+                        }
+                        for route in routes
+                    ],
+                },
+            )
+            return routes
 
         except ParserException:
+            self._capture_failure(page, url, "parser_error")
             raise
         except PlaywrightTimeoutError as exc:
+            self._capture_failure(page, url, "timeout")
             raise EngineException(
                 "Google Maps request timed out.",
                 error_code=ErrorCode.ENGINE_ERROR,
@@ -74,12 +114,30 @@ class GoogleMapsEngine(BaseEngine):
                 context={**context, "url": url},
             ) from exc
         except PlaywrightError as exc:
+            self._capture_failure(page, url, "browser_error")
             raise EngineException(
                 "Google Maps browser operation failed.",
                 error_code=ErrorCode.ENGINE_ERROR,
                 cause=exc,
                 context={**context, "url": url},
             ) from exc
+
+
+    def _capture_failure(
+        self,
+        page: Page,
+        url: str,
+        label: str,
+    ) -> None:
+        try:
+            if not page.is_closed():
+                self._diagnostics.capture_page(
+                    page,
+                    label=label,
+                    payload={"url": url, "failure": label},
+                )
+        except PlaywrightError:
+            return
 
     @staticmethod
     def _validate_request(request: RouteRequest) -> None:

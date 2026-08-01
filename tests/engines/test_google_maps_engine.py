@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from playwright.sync_api import Error as PlaywrightError
@@ -114,7 +114,7 @@ def test_find_routes_uses_complete_url(engine, locator, parser):
         state="visible",
         timeout=30_000,
     )
-    parser.parse.assert_called_once_with(page)
+    parser.parse.assert_called_once_with(page, engine._diagnostics)
     assert result == parser_result
 
 
@@ -154,3 +154,40 @@ def test_find_routes_reraises_parser_exception(engine, locator, parser):
 
     with pytest.raises(ParserException, match="Parse failed"):
         engine.find_routes(page, make_request())
+
+
+def test_capture_failure_skips_closed_page(engine):
+    page = MagicMock()
+    page.is_closed.return_value = True
+
+    with patch.object(engine._diagnostics, "capture_page") as capture_page:
+        engine._capture_failure(page, "https://example.test", "closed")
+
+    capture_page.assert_not_called()
+
+
+def test_capture_failure_ignores_playwright_cleanup_error(engine):
+    page = MagicMock()
+    page.is_closed.side_effect = PlaywrightError("closed")
+
+    with patch.object(engine._diagnostics, "capture_page") as capture_page:
+        engine._capture_failure(page, "https://example.test", "error")
+
+    capture_page.assert_not_called()
+
+
+def test_capture_failure_captures_open_page(engine):
+    page = MagicMock()
+    page.is_closed.return_value = False
+
+    with patch.object(engine._diagnostics, "capture_page") as capture_page:
+        engine._capture_failure(page, "https://example.test", "timeout")
+
+    capture_page.assert_called_once_with(
+        page,
+        label="timeout",
+        payload={
+            "url": "https://example.test",
+            "failure": "timeout",
+        },
+    )

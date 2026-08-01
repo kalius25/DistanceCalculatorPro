@@ -141,3 +141,37 @@ def test_constructor_uses_injected_dependencies_only():
     engine_type.assert_not_called()
     assert provider._browser is browser
     assert provider._engine is engine
+
+
+def test_calculate_does_not_close_already_closed_page():
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = True
+    browser.new_page.return_value = page
+    engine = MagicMock()
+    engine.find_routes.return_value = [make_route()]
+    provider = GoogleWebProvider(browser, engine)
+
+    result = provider.calculate(make_request())
+
+    assert result.success
+    page.close.assert_not_called()
+    browser.close.assert_called_once_with()
+
+
+def test_calculate_ignores_playwright_error_while_closing_page():
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    page.close.side_effect = __import__(
+        "playwright.sync_api", fromlist=["Error"]
+    ).Error("already closed")
+    browser.new_page.return_value = page
+    engine = MagicMock()
+    engine.find_routes.return_value = [make_route()]
+    provider = GoogleWebProvider(browser, engine)
+
+    result = provider.calculate(make_request())
+
+    assert result.success
+    browser.close.assert_called_once_with()

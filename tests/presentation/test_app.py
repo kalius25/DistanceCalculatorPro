@@ -22,6 +22,12 @@ def _application_dependencies(saved_theme: str = "light") -> tuple[
     splash_screen = MagicMock()
     settings_manager = MagicMock()
     settings_manager.theme_name.return_value = saved_theme
+    settings_manager.debug_enabled.return_value = False
+    settings_manager.trace_browser.return_value = False
+    settings_manager.parser_diagnostics.return_value = False
+    settings_manager.save_html.return_value = False
+    settings_manager.save_screenshot.return_value = False
+    settings_manager.save_json.return_value = False
     theme_manager = MagicMock()
     exception_handler = MagicMock()
     return (
@@ -105,6 +111,11 @@ def test_create_application_composes_and_initializes_shell() -> None:
         ) as create_execution_coordinator,
         patch.object(
             app_module,
+            "DiagnosticsManager",
+            return_value="diagnostics_manager",
+        ) as diagnostics_type,
+        patch.object(
+            app_module,
             "MainWindow",
             return_value=main_window,
         ) as window_type,
@@ -135,7 +146,10 @@ def test_create_application_composes_and_initializes_shell() -> None:
     theme_manager.apply_theme.assert_called_once_with(application, "light")
     handler_type.assert_called_once_with(logger)
     inspector_type.assert_called_once_with(("excel_reader", "csv_reader"))
-    create_execution_coordinator.assert_called_once_with(configuration)
+    diagnostics_type.assert_called_once()
+    create_execution_coordinator.assert_called_once_with(
+        configuration, "diagnostics_manager"
+    )
     exception_handler.install.assert_called_once_with()
     window_type.assert_called_once_with(
         application=application,
@@ -144,6 +158,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
         settings_manager=settings_manager,
         workbook_inspector="workbook_inspector",
         execution_coordinator="execution_coordinator",
+        diagnostics_manager="diagnostics_manager",
     )
     logger.info.assert_called_once_with(
         "Presentation application initialized"
@@ -289,6 +304,7 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
     batch_service = MagicMock()
     builder = MagicMock()
     coordinator = MagicMock()
+    diagnostics = MagicMock()
 
     with (
         patch.object(
@@ -325,10 +341,14 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
             return_value=coordinator,
         ) as coordinator_type,
     ):
-        result = app_module.create_execution_coordinator(configuration)
+        result = app_module.create_execution_coordinator(
+            configuration, diagnostics
+        )
 
     browser_type.assert_called_once_with(configuration.browser)
-    engine_type.assert_called_once_with(configuration.google_maps, locator, parser)
+    engine_type.assert_called_once_with(
+        configuration.google_maps, locator, parser, diagnostics
+    )
     provider_type.assert_called_once_with(browser, engine)
     calculation_type.assert_called_once_with(provider)
     batch_type.assert_called_once_with(calculation_service)

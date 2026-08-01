@@ -22,6 +22,7 @@ import re
 from playwright.sync_api import Locator, Page
 
 from app import config
+from app.diagnostics import DiagnosticsManager
 from app.engines.google_maps_locator import GoogleMapsLocator
 from app.logging import LoggingManager
 from app.models.route_option import RouteOption
@@ -210,36 +211,22 @@ class GoogleMapsParser:
     """Google Maps route parser."""
 
     @staticmethod
-    def parse(page: Page) -> list[RouteOption]:
-        """
-        Parse all available routes from the current Google Maps page.
-
-        Parameters
-        ----------
-        page:
-            Playwright page that already contains route results.
-
-        Returns
-        -------
-        list[RouteOption]
-            Parsed routes.
-        """
-
+    def parse(
+        page: Page,
+        diagnostics: DiagnosticsManager | None = None,
+    ) -> list[RouteOption]:
+        """Parse all available routes from the current page."""
         locator = GoogleMapsLocator.route_cards(page)
-
-        count = min(
-            locator.count(),
-            config.PARSER_MAX_ROUTES,
-        )
-
+        count = min(locator.count(), config.PARSER_MAX_ROUTES)
         routes: list[RouteOption] = []
 
         for index in range(count):
             option = _parse_locator(locator.nth(index))
-
             if option is not None:
                 routes.append(option)
 
+        if diagnostics is not None:
+            diagnostics.log_routes(logger, routes)
         return routes
 
 

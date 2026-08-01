@@ -65,6 +65,24 @@ class LoggingManager:
         cls._initialized = False
 
     @classmethod
+    def set_debug_enabled(cls, enabled: bool) -> None:
+        """Switch the managed application logger between DEBUG and config level."""
+        logger = cls._initialize()
+        if enabled:
+            logger.setLevel(logging.DEBUG)
+            for handler in logger.handlers:
+                if getattr(handler, cls._MANAGED_HANDLER_ATTRIBUTE, False):
+                    handler.setLevel(logging.DEBUG)
+            return
+
+        config = cls._get_effective_config()
+        level = getattr(logging, config.level.upper())
+        logger.setLevel(level)
+        for handler in logger.handlers:
+            if getattr(handler, cls._MANAGED_HANDLER_ATTRIBUTE, False):
+                handler.setLevel(level)
+
+    @classmethod
     def _get_effective_config(cls) -> LoggingConfig:
         """
         Return the active logging configuration.

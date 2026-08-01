@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.diagnostics import DiagnosticsManager, DiagnosticsSettings
+from app.logging import LoggingManager
 from app.workbooks import (
     CsvWorkbookReader,
     OpenPyXLWorkbookReader,
@@ -66,6 +68,7 @@ class MainWindow(QMainWindow):
         settings_manager: SettingsManager,
         workbook_inspector: WorkbookInspectorService | None = None,
         execution_coordinator: CalculationExecutionCoordinator | None = None,
+        diagnostics_manager: DiagnosticsManager | None = None,
     ) -> None:
         super().__init__()
         self._application = application
@@ -74,6 +77,7 @@ class MainWindow(QMainWindow):
         self._settings_manager = settings_manager
         self._execution_state = ExecutionState.IDLE
         self._execution_coordinator = execution_coordinator
+        self._diagnostics_manager = diagnostics_manager or DiagnosticsManager()
         self._workbook_inspector = workbook_inspector or WorkbookInspectorService(
             (OpenPyXLWorkbookReader(), CsvWorkbookReader())
         )
@@ -124,6 +128,21 @@ class MainWindow(QMainWindow):
         self._action_settings = QAction("Settings", self)
         self._action_settings.setShortcut(QKeySequence("Ctrl+,"))
         self._action_settings.setToolTip("Open settings (Ctrl+,)")
+
+        self._action_debug_mode = QAction("Debug Mode", self)
+        self._action_debug_mode.setCheckable(True)
+        self._action_trace_browser = QAction("Trace Browser", self)
+        self._action_trace_browser.setCheckable(True)
+        self._action_parser_diagnostics = QAction(
+            "Parser Diagnostics", self
+        )
+        self._action_parser_diagnostics.setCheckable(True)
+        self._action_save_html = QAction("Save HTML", self)
+        self._action_save_html.setCheckable(True)
+        self._action_save_screenshot = QAction("Save Screenshot", self)
+        self._action_save_screenshot.setCheckable(True)
+        self._action_save_json = QAction("Save Parser JSON", self)
+        self._action_save_json.setCheckable(True)
 
         self._action_about = QAction("About", self)
         self._action_home = self._create_navigation_action(
@@ -192,6 +211,16 @@ class MainWindow(QMainWindow):
         self._view_menu: QMenu = menu_bar.addMenu("&View")
         self._view_menu.addAction(self._action_light_theme)
         self._view_menu.addAction(self._action_dark_theme)
+
+        self._debug_menu: QMenu = menu_bar.addMenu("&Debug")
+        self._debug_menu.addAction(self._action_debug_mode)
+        self._debug_menu.addSeparator()
+        self._debug_menu.addAction(self._action_trace_browser)
+        self._debug_menu.addAction(self._action_parser_diagnostics)
+        self._debug_menu.addSeparator()
+        self._debug_menu.addAction(self._action_save_html)
+        self._debug_menu.addAction(self._action_save_screenshot)
+        self._debug_menu.addAction(self._action_save_json)
 
         self._help_menu: QMenu = menu_bar.addMenu("&Help")
         self._help_menu.addAction(self._action_about)
@@ -266,6 +295,24 @@ class MainWindow(QMainWindow):
             self._execution_coordinator.failed.connect(
                 self._on_calculation_failed
             )
+        self._action_debug_mode.toggled.connect(
+            self._on_diagnostics_changed
+        )
+        self._action_trace_browser.toggled.connect(
+            self._on_diagnostics_changed
+        )
+        self._action_parser_diagnostics.toggled.connect(
+            self._on_diagnostics_changed
+        )
+        self._action_save_html.toggled.connect(
+            self._on_diagnostics_changed
+        )
+        self._action_save_screenshot.toggled.connect(
+            self._on_diagnostics_changed
+        )
+        self._action_save_json.toggled.connect(
+            self._on_diagnostics_changed
+        )
         self._action_home.triggered.connect(self._show_action_page)
         self._action_history.triggered.connect(self._show_action_page)
         self._action_settings_page.triggered.connect(self._show_action_page)
@@ -284,7 +331,66 @@ class MainWindow(QMainWindow):
         self._home_page.set_recent_files(self._settings_manager.recent_files())
         self._update_theme_state(self._theme_manager.current_theme)
         self._on_current_page_changed(self._content_stack.currentIndex())
+        self._load_diagnostics_state()
         self._update_execution_actions()
+
+    def _load_diagnostics_state(self) -> None:
+        actions = (
+            (self._action_debug_mode, "debug_enabled"),
+            (self._action_trace_browser, "trace_browser"),
+            (self._action_parser_diagnostics, "parser_diagnostics"),
+            (self._action_save_html, "save_html"),
+            (self._action_save_screenshot, "save_screenshot"),
+            (self._action_save_json, "save_json"),
+        )
+        for action, method_name in actions:
+            method = getattr(self._settings_manager, method_name, None)
+            value = method() if callable(method) else False
+            action.blockSignals(True)
+            action.setChecked(value if isinstance(value, bool) else False)
+            action.blockSignals(False)
+        self._apply_diagnostics_state(persist=False)
+
+    def _on_diagnostics_changed(self, _checked: bool) -> None:
+        self._apply_diagnostics_state(persist=True)
+
+    def _apply_diagnostics_state(self, *, persist: bool) -> None:
+        enabled = self._action_debug_mode.isChecked()
+        dependent_actions = (
+            self._action_trace_browser,
+            self._action_parser_diagnostics,
+            self._action_save_html,
+            self._action_save_screenshot,
+            self._action_save_json,
+        )
+        for action in dependent_actions:
+            action.setEnabled(enabled)
+
+        settings = DiagnosticsSettings(
+            enabled=enabled,
+            trace_browser=self._action_trace_browser.isChecked(),
+            parser_diagnostics=(
+                self._action_parser_diagnostics.isChecked()
+            ),
+            save_html=self._action_save_html.isChecked(),
+            save_screenshot=self._action_save_screenshot.isChecked(),
+            save_json=self._action_save_json.isChecked(),
+        )
+        self._diagnostics_manager.update(settings)
+        LoggingManager.set_debug_enabled(enabled)
+        if persist:
+            self._settings_manager.set_debug_enabled(enabled)
+            self._settings_manager.set_trace_browser(
+                settings.trace_browser
+            )
+            self._settings_manager.set_parser_diagnostics(
+                settings.parser_diagnostics
+            )
+            self._settings_manager.set_save_html(settings.save_html)
+            self._settings_manager.set_save_screenshot(
+                settings.save_screenshot
+            )
+            self._settings_manager.set_save_json(settings.save_json)
 
     def _on_light_theme_selected(self) -> None:
         self._apply_theme("light")

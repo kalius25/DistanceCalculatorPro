@@ -80,4 +80,4 @@ def test_route_cards():
 
     assert GoogleMapsLocator.route_cards(page) is locator
 
-    page.locator.assert_called_once_with("div.XdKEzd")
+    page.locator.assert_called_once_with("div.XdKEzd, div[data-trip-index]")

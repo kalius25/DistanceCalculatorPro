@@ -10,6 +10,12 @@ class SettingsManager:
     TOOLBAR_VISIBLE_KEY = "window/toolbar_visible"
     RECENT_FILES_KEY = "files/recent"
     MAX_RECENT_FILES = 10
+    DEBUG_ENABLED_KEY = "debug/enabled"
+    TRACE_BROWSER_KEY = "debug/trace_browser"
+    PARSER_DIAGNOSTICS_KEY = "debug/parser_diagnostics"
+    SAVE_HTML_KEY = "debug/save_html"
+    SAVE_SCREENSHOT_KEY = "debug/save_screenshot"
+    SAVE_JSON_KEY = "debug/save_json"
 
     def __init__(self, settings: QSettings) -> None:
         self._settings = settings
@@ -70,3 +76,43 @@ class SettingsManager:
 
     def clear_recent_files(self) -> None:
         self._settings.remove(self.RECENT_FILES_KEY)
+
+    def debug_enabled(self, default: bool = False) -> bool:
+        return self._bool_value(self.DEBUG_ENABLED_KEY, default)
+
+    def set_debug_enabled(self, enabled: bool) -> None:
+        self._settings.setValue(self.DEBUG_ENABLED_KEY, enabled)
+
+    def trace_browser(self, default: bool = False) -> bool:
+        return self._bool_value(self.TRACE_BROWSER_KEY, default)
+
+    def set_trace_browser(self, enabled: bool) -> None:
+        self._settings.setValue(self.TRACE_BROWSER_KEY, enabled)
+
+    def parser_diagnostics(self, default: bool = False) -> bool:
+        return self._bool_value(self.PARSER_DIAGNOSTICS_KEY, default)
+
+    def set_parser_diagnostics(self, enabled: bool) -> None:
+        self._settings.setValue(self.PARSER_DIAGNOSTICS_KEY, enabled)
+
+    def save_html(self, default: bool = False) -> bool:
+        return self._bool_value(self.SAVE_HTML_KEY, default)
+
+    def set_save_html(self, enabled: bool) -> None:
+        self._settings.setValue(self.SAVE_HTML_KEY, enabled)
+
+    def save_screenshot(self, default: bool = False) -> bool:
+        return self._bool_value(self.SAVE_SCREENSHOT_KEY, default)
+
+    def set_save_screenshot(self, enabled: bool) -> None:
+        self._settings.setValue(self.SAVE_SCREENSHOT_KEY, enabled)
+
+    def save_json(self, default: bool = False) -> bool:
+        return self._bool_value(self.SAVE_JSON_KEY, default)
+
+    def set_save_json(self, enabled: bool) -> None:
+        self._settings.setValue(self.SAVE_JSON_KEY, enabled)
+
+    def _bool_value(self, key: str, default: bool) -> bool:
+        value = self._settings.value(key, defaultValue=default, type=bool)
+        return bool(value)

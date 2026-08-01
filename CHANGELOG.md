@@ -177,3 +177,11 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Creates and closes only one page per route request.
 - Waits for the first route card before parsing route information.
 - Preserves standalone provider calculation by owning a temporary browser lifecycle.
+
+## 1.2.0-alpha18 — Developer Diagnostics Framework
+
+- Added persistent Debug menu backed by QSettings.
+- Added browser navigation and route-card trace logging.
+- Added per-route parser diagnostic logging.
+- Added optional HTML, full-page screenshot and parser JSON artifacts.
+- Added runtime DEBUG/INFO logger switching.

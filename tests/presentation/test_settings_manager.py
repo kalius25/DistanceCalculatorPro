@@ -120,3 +120,28 @@ def test_clear_recent_files(manager: SettingsManager) -> None:
     manager.clear_recent_files()
 
     assert manager.recent_files() == []
+
+
+def test_debug_preferences_use_defaults_and_persist(
+    manager: SettingsManager,
+) -> None:
+    assert manager.debug_enabled() is False
+    assert manager.trace_browser() is False
+    assert manager.parser_diagnostics() is False
+    assert manager.save_html() is False
+    assert manager.save_screenshot() is False
+    assert manager.save_json() is False
+
+    manager.set_debug_enabled(True)
+    manager.set_trace_browser(True)
+    manager.set_parser_diagnostics(True)
+    manager.set_save_html(True)
+    manager.set_save_screenshot(True)
+    manager.set_save_json(True)
+
+    assert manager.debug_enabled() is True
+    assert manager.trace_browser() is True
+    assert manager.parser_diagnostics() is True
+    assert manager.save_html() is True
+    assert manager.save_screenshot() is True
+    assert manager.save_json() is True

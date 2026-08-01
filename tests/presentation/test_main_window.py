@@ -9,6 +9,7 @@ from PySide6.QtCore import QByteArray
 from PySide6.QtGui import QCloseEvent, QIcon
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
+from app.logging import LoggingManager
 from app.presentation.app_metadata import AppMetadata
 from app.presentation.main_window import MainWindow
 from app.presentation.models.execution_state import ExecutionState
@@ -27,6 +28,12 @@ def settings_manager() -> MagicMock:
     manager.recent_files.return_value = []
     manager.window_geometry.return_value = None
     manager.window_state.return_value = None
+    manager.debug_enabled.return_value = False
+    manager.trace_browser.return_value = False
+    manager.parser_diagnostics.return_value = False
+    manager.save_html.return_value = False
+    manager.save_screenshot.return_value = False
+    manager.save_json.return_value = False
     return manager
 
 
@@ -101,6 +108,7 @@ def test_initial_shell_structure_and_state(
     assert [action.text() for action in window.menuBar().actions()] == [
         "&File",
         "&View",
+        "&Debug",
         "&Help",
     ]
 
@@ -607,6 +615,26 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
             self.stop = MagicMock()
 
     coordinator = Coordinator()
+    workbook_inspector.inspect.side_effect = None
+    workbook_inspector.inspect.return_value = WorkbookInfo(
+        file_path="",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=0,
+        modified_at=datetime(2026, 8, 1, 8, 0),
+        worksheets=(
+            WorksheetInfo(
+                "Sheet1",
+                3,
+                3,
+                ("Origin", "Destination", "Distance"),
+                (
+                    ("A", "B", ""),
+                    ("C", "D", ""),
+                ),
+            ),
+        ),
+    )
     with patch(
         "app.presentation.main_window.qta.icon",
         return_value=QIcon(),
@@ -625,6 +653,8 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
     workbook.touch()
     result._select_workbook(str(workbook))
     assert result._home_page.selected_sheet_name == "Sheet1"
+    assert result._home_page.workspace_ready
+    assert result._action_start.isEnabled()
 
     result._action_start.trigger()
     coordinator.start.assert_called_once()
@@ -770,3 +800,34 @@ def test_execution_coordinator_rejects_start_and_missing_job_context(
     result._start_calculation()
     coordinator.start.assert_called_once()
     assert result.execution_state is ExecutionState.IDLE
+
+
+def test_debug_menu_updates_runtime_and_persists_preferences(
+    window: MainWindow,
+    settings_manager: MagicMock,
+) -> None:
+    with patch.object(
+        LoggingManager,
+        "set_debug_enabled",
+    ) as set_debug_enabled:
+        window._action_debug_mode.setChecked(True)
+        window._action_trace_browser.setChecked(True)
+        window._action_parser_diagnostics.setChecked(True)
+        window._action_save_html.setChecked(True)
+        window._action_save_screenshot.setChecked(True)
+        window._action_save_json.setChecked(True)
+
+    settings = window._diagnostics_manager.settings
+    assert settings.enabled is True
+    assert settings.trace_browser is True
+    assert settings.parser_diagnostics is True
+    assert settings.save_html is True
+    assert settings.save_screenshot is True
+    assert settings.save_json is True
+    set_debug_enabled.assert_called_with(True)
+    settings_manager.set_debug_enabled.assert_called_with(True)
+    settings_manager.set_trace_browser.assert_called_with(True)
+    settings_manager.set_parser_diagnostics.assert_called_with(True)
+    settings_manager.set_save_html.assert_called_with(True)
+    settings_manager.set_save_screenshot.assert_called_with(True)
+    settings_manager.set_save_json.assert_called_with(True)

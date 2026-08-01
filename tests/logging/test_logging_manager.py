@@ -562,3 +562,25 @@ def test_existing_managed_handlers_are_reused(
 
     assert get_managed_handlers() == original_handlers
     assert len(get_managed_handlers()) == 2
+
+def test_set_debug_enabled_switches_managed_logger_level(
+    tmp_path: Path,
+) -> None:
+    LoggingManager.configure(create_logging_config(tmp_path))
+    LoggingManager.get_logger("debug")
+
+    LoggingManager.set_debug_enabled(True)
+
+    assert get_application_logger().level == logging.DEBUG
+    assert all(
+        handler.level == logging.DEBUG
+        for handler in get_managed_handlers()
+    )
+
+    LoggingManager.set_debug_enabled(False)
+
+    assert get_application_logger().level == logging.INFO
+    assert all(
+        handler.level == logging.INFO
+        for handler in get_managed_handlers()
+    )

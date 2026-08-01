@@ -192,3 +192,25 @@ A
 """
 
     assert _extract_summary(text) == ""
+
+
+def test_parse_relays_routes_to_diagnostics():
+    page = MagicMock()
+    locator = make_locator(1)
+    diagnostics = MagicMock()
+    option = make_option()
+
+    with (
+        patch(
+            "app.parsers.google_maps_parser.GoogleMapsLocator.route_cards",
+            return_value=locator,
+        ),
+        patch(
+            "app.parsers.google_maps_parser._parse_locator",
+            return_value=option,
+        ),
+    ):
+        routes = GoogleMapsParser.parse(page, diagnostics)
+
+    diagnostics.log_routes.assert_called_once()
+    assert diagnostics.log_routes.call_args.args[1] == routes

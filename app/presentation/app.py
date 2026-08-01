@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 
 from app.configuration.configuration_loader import ConfigurationLoader
 from app.configuration.models import AppConfig
+from app.diagnostics import DiagnosticsManager, DiagnosticsSettings
 from app.engines.browser_manager import BrowserManager
 from app.engines.google_maps_engine import GoogleMapsEngine
 from app.engines.google_maps_locator import GoogleMapsLocator
@@ -33,13 +34,17 @@ from .theme_manager import ThemeManager
 
 def create_execution_coordinator(
     configuration: AppConfig,
+    diagnostics_manager: DiagnosticsManager | None = None,
 ) -> CalculationExecutionCoordinator:
     """Compose the route-calculation execution dependency tree."""
+    diagnostics = diagnostics_manager or DiagnosticsManager()
     browser_manager = BrowserManager(configuration.browser)
+    parser = GoogleMapsParser()
     maps_engine = GoogleMapsEngine(
         configuration.google_maps,
         GoogleMapsLocator(),
-        GoogleMapsParser(),
+        parser,
+        diagnostics,
     )
     provider = GoogleWebProvider(browser_manager, maps_engine)
     calculation_service = CalculationService(provider)
@@ -93,7 +98,19 @@ def create_application() -> tuple[
         (OpenPyXLWorkbookReader(), CsvWorkbookReader())
     )
 
-    execution_coordinator = create_execution_coordinator(configuration)
+    diagnostics_manager = DiagnosticsManager(
+        DiagnosticsSettings(
+            enabled=settings_manager.debug_enabled(),
+            trace_browser=settings_manager.trace_browser(),
+            parser_diagnostics=settings_manager.parser_diagnostics(),
+            save_html=settings_manager.save_html(),
+            save_screenshot=settings_manager.save_screenshot(),
+            save_json=settings_manager.save_json(),
+        )
+    )
+    execution_coordinator = create_execution_coordinator(
+        configuration, diagnostics_manager
+    )
 
     main_window = MainWindow(
         application=application,
@@ -102,6 +119,7 @@ def create_application() -> tuple[
         settings_manager=settings_manager,
         workbook_inspector=workbook_inspector,
         execution_coordinator=execution_coordinator,
+        diagnostics_manager=diagnostics_manager,
     )
     logger.info("Presentation application initialized")
     return application, main_window, exception_handler, splash_screen
