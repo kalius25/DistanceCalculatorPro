@@ -185,3 +185,9 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added per-route parser diagnostic logging.
 - Added optional HTML, full-page screenshot and parser JSON artifacts.
 - Added runtime DEBUG/INFO logger switching.
+
+## 1.2.0-alpha20 — Sprint 2.0.1 Read Workbook
+
+- Added streaming Excel and CSV batch readers.
+- Added RouteJob models, validation, row mapping, queue construction, and state-aware BatchQueue.
+- Reused the batch pipeline from CalculationJobBuilder.
