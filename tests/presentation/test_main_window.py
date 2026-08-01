@@ -580,3 +580,224 @@ def test_select_workbook_handles_inspection_failure(
         "The workbook could not be inspected.\n\nInvalid workbook",
     )
     settings_manager.add_recent_file.assert_not_called()
+
+
+def test_execution_coordinator_runs_real_job_and_relays_controls(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+    tmp_path: Path,
+) -> None:
+    from PySide6.QtCore import QObject, Signal
+
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.start = MagicMock(return_value=True)
+            self.pause = MagicMock()
+            self.resume = MagicMock()
+            self.stop = MagicMock()
+
+    coordinator = Coordinator()
+    workbook_inspector.inspect.side_effect = None
+    workbook_inspector.inspect.return_value = WorkbookInfo(
+        file_path="",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=0,
+        modified_at=datetime(2026, 8, 1, 8, 0),
+        worksheets=(
+            WorksheetInfo(
+                name="Sheet1",
+                row_count=3,
+                column_count=3,
+                headers=("Origin", "Destination", "Distance"),
+                preview_rows=(
+                    (
+                        "10.762622,106.660172",
+                        "10.823099,106.629664",
+                        "",
+                    ),
+                    (
+                        "10.823099,106.629664",
+                        "10.776889,106.700806",
+                        "",
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    workbook = tmp_path / "routes.xlsx"
+    workbook.touch()
+    result._select_workbook(str(workbook))
+    assert result._home_page.selected_sheet_name == "Sheet1"
+    assert result._home_page.workspace_ready
+    assert result._action_start.isEnabled()
+
+    result._action_start.trigger()
+    coordinator.start.assert_called_once()
+    job = coordinator.start.call_args.args[0]
+    assert job.file_path == str(workbook)
+    assert job.sheet_name == "Sheet1"
+    assert result.execution_state is ExecutionState.RUNNING
+
+    result._action_pause.trigger()
+    coordinator.pause.assert_called_once_with()
+    result._action_pause.trigger()
+    coordinator.resume.assert_called_once_with()
+    result._action_stop.trigger()
+    coordinator.stop.assert_called_once_with()
+
+
+def test_execution_coordinator_events_update_window(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+) -> None:
+    from PySide6.QtCore import QObject, Signal
+
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+
+        def start(self, _job: object) -> bool:
+            return True
+
+        def pause(self) -> None:
+            pass
+
+        def resume(self) -> None:
+            pass
+
+        def stop(self) -> None:
+            pass
+
+    coordinator = Coordinator()
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    coordinator.progress.emit(2, 10, object(), object())
+    assert result._status_label.text() == "Calculating route 2 of 10"
+
+    result._set_execution_state(ExecutionState.RUNNING)
+    coordinator.completed.emit([object(), object()])
+    assert result.execution_state is ExecutionState.IDLE
+    assert result._status_label.text() == "Calculation completed · 2 results"
+
+    result._set_execution_state(ExecutionState.RUNNING)
+    coordinator.stopped.emit([object()])
+    assert result._status_label.text() == (
+        "Calculation stopped · 1 results retained"
+    )
+
+    result._set_execution_state(ExecutionState.RUNNING)
+    with patch.object(QMessageBox, "critical") as critical:
+        coordinator.failed.emit("network error")
+    critical.assert_called_once_with(
+        result,
+        "Calculation failed",
+        "network error",
+    )
+    assert result._status_label.text() == "Calculation failed"
+
+    result._on_calculation_completed(tuple())
+    assert result._status_label.text() == "Calculation completed · 0 results"
+    result._on_calculation_stopped(tuple())
+    assert result._status_label.text() == (
+        "Calculation stopped · 0 results retained"
+    )
+
+
+def test_execution_coordinator_rejects_start_and_missing_job_context(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+) -> None:
+    from PySide6.QtCore import QObject, Signal
+
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.start = MagicMock(return_value=False)
+
+        def pause(self) -> None:
+            pass
+
+        def resume(self) -> None:
+            pass
+
+        def stop(self) -> None:
+            pass
+
+    coordinator = Coordinator()
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    _make_workspace_ready(result)
+    result._start_calculation()
+    coordinator.start.assert_not_called()
+    assert result.execution_state is ExecutionState.IDLE
+
+    result._home_page.set_selected_file("routes.xlsx")
+    _make_workspace_ready(result)
+    result._start_calculation()
+    coordinator.start.assert_called_once()
+    assert result.execution_state is ExecutionState.IDLE

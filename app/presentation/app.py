@@ -6,7 +6,15 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from app.configuration.configuration_loader import ConfigurationLoader
+from app.configuration.models import AppConfig
+from app.engines.browser_manager import BrowserManager
+from app.engines.google_maps_engine import GoogleMapsEngine
+from app.engines.google_maps_locator import GoogleMapsLocator
 from app.logging.logging_manager import LoggingManager
+from app.parsers.google_maps_parser import GoogleMapsParser
+from app.providers.google_web_provider import GoogleWebProvider
+from app.services.batch_calculation_service import BatchCalculationService
+from app.services.calculation_service import CalculationService
 from app.workbooks import (
     CsvWorkbookReader,
     OpenPyXLWorkbookReader,
@@ -15,11 +23,31 @@ from app.workbooks import (
 
 from .app_metadata import AppMetadata
 from .exception_handler import ExceptionHandler
+from .execution import CalculationExecutionCoordinator, CalculationJobBuilder
 from .main_window import MainWindow
 from .resource_manager import ResourceManager
 from .settings_manager import SettingsManager
 from .splash_screen import SplashScreen
 from .theme_manager import ThemeManager
+
+
+def create_execution_coordinator(
+    configuration: AppConfig,
+) -> CalculationExecutionCoordinator:
+    """Compose the route-calculation execution dependency tree."""
+    browser_manager = BrowserManager(configuration.browser)
+    maps_engine = GoogleMapsEngine(
+        configuration.google_maps,
+        GoogleMapsLocator(),
+        GoogleMapsParser(),
+    )
+    provider = GoogleWebProvider(browser_manager, maps_engine)
+    calculation_service = CalculationService(provider)
+    batch_service = BatchCalculationService(calculation_service)
+    return CalculationExecutionCoordinator(
+        CalculationJobBuilder(),
+        batch_service,
+    )
 
 
 def create_application() -> tuple[
@@ -64,12 +92,16 @@ def create_application() -> tuple[
     workbook_inspector = WorkbookInspectorService(
         (OpenPyXLWorkbookReader(), CsvWorkbookReader())
     )
+
+    execution_coordinator = create_execution_coordinator(configuration)
+
     main_window = MainWindow(
         application=application,
         metadata=metadata,
         theme_manager=theme_manager,
         settings_manager=settings_manager,
         workbook_inspector=workbook_inspector,
+        execution_coordinator=execution_coordinator,
     )
     logger.info("Presentation application initialized")
     return application, main_window, exception_handler, splash_screen

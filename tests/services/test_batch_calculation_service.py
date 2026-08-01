@@ -133,3 +133,35 @@ def test_calculate_generator():
     assert len(results) == 3
 
     assert calculation_service.calculate.call_count == 3
+
+
+def test_calculate_stops_before_and_after_pause_callback():
+    request = make_request("A", "B")
+    calculation_service = MagicMock()
+    service = BatchCalculationService(calculation_service)
+
+    results = service.calculate([request], should_stop=lambda: True)
+    assert results == []
+
+    checks = iter([False, True])
+    wait = MagicMock()
+    results = service.calculate(
+        [request],
+        should_stop=lambda: next(checks),
+        wait_if_paused=wait,
+    )
+    assert results == []
+    wait.assert_called_once_with()
+    calculation_service.calculate.assert_not_called()
+
+
+def test_calculate_waits_before_processing():
+    request = make_request("A", "B")
+    result = make_result(request)
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    wait = MagicMock()
+    service = BatchCalculationService(calculation_service)
+
+    assert service.calculate([request], wait_if_paused=wait) == [result]
+    wait.assert_called_once_with()

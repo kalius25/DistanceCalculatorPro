@@ -79,6 +79,12 @@ class HomePage(QWidget):
         return self._workbook_info
 
     @property
+    def selected_sheet_name(self) -> str | None:
+        if self._current_worksheet is None:
+            return None
+        return self._current_worksheet.name
+
+    @property
     def column_mapping(self) -> ColumnMapping | None:
         if not self._mapping_valid:
             return None

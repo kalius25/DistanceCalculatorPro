@@ -1,3 +1,12 @@
+## 1.2.0-alpha16 — Sprint 1E.0
+
+- Added `CalculationJobBuilder` for Excel, XLSM and CSV input.
+- Added background `CalculationWorker` and Qt execution coordinator.
+- Connected Start, Pause/Resume and Stop to real batch calculation.
+- Added cooperative pause and stop callbacks to `BatchCalculationService`.
+- Added progress, completion, stopped and failure status handling.
+- Result writing remains intentionally deferred to the Result Writer sprint.
+
 ## 1.2.0-alpha15 — Sprint 1D.2
 
 - Made MainWindow the single owner of execution orchestration and toolbar state.

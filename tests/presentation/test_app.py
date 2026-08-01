@@ -100,6 +100,11 @@ def test_create_application_composes_and_initializes_shell() -> None:
         ) as inspector_type,
         patch.object(
             app_module,
+            "create_execution_coordinator",
+            return_value="execution_coordinator",
+        ) as create_execution_coordinator,
+        patch.object(
+            app_module,
             "MainWindow",
             return_value=main_window,
         ) as window_type,
@@ -130,6 +135,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
     theme_manager.apply_theme.assert_called_once_with(application, "light")
     handler_type.assert_called_once_with(logger)
     inspector_type.assert_called_once_with(("excel_reader", "csv_reader"))
+    create_execution_coordinator.assert_called_once_with(configuration)
     exception_handler.install.assert_called_once_with()
     window_type.assert_called_once_with(
         application=application,
@@ -137,6 +143,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
         theme_manager=theme_manager,
         settings_manager=settings_manager,
         workbook_inspector="workbook_inspector",
+        execution_coordinator="execution_coordinator",
     )
     logger.info.assert_called_once_with(
         "Presentation application initialized"
@@ -201,6 +208,7 @@ def test_create_application_replaces_unsupported_saved_theme() -> None:
             "ExceptionHandler",
             return_value=exception_handler,
         ),
+        patch.object(app_module, "create_execution_coordinator"),
         patch.object(app_module, "MainWindow"),
     ):
         theme_type.SUPPORTED_THEMES = ("light", "dark")
@@ -268,3 +276,61 @@ def test_main_cleans_up_when_event_loop_raises() -> None:
 
     exception_handler.restore.assert_called_once_with()
     reset.assert_called_once_with()
+
+
+def test_create_execution_coordinator_composes_calculation_tree() -> None:
+    configuration = MagicMock()
+    browser = MagicMock()
+    locator = MagicMock()
+    parser = MagicMock()
+    engine = MagicMock()
+    provider = MagicMock()
+    calculation_service = MagicMock()
+    batch_service = MagicMock()
+    builder = MagicMock()
+    coordinator = MagicMock()
+
+    with (
+        patch.object(
+            app_module,
+            "BrowserManager",
+            return_value=browser,
+        ) as browser_type,
+        patch.object(app_module, "GoogleMapsLocator", return_value=locator),
+        patch.object(app_module, "GoogleMapsParser", return_value=parser),
+        patch.object(
+            app_module,
+            "GoogleMapsEngine",
+            return_value=engine,
+        ) as engine_type,
+        patch.object(
+            app_module,
+            "GoogleWebProvider",
+            return_value=provider,
+        ) as provider_type,
+        patch.object(
+            app_module,
+            "CalculationService",
+            return_value=calculation_service,
+        ) as calculation_type,
+        patch.object(
+            app_module,
+            "BatchCalculationService",
+            return_value=batch_service,
+        ) as batch_type,
+        patch.object(app_module, "CalculationJobBuilder", return_value=builder),
+        patch.object(
+            app_module,
+            "CalculationExecutionCoordinator",
+            return_value=coordinator,
+        ) as coordinator_type,
+    ):
+        result = app_module.create_execution_coordinator(configuration)
+
+    browser_type.assert_called_once_with(configuration.browser)
+    engine_type.assert_called_once_with(configuration.google_maps, locator, parser)
+    provider_type.assert_called_once_with(browser, engine)
+    calculation_type.assert_called_once_with(provider)
+    batch_type.assert_called_once_with(calculation_service)
+    coordinator_type.assert_called_once_with(builder, batch_service)
+    assert result is coordinator

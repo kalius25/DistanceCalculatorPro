@@ -13,6 +13,8 @@ ProgressCallback = Callable[
     [int, int, RouteRequest, RouteResult],
     None,
 ]
+ControlCallback = Callable[[], bool]
+WaitCallback = Callable[[], None]
 
 
 class BatchCalculationService:
@@ -26,6 +28,8 @@ class BatchCalculationService:
         self,
         requests: Iterable[RouteRequest],
         progress_callback: ProgressCallback | None = None,
+        should_stop: ControlCallback | None = None,
+        wait_if_paused: WaitCallback | None = None,
     ) -> list[RouteResult]:
         requests = list(requests)
 
@@ -34,6 +38,12 @@ class BatchCalculationService:
         results: list[RouteResult] = []
 
         for current, request in enumerate(requests, start=1):
+            if should_stop is not None and should_stop():
+                break
+            if wait_if_paused is not None:
+                wait_if_paused()
+            if should_stop is not None and should_stop():
+                break
             result = self.calculation_service.calculate(request)
 
             results.append(result)

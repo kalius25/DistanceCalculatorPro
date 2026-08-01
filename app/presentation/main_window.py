@@ -24,6 +24,7 @@ from app.workbooks import (
 
 from .app_metadata import AppMetadata
 from .dialogs.about_dialog import AboutDialog
+from .execution import CalculationExecutionCoordinator, CalculationJob
 from .models.execution_state import ExecutionState
 from .pages.about_page import AboutPage
 from .pages.history_page import HistoryPage
@@ -41,6 +42,10 @@ class MainWindow(QMainWindow):
     calculation_pause_requested = Signal()
     calculation_resume_requested = Signal()
     calculation_stop_requested = Signal()
+    calculation_progress = Signal(int, int, object, object)
+    calculation_completed = Signal(object)
+    calculation_stopped = Signal(object)
+    calculation_failed = Signal(str)
 
     HOME_PAGE_INDEX = 0
     HISTORY_PAGE_INDEX = 1
@@ -60,6 +65,7 @@ class MainWindow(QMainWindow):
         theme_manager: ThemeManager,
         settings_manager: SettingsManager,
         workbook_inspector: WorkbookInspectorService | None = None,
+        execution_coordinator: CalculationExecutionCoordinator | None = None,
     ) -> None:
         super().__init__()
         self._application = application
@@ -67,6 +73,7 @@ class MainWindow(QMainWindow):
         self._theme_manager = theme_manager
         self._settings_manager = settings_manager
         self._execution_state = ExecutionState.IDLE
+        self._execution_coordinator = execution_coordinator
         self._workbook_inspector = workbook_inspector or WorkbookInspectorService(
             (OpenPyXLWorkbookReader(), CsvWorkbookReader())
         )
@@ -246,6 +253,19 @@ class MainWindow(QMainWindow):
         self._home_page.workspace_ready_changed.connect(
             self._on_workspace_ready_changed
         )
+        if self._execution_coordinator is not None:
+            self._execution_coordinator.progress.connect(
+                self._on_calculation_progress
+            )
+            self._execution_coordinator.completed.connect(
+                self._on_calculation_completed
+            )
+            self._execution_coordinator.stopped.connect(
+                self._on_calculation_stopped
+            )
+            self._execution_coordinator.failed.connect(
+                self._on_calculation_failed
+            )
         self._action_home.triggered.connect(self._show_action_page)
         self._action_history.triggered.connect(self._show_action_page)
         self._action_settings_page.triggered.connect(self._show_action_page)
@@ -408,27 +428,86 @@ class MainWindow(QMainWindow):
 
     def _start_calculation(self) -> None:
         configuration = self._home_page.workspace_configuration
+        file_path = self._home_page.selected_file
+        sheet_name = self._home_page.selected_sheet_name
         if (
             self._execution_state is not ExecutionState.IDLE
             or configuration is None
         ):
             return
+
+        if self._execution_coordinator is not None:
+            if file_path is None or sheet_name is None:
+                return
+            job = CalculationJob(file_path, sheet_name, configuration)
+            if not self._execution_coordinator.start(job):
+                return
+
         self._set_execution_state(ExecutionState.RUNNING)
         self.calculation_requested.emit(configuration)
 
     def _toggle_pause(self) -> None:
         if self._execution_state is ExecutionState.RUNNING:
+            if self._execution_coordinator is not None:
+                self._execution_coordinator.pause()
             self._set_execution_state(ExecutionState.PAUSED)
             self.calculation_pause_requested.emit()
         elif self._execution_state is ExecutionState.PAUSED:
+            if self._execution_coordinator is not None:
+                self._execution_coordinator.resume()
             self._set_execution_state(ExecutionState.RUNNING)
             self.calculation_resume_requested.emit()
 
     def _stop_calculation(self) -> None:
         if self._execution_state is ExecutionState.IDLE:
             return
+        if self._execution_coordinator is not None:
+            self._execution_coordinator.stop()
         self._set_execution_state(ExecutionState.IDLE)
         self.calculation_stop_requested.emit()
+
+    def _on_calculation_progress(
+        self,
+        current: int,
+        total: int,
+        _request: object,
+        _result: object,
+    ) -> None:
+        self._status_label.setText(
+            f"Calculating route {current:,} of {total:,}"
+        )
+        self.calculation_progress.emit(
+            current,
+            total,
+            _request,
+            _result,
+        )
+
+    def _on_calculation_completed(self, results: object) -> None:
+        result_count = len(results) if isinstance(results, list) else 0
+        self._set_execution_state(ExecutionState.IDLE)
+        self._status_label.setText(
+            f"Calculation completed · {result_count:,} results"
+        )
+        self.calculation_completed.emit(results)
+
+    def _on_calculation_stopped(self, results: object) -> None:
+        result_count = len(results) if isinstance(results, list) else 0
+        self._set_execution_state(ExecutionState.IDLE)
+        self._status_label.setText(
+            f"Calculation stopped · {result_count:,} results retained"
+        )
+        self.calculation_stopped.emit(results)
+
+    def _on_calculation_failed(self, message: str) -> None:
+        self._set_execution_state(ExecutionState.IDLE)
+        self._status_label.setText("Calculation failed")
+        self.calculation_failed.emit(message)
+        QMessageBox.critical(
+            self,
+            "Calculation failed",
+            message,
+        )
 
     def _set_execution_state(self, state: ExecutionState) -> None:
         if state is self._execution_state:

@@ -254,9 +254,11 @@ def test_workbook_inspection_is_rendered_and_sheet_can_change(qtbot: object) -> 
         ),
     )
 
+    assert page.selected_sheet_name is None
     page.set_inspection(info)
 
     assert page.workbook_info == info
+    assert page.selected_sheet_name == "Routes"
     assert page._sheet_selector.count() == 2
     assert page._file_size_value.text() == "2.0 KB (2,048 bytes)"
     assert page._row_count_value.text() == "1,200"
