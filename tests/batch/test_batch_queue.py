@@ -20,6 +20,10 @@ def test_queue_tracks_counts_and_iteration() -> None:
     assert queue.skipped_count == 1
     assert queue.invalid_count == 1
     assert queue.count(RouteJobStatus.DONE) == 0
+    assert queue.running_count == 0
+    assert queue.done_count == 0
+    assert queue.failed_count == 0
+    assert queue.terminal_count == 2
 
 
 def test_queue_runs_completes_fails_and_retries_jobs() -> None:
@@ -29,6 +33,7 @@ def test_queue_runs_completes_fails_and_retries_jobs() -> None:
 
     assert queue.next_pending() is first
     assert first.status is RouteJobStatus.RUNNING
+    assert queue.running_count == 1
     queue.mark_done(first, 8.6)
     assert first.status is RouteJobStatus.DONE
     assert first.result_distance_km == 8.6

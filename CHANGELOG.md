@@ -1,3 +1,12 @@
+
+## 1.2.0-alpha21 — Sprint 2.0.2 Execution Queue
+
+- Execute workbook rows through `BatchQueue` instead of a detached request list.
+- Transition route jobs through `PENDING`, `RUNNING`, `DONE`, and `FAILED`.
+- Relay progress with the originating `RouteJob` and `RouteResult`.
+- Preserve pause, resume, stop, and one-browser-per-batch behavior.
+- Keep the request-list API for backward compatibility.
+
 ## 1.2.0-alpha16 — Sprint 1E.0
 
 - Added `CalculationJobBuilder` for Excel, XLSM and CSV input.

@@ -120,3 +120,22 @@ def test_builder_handles_missing_sheet_empty_csv_and_short_rows(
 
     assert builder._cell(["A"], 3) == ""
     assert builder._cell([None], 0) == ""
+
+def test_build_queue_preserves_all_row_states(tmp_path: Path) -> None:
+    path = tmp_path / "routes.csv"
+    path.write_text(
+        "Origin,Destination,Distance\n"
+        "A,B,\n"
+        ",B,\n"
+        '"10.0,999",invalid,\n'
+        "C,C,\n",
+        encoding="utf-8",
+    )
+
+    queue = CalculationJobBuilder().build_queue(make_job(path))
+
+    assert len(queue) == 4
+    assert queue.pending_count == 1
+    assert queue.skipped_count == 1
+    assert queue.invalid_count == 1
+    assert queue.done_count == 1

@@ -6,7 +6,7 @@ from threading import Condition
 
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
-from app.models.route_request import RouteRequest
+from app.batch.models import RouteJob
 from app.models.route_result import RouteResult
 from app.services.batch_calculation_service import BatchCalculationService
 
@@ -40,9 +40,9 @@ class CalculationWorker(QObject):
     def run(self) -> None:
         results: list[RouteResult] = []
         try:
-            requests = self._job_builder.build_requests(self._job)
-            results = self._batch_service.calculate(
-                requests,
+            queue = self._job_builder.build_queue(self._job)
+            results = self._batch_service.calculate_queue(
+                queue,
                 progress_callback=self._on_progress,
                 should_stop=self._should_stop,
                 wait_if_paused=self._wait_if_paused,
@@ -84,10 +84,10 @@ class CalculationWorker(QObject):
         self,
         current: int,
         total: int,
-        request: RouteRequest,
+        job: RouteJob,
         result: RouteResult,
     ) -> None:
-        self.progress.emit(current, total, request, result)
+        self.progress.emit(current, total, job, result)
 
 
 class CalculationExecutionCoordinator(QObject):

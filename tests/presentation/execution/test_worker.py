@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from app.batch import BatchQueue, RouteJob
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.presentation.execution.job import CalculationJob
@@ -16,19 +17,21 @@ def test_worker_completes_and_relays_progress(qtbot: object) -> None:
     request = RouteRequest("A", "B")
     result = RouteResult(True, request, "Google")
     builder = MagicMock()
-    builder.build_requests.return_value = [request]
+    route_job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([route_job])
+    builder.build_queue.return_value = queue
     batch = MagicMock()
 
-    def calculate(
-        requests: object,
+    def calculate_queue(
+        received_queue: object,
         progress_callback: object,
         **kwargs: object,
     ) -> list[RouteResult]:
-        assert list(requests) == [request]  # type: ignore[arg-type]
-        progress_callback(1, 1, request, result)  # type: ignore[operator]
+        assert received_queue is queue
+        progress_callback(1, 1, route_job, result)  # type: ignore[operator]
         return [result]
 
-    batch.calculate.side_effect = calculate
+    batch.calculate_queue.side_effect = calculate_queue
     worker = CalculationWorker(job, builder, batch)
 
     with (
@@ -42,11 +45,11 @@ def test_worker_completes_and_relays_progress(qtbot: object) -> None:
 def test_worker_stopped_failed_and_control_methods(qtbot: object) -> None:
     job = MagicMock(spec=CalculationJob)
     builder = MagicMock()
-    builder.build_requests.return_value = []
+    builder.build_queue.return_value = BatchQueue()
     batch = MagicMock()
     worker = CalculationWorker(job, builder, batch)
     worker.request_stop()
-    batch.calculate.return_value = []
+    batch.calculate_queue.return_value = []
 
     with (
         qtbot.waitSignal(worker.stopped),  # type: ignore[attr-defined]
@@ -55,7 +58,7 @@ def test_worker_stopped_failed_and_control_methods(qtbot: object) -> None:
         worker.run()
 
     worker = CalculationWorker(job, builder, batch)
-    builder.build_requests.side_effect = ValueError("bad job")
+    builder.build_queue.side_effect = ValueError("bad job")
     with (
         qtbot.waitSignal(  # type: ignore[attr-defined]
             worker.failed,
@@ -84,12 +87,13 @@ def test_worker_stopped_failed_and_control_methods(qtbot: object) -> None:
 def test_worker_progress_helper_emits_signal(qtbot: object) -> None:
     worker = CalculationWorker(MagicMock(), MagicMock(), MagicMock())
     request = RouteRequest("A", "B")
+    route_job = RouteJob(2, "A", "B", "Distance")
     result = RouteResult(True, request, "Google")
     with qtbot.waitSignal(  # type: ignore[attr-defined]
         worker.progress,
-        check_params_cb=lambda *values: values == (1, 2, request, result),
+        check_params_cb=lambda *values: values == (1, 2, route_job, result),
     ):
-        worker._on_progress(1, 2, request, result)
+        worker._on_progress(1, 2, route_job, result)
 
 
 def test_coordinator_starts_controls_and_clears_worker() -> None:

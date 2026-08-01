@@ -61,6 +61,30 @@ class BatchQueue:
         return self.pending_count
 
     @property
+    def running_count(self) -> int:
+        return self.count(RouteJobStatus.RUNNING)
+
+    @property
+    def done_count(self) -> int:
+        return self.count(RouteJobStatus.DONE)
+
+    @property
+    def failed_count(self) -> int:
+        return self.count(RouteJobStatus.FAILED)
+
+    @property
+    def terminal_count(self) -> int:
+        return sum(
+            self.count(status)
+            for status in (
+                RouteJobStatus.DONE,
+                RouteJobStatus.FAILED,
+                RouteJobStatus.SKIPPED,
+                RouteJobStatus.INVALID,
+            )
+        )
+
+    @property
     def skipped_count(self) -> int:
         return self.count(RouteJobStatus.SKIPPED)
 

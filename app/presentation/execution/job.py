@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from app.batch.batch_queue import BatchQueue
 from app.batch.models import RouteJobStatus
 from app.batch.queue_builder import QueueBuilder
 from app.models.route_request import RouteRequest
@@ -29,12 +30,16 @@ class CalculationJobBuilder:
     def __init__(self, queue_builder: QueueBuilder | None = None) -> None:
         self._queue_builder = queue_builder or QueueBuilder()
 
-    def build_requests(self, job: CalculationJob) -> list[RouteRequest]:
-        queue = self._queue_builder.build(
+    def build_queue(self, job: CalculationJob) -> BatchQueue:
+        """Build the reusable state-aware queue for one calculation job."""
+        return self._queue_builder.build(
             job.file_path,
             job.sheet_name,
             job.configuration,
         )
+
+    def build_requests(self, job: CalculationJob) -> list[RouteRequest]:
+        queue = self.build_queue(job)
         return [
             RouteRequest(
                 origin=item.origin,
