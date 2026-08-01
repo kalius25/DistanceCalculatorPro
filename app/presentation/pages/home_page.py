@@ -471,8 +471,6 @@ class HomePage(QWidget):
         for label, mode in (
             ("Driving", TravelMode.DRIVING),
             ("Walking", TravelMode.WALKING),
-            ("Bicycling", TravelMode.BICYCLING),
-            ("Transit", TravelMode.TRANSIT),
         ):
             self._travel_mode_selector.addItem(label, mode.value)
         provider_layout.addWidget(travel_caption, 1, 1)
@@ -631,6 +629,7 @@ class HomePage(QWidget):
     def _apply_initial_state(self) -> None:
         self.clear_selected_file()
         self.set_recent_files([])
+        self._sync_route_option_availability()
         self._validate_provider_configuration()
         self._update_workspace_readiness()
 
@@ -855,9 +854,20 @@ class HomePage(QWidget):
         self._update_workspace_readiness()
 
     def _on_provider_configuration_changed(self, _value: str) -> None:
+        self._sync_route_option_availability()
         self._validate_provider_configuration()
 
+    def _sync_route_option_availability(self) -> None:
+        mode = self._travel_mode_selector.currentData()
+        walking = mode == TravelMode.WALKING.value
+        self._avoid_tolls_checkbox.setEnabled(not walking)
+        self._avoid_highways_checkbox.setEnabled(not walking)
+        if walking:
+            self._avoid_tolls_checkbox.setChecked(False)
+            self._avoid_highways_checkbox.setChecked(False)
+
     def _on_provider_option_toggled(self, _checked: bool) -> None:
+        self._sync_route_option_availability()
         self._validate_provider_configuration()
 
     def _validate_provider_configuration(self) -> None:

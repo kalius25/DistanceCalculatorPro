@@ -6,6 +6,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from app.configuration.models import GoogleMapsConfig
 from app.engines.google_maps_engine import GoogleMapsEngine
+from app.engines.google_maps_url_builder import GoogleMapsUrlBuilder
 from app.enums.travel_mode import TravelMode
 from app.exceptions import EngineException, ErrorCode, ParserException
 from app.models.route_option import RouteOption
@@ -100,10 +101,7 @@ def test_find_routes_uses_complete_url(engine, locator, parser):
 
     result = engine.find_routes(page, request)
 
-    expected_url = (
-        "https://www.google.com/maps/dir/Can%20Tho/Ho%20Chi%20Minh/"
-        "?hl=vi&gl=VN"
-    )
+    expected_url = GoogleMapsUrlBuilder.build(request)
     page.goto.assert_called_once_with(
         expected_url,
         timeout=30_000,

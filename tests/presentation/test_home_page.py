@@ -715,13 +715,17 @@ def test_provider_configuration_emits_selected_options(qtbot: object) -> None:
         check_params_cb=lambda provider, mode, tolls, highways, ferries: (
             provider == "Google Maps Web"
             and mode == "walking"
-            and tolls
+            and not tolls
             and not highways
-            and not ferries
+            and ferries
         ),
     ):
         page._travel_mode_selector.setCurrentText("Walking")
-        page._avoid_tolls_checkbox.setChecked(True)
+        page._avoid_ferries_checkbox.setChecked(True)
+
+    assert not page._avoid_tolls_checkbox.isEnabled()
+    assert not page._avoid_highways_checkbox.isEnabled()
+    assert page._avoid_ferries_checkbox.isEnabled()
 
 
 def test_provider_configuration_requires_provider_and_mode(qtbot: object) -> None:
