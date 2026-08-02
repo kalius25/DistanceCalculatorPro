@@ -209,3 +209,10 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added streaming Excel and CSV batch readers.
 - Added RouteJob models, validation, row mapping, queue construction, and state-aware BatchQueue.
 - Reused the batch pipeline from CalculationJobBuilder.
+
+## 1.2.0-alpha23
+
+- Added batch progress snapshots with elapsed time, throughput and ETA.
+- Excluded paused time from runtime metrics.
+- Relayed runtime metrics through the Qt execution coordinator.
+- Added live progress details to the status bar.

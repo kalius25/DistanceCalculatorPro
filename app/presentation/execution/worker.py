@@ -7,6 +7,7 @@ from threading import Condition
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from app.batch.models import RouteJob
+from app.batch.progress import BatchProgressTracker
 from app.batch.result_writer import ResultWriterFactory
 from app.models.route_result import RouteResult
 from app.services.batch_calculation_service import BatchCalculationService
@@ -18,6 +19,7 @@ class CalculationWorker(QObject):
     """Run one calculation job outside the GUI thread."""
 
     progress = Signal(int, int, object, object)
+    metrics = Signal(object)
     completed = Signal(object)
     stopped = Signal(object)
     failed = Signal(str)
@@ -38,12 +40,14 @@ class CalculationWorker(QObject):
         self._condition = Condition()
         self._paused = False
         self._stop_requested = False
+        self._progress_tracker: BatchProgressTracker | None = None
 
     @Slot()
     def run(self) -> None:
         results: list[RouteResult] = []
         try:
             queue = self._job_builder.build_queue(self._job)
+            self._progress_tracker = BatchProgressTracker(queue.pending_count)
             with self._writer_factory.create(
                 self._job.file_path,
                 self._job.sheet_name,
@@ -67,10 +71,14 @@ class CalculationWorker(QObject):
     def request_pause(self) -> None:
         with self._condition:
             self._paused = True
+            if self._progress_tracker is not None:
+                self._progress_tracker.pause()
 
     def request_resume(self) -> None:
         with self._condition:
             self._paused = False
+            if self._progress_tracker is not None:
+                self._progress_tracker.resume()
             self._condition.notify_all()
 
     def request_stop(self) -> None:
@@ -96,12 +104,15 @@ class CalculationWorker(QObject):
         result: RouteResult,
     ) -> None:
         self.progress.emit(current, total, job, result)
+        if self._progress_tracker is not None:
+            self.metrics.emit(self._progress_tracker.record(job))
 
 
 class CalculationExecutionCoordinator(QObject):
     """Own the worker thread and relay execution events to the UI."""
 
     progress = Signal(int, int, object, object)
+    metrics = Signal(object)
     completed = Signal(object)
     stopped = Signal(object)
     failed = Signal(str)
@@ -138,6 +149,7 @@ class CalculationExecutionCoordinator(QObject):
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.progress.connect(self.progress.emit)
+        worker.metrics.connect(self.metrics.emit)
         worker.completed.connect(self.completed.emit)
         worker.stopped.connect(self.stopped.emit)
         worker.failed.connect(self.failed.emit)
