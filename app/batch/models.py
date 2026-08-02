@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 
 from app.enums.route_preference import RoutePreference
@@ -39,6 +40,10 @@ class RouteJob:
     validation_error: str | None = None
     result_distance_km: float | None = None
     metadata: dict[str, object] = field(default_factory=dict)
+    attempt_count: int = 0
+    last_error: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

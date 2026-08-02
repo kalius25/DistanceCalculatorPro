@@ -62,3 +62,44 @@ def test_queue_rejects_invalid_transitions() -> None:
         queue.mark_failed(pending, "error")
     with pytest.raises(ValueError, match="Cannot retry job"):
         queue.schedule_retry(pending)
+
+
+def test_queue_records_and_resumes_transient_retry() -> None:
+    queue = BatchQueue([job()])
+    route_job = queue.next_pending()
+    assert route_job is not None
+
+    queue.mark_retry(route_job, "timeout")
+
+    assert route_job.status is RouteJobStatus.RETRY
+    assert route_job.retry_count == 1
+    assert route_job.last_error == "timeout"
+    assert route_job.validation_error == "timeout"
+
+    queue.resume_retry(route_job)
+    assert route_job.status is RouteJobStatus.RUNNING
+
+
+def test_queue_schedules_existing_retry_without_double_counting() -> None:
+    queue = BatchQueue([job()])
+    route_job = queue.next_pending()
+    assert route_job is not None
+    queue.mark_retry(route_job, "timeout")
+
+    queue.schedule_retry(route_job)
+
+    assert route_job.status is RouteJobStatus.PENDING
+    assert route_job.retry_count == 1
+    assert queue.next_pending() is route_job
+
+
+def test_queue_rejects_invalid_retry_state_transitions() -> None:
+    queue = BatchQueue([job()])
+    pending = next(iter(queue))
+
+    import pytest
+
+    with pytest.raises(ValueError, match="Expected job state running"):
+        queue.mark_retry(pending, "timeout")
+    with pytest.raises(ValueError, match="Expected job state retry"):
+        queue.resume_retry(pending)

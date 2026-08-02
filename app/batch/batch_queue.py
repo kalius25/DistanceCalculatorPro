@@ -41,11 +41,29 @@ class BatchQueue:
         job.status = RouteJobStatus.FAILED
         job.validation_error = message
 
-    def schedule_retry(self, job: RouteJob) -> None:
-        if job.status not in {RouteJobStatus.RUNNING, RouteJobStatus.FAILED}:
-            raise ValueError(f"Cannot retry job in state: {job.status.value}")
+
+    def mark_retry(self, job: RouteJob, message: str) -> None:
+        """Record a transient failure while retaining the active job."""
+        self._require(job, RouteJobStatus.RUNNING)
         job.retry_count += 1
+        job.last_error = message
+        job.validation_error = message
         job.status = RouteJobStatus.RETRY
+
+    def resume_retry(self, job: RouteJob) -> None:
+        """Return a delayed retry job to the running state."""
+        self._require(job, RouteJobStatus.RETRY)
+        job.status = RouteJobStatus.RUNNING
+
+    def schedule_retry(self, job: RouteJob) -> None:
+        if job.status not in {
+            RouteJobStatus.RUNNING,
+            RouteJobStatus.FAILED,
+            RouteJobStatus.RETRY,
+        }:
+            raise ValueError(f"Cannot retry job in state: {job.status.value}")
+        if job.status is not RouteJobStatus.RETRY:
+            job.retry_count += 1
         job.status = RouteJobStatus.PENDING
         self._pending.append(job)
 

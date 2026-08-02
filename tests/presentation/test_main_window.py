@@ -9,7 +9,6 @@ from PySide6.QtCore import QByteArray
 from PySide6.QtGui import QCloseEvent, QIcon
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
-from app.batch.progress import ProgressSnapshot
 from app.logging import LoggingManager
 from app.presentation.app_metadata import AppMetadata
 from app.presentation.main_window import MainWindow
@@ -604,7 +603,6 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
 
     class Coordinator(QObject):
         progress = Signal(int, int, object, object)
-        metrics = Signal(object)
         completed = Signal(object)
         stopped = Signal(object)
         failed = Signal(str)
@@ -685,7 +683,6 @@ def test_execution_coordinator_events_update_window(
 
     class Coordinator(QObject):
         progress = Signal(int, int, object, object)
-        metrics = Signal(object)
         completed = Signal(object)
         stopped = Signal(object)
         failed = Signal(str)
@@ -719,26 +716,6 @@ def test_execution_coordinator_events_update_window(
 
     coordinator.progress.emit(2, 10, object(), object())
     assert result._status_label.text() == "Calculating route 2 of 10"
-
-    metrics = ProgressSnapshot(
-        total=10,
-        completed=2,
-        successful=2,
-        failed=0,
-        remaining=8,
-        elapsed_seconds=30.0,
-        average_seconds_per_item=15.0,
-        items_per_minute=4.0,
-        eta_seconds=120.0,
-        percent_complete=20.0,
-    )
-    with qtbot.waitSignal(result.calculation_metrics):  # type: ignore[attr-defined]
-        coordinator.metrics.emit(metrics)
-    assert result._status_label.text() == (
-        "2/10 · 20% · 4.0 jobs/min · Elapsed 00:30 · ETA 02:00"
-    )
-    assert result._format_duration(3_661.0) == "01:01:01"
-    result._on_calculation_metrics(object())
 
     result._set_execution_state(ExecutionState.RUNNING)
     coordinator.completed.emit([object(), object()])
@@ -781,7 +758,6 @@ def test_execution_coordinator_rejects_start_and_missing_job_context(
 
     class Coordinator(QObject):
         progress = Signal(int, int, object, object)
-        metrics = Signal(object)
         completed = Signal(object)
         stopped = Signal(object)
         failed = Signal(str)

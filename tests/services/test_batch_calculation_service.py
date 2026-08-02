@@ -213,7 +213,12 @@ def test_calculate_queue_updates_job_states_and_relays_progress():
     calculation_service = MagicMock()
     calculation_service.calculate.side_effect = [success, failure]
     callback = MagicMock()
-    service = BatchCalculationService(calculation_service)
+    from app.batch import RetryPolicy
+
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(max_attempts=1),
+    )
 
     results = service.calculate_queue(queue, progress_callback=callback)
 
@@ -376,3 +381,244 @@ def test_calculate_queue_stops_when_pending_job_disappears() -> None:
     calculation_service.calculate.assert_not_called()
     calculation_service.start_batch.assert_called_once_with()
     calculation_service.finish_batch.assert_called_once_with()
+
+
+def test_calculate_queue_retries_transient_result_then_succeeds() -> None:
+    from unittest.mock import call
+
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+    from app.exceptions import ErrorCode
+    from app.models.route_option import RouteOption
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    first = RouteResult(
+        False,
+        make_request("A", "B"),
+        "Google",
+        error="timeout",
+        error_code=ErrorCode.ENGINE_ERROR,
+    )
+    second = RouteResult(
+        True,
+        make_request("A", "B"),
+        "Google",
+        routes=[RouteOption(distance_km=8.6, duration_minutes=20)],
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.side_effect = [first, second]
+    sleeper = MagicMock()
+    callback = MagicMock()
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(
+            max_attempts=3,
+            initial_delay_seconds=0.2,
+            backoff_multiplier=2.0,
+            max_delay_seconds=1.0,
+        ),
+        sleep_callback=sleeper,
+    )
+
+    assert service.calculate_queue(queue, progress_callback=callback) == [second]
+
+    assert calculation_service.calculate.call_count == 2
+    assert sleeper.call_args_list == [call(0.1), call(0.1)]
+    assert job.status is RouteJobStatus.DONE
+    assert job.attempt_count == 2
+    assert job.retry_count == 1
+    assert job.last_error == "timeout"
+    assert job.started_at is not None
+    assert job.finished_at is not None
+    callback.assert_called_once_with(1, 1, job, second)
+
+
+def test_calculate_queue_exhausts_retries_and_reports_once() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+    from app.exceptions import ErrorCode
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    failures = [
+        RouteResult(
+            False,
+            make_request("A", "B"),
+            "Google",
+            error=f"timeout {number}",
+            error_code=ErrorCode.ENGINE_ERROR,
+        )
+        for number in (1, 2, 3)
+    ]
+    calculation_service = MagicMock()
+    calculation_service.calculate.side_effect = failures
+    callback = MagicMock()
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(
+            max_attempts=3,
+            initial_delay_seconds=0,
+        ),
+    )
+
+    assert service.calculate_queue(queue, progress_callback=callback) == [
+        failures[-1]
+    ]
+
+    assert job.status is RouteJobStatus.FAILED
+    assert job.attempt_count == 3
+    assert job.retry_count == 2
+    assert job.last_error == "timeout 3"
+    assert job.validation_error == "timeout 3"
+    callback.assert_called_once_with(1, 1, job, failures[-1])
+
+
+def test_calculate_queue_does_not_retry_terminal_result() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+    from app.exceptions import ErrorCode
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    result = RouteResult(
+        False,
+        make_request("A", "B"),
+        "Google",
+        error="parser failed",
+        error_code=ErrorCode.PARSER_ERROR,
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(max_attempts=3, initial_delay_seconds=0),
+    )
+
+    assert service.calculate_queue(queue) == [result]
+    calculation_service.calculate.assert_called_once()
+    assert job.status is RouteJobStatus.FAILED
+    assert job.attempt_count == 1
+    assert job.retry_count == 0
+
+
+def test_calculate_queue_retries_transient_exception_and_reraises_terminal() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    success = make_result(make_request("A", "B"))
+    calculation_service = MagicMock()
+    calculation_service.calculate.side_effect = [TimeoutError("timeout"), success]
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(max_attempts=2, initial_delay_seconds=0),
+    )
+
+    assert service.calculate_queue(queue) == [success]
+    assert job.status is RouteJobStatus.DONE
+    assert job.attempt_count == 2
+    assert job.retry_count == 1
+
+    terminal_job = RouteJob(3, "C", "D", "Distance")
+    terminal_queue = BatchQueue([terminal_job])
+    calculation_service.calculate.side_effect = RuntimeError("permanent failure")
+
+    import pytest
+
+    with pytest.raises(RuntimeError, match="permanent failure"):
+        service.calculate_queue(terminal_queue)
+    assert terminal_job.status is RouteJobStatus.FAILED
+    assert terminal_job.attempt_count == 1
+    assert terminal_job.last_error == "permanent failure"
+    assert terminal_job.finished_at is not None
+
+
+def test_calculate_queue_stop_during_retry_returns_job_to_pending() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+    from app.exceptions import ErrorCode
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    result = RouteResult(
+        False,
+        make_request("A", "B"),
+        "Google",
+        error="timeout",
+        error_code=ErrorCode.ENGINE_ERROR,
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    checks = iter([False, False, True])
+    wait = MagicMock()
+    sleeper = MagicMock()
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(
+            max_attempts=3,
+            initial_delay_seconds=1,
+        ),
+        sleep_callback=sleeper,
+    )
+
+    assert service.calculate_queue(
+        queue,
+        should_stop=lambda: next(checks),
+        wait_if_paused=wait,
+    ) == []
+
+    assert job.status is RouteJobStatus.PENDING
+    assert job.attempt_count == 1
+    assert job.retry_count == 1
+    assert sleeper.call_count == 0
+    assert wait.call_count == 2
+
+
+def test_calculate_queue_stop_after_retryable_exception_requeues_job() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    calculation_service = MagicMock()
+    calculation_service.calculate.side_effect = TimeoutError("timeout")
+    checks = iter([False, False, True])
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(max_attempts=2, initial_delay_seconds=1),
+        sleep_callback=MagicMock(),
+    )
+
+    assert service.calculate_queue(
+        queue,
+        should_stop=lambda: next(checks),
+    ) == []
+    assert job.status is RouteJobStatus.PENDING
+    assert job.attempt_count == 1
+    assert job.retry_count == 1
+
+
+def test_calculate_queue_stop_after_zero_retry_delay_requeues_job() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+    from app.exceptions import ErrorCode
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    result = RouteResult(
+        False,
+        make_request("A", "B"),
+        "Google",
+        error="timeout",
+        error_code=ErrorCode.ENGINE_ERROR,
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    checks = iter([False, False, True])
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(max_attempts=2, initial_delay_seconds=0),
+    )
+
+    assert service.calculate_queue(
+        queue,
+        should_stop=lambda: next(checks),
+    ) == []
+    assert job.status is RouteJobStatus.PENDING
+    assert job.attempt_count == 1
+    assert job.retry_count == 1
