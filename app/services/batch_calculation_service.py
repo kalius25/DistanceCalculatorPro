@@ -225,7 +225,11 @@ class BatchCalculationService:
         if result_writer is None:
             return
         for job in queue:
-            if job.status in {RouteJobStatus.DONE, RouteJobStatus.INVALID}:
+            should_write_done = (
+                job.status is RouteJobStatus.DONE
+                and not job.metadata.get("resumed_existing_result", False)
+            )
+            if should_write_done or job.status is RouteJobStatus.INVALID:
                 result_writer.write(job)
 
     @staticmethod

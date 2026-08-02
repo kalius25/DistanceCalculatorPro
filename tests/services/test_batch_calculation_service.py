@@ -622,3 +622,35 @@ def test_calculate_queue_stop_after_zero_retry_delay_requeues_job() -> None:
     assert job.status is RouteJobStatus.PENDING
     assert job.attempt_count == 1
     assert job.retry_count == 1
+
+
+def test_calculate_queue_preserves_resumed_existing_results() -> None:
+    from app.batch import BatchQueue, RouteJob, RouteJobStatus
+
+    resumed = RouteJob(
+        2,
+        "A",
+        "B",
+        "Distance",
+        status=RouteJobStatus.DONE,
+        result_distance_km=8.6,
+        metadata={"resumed_existing_result": True},
+    )
+    zero_distance = RouteJob(
+        3,
+        "C",
+        "C",
+        "Distance",
+        status=RouteJobStatus.DONE,
+        result_distance_km=0.0,
+    )
+    queue = BatchQueue([resumed, zero_distance])
+    calculation_service = MagicMock()
+    writer = MagicMock()
+
+    service = BatchCalculationService(calculation_service)
+
+    assert service.calculate_queue(queue, result_writer=writer) == []
+    writer.write.assert_called_once_with(zero_distance)
+    writer.flush.assert_called_once_with()
+    calculation_service.start_batch.assert_not_called()

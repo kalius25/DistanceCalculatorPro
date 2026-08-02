@@ -30,17 +30,30 @@ class ProgressSnapshot:
 class BatchProgressTracker:
     """Track elapsed time, throughput and ETA without counting pause time."""
 
-    def __init__(self, total: int, clock: Clock = monotonic) -> None:
+    def __init__(
+        self,
+        total: int,
+        clock: Clock = monotonic,
+        initial_completed: int = 0,
+        initial_successful: int = 0,
+        initial_failed: int = 0,
+    ) -> None:
         if total < 0:
             raise ValueError("Total jobs cannot be negative.")
+        if not 0 <= initial_completed <= total:
+            raise ValueError("Initial completed jobs must be within total.")
+        if initial_successful < 0 or initial_failed < 0:
+            raise ValueError("Initial result counts cannot be negative.")
+        if initial_successful + initial_failed > initial_completed:
+            raise ValueError("Initial result counts exceed completed jobs.")
         self._total = total
         self._clock = clock
         self._started_at = clock()
         self._paused_at: float | None = None
         self._paused_seconds = 0.0
-        self._completed = 0
-        self._successful = 0
-        self._failed = 0
+        self._completed = initial_completed
+        self._successful = initial_successful
+        self._failed = initial_failed
 
     @property
     def snapshot(self) -> ProgressSnapshot:

@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -6,6 +7,7 @@ from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import QListWidgetItem
 
 from app.presentation.pages.home_page import HomePage
+from app.workbooks.models import WorkbookInfo, WorksheetInfo
 
 
 def test_initial_workspace_state(qtbot: object) -> None:
@@ -941,3 +943,36 @@ def test_configuration_inputs_can_be_locked_and_unlocked(qtbot: object) -> None:
     assert page._preview_rows_selector.isEnabled()
     assert page._mapping_frame.isEnabled()
     assert page._provider_frame.isEnabled()
+
+
+def test_skip_existing_results_option_updates_workspace_configuration(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=100,
+            modified_at=datetime(2026, 8, 2, 20, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    2,
+                    3,
+                    ("Origin", "Destination", "Distance"),
+                ),
+            ),
+        )
+    )
+
+    assert page.workspace_configuration is not None
+    assert page.workspace_configuration.skip_existing_results
+
+    page._skip_existing_results_checkbox.setChecked(False)
+
+    assert page.workspace_configuration is not None
+    assert not page.workspace_configuration.skip_existing_results

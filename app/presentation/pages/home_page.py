@@ -116,7 +116,13 @@ class HomePage(QWidget):
         provider = self.provider_configuration
         if mapping is None or provider is None:
             return None
-        return WorkspaceConfiguration(mapping, provider)
+        return WorkspaceConfiguration(
+            mapping,
+            provider,
+            skip_existing_results=(
+                self._skip_existing_results_checkbox.isChecked()
+            ),
+        )
 
     @property
     def workspace_ready(self) -> bool:
@@ -496,16 +502,28 @@ class HomePage(QWidget):
         avoid_layout.addStretch(1)
         provider_layout.addLayout(avoid_layout, 2, 2)
 
+        self._skip_existing_results_checkbox = QCheckBox(
+            "Skip rows already containing a result",
+            self._provider_frame,
+        )
+        self._skip_existing_results_checkbox.setObjectName(
+            "chkSkipExistingResults"
+        )
+        self._skip_existing_results_checkbox.setChecked(True)
+        provider_layout.addWidget(
+            self._skip_existing_results_checkbox, 3, 0, 1, 3
+        )
+
         self._provider_status = QLabel(self._provider_frame)
         self._provider_status.setObjectName("lblProviderStatus")
-        provider_layout.addWidget(self._provider_status, 3, 0, 1, 3)
+        provider_layout.addWidget(self._provider_status, 4, 0, 1, 3)
 
         self._workspace_readiness_status = QLabel(self._provider_frame)
         self._workspace_readiness_status.setObjectName(
             "lblWorkspaceReadinessStatus"
         )
         provider_layout.addWidget(
-            self._workspace_readiness_status, 4, 0, 1, 3
+            self._workspace_readiness_status, 5, 0, 1, 3
         )
         provider_layout.setColumnStretch(0, 1)
         provider_layout.setColumnStretch(1, 1)
@@ -622,6 +640,9 @@ class HomePage(QWidget):
             self._avoid_ferries_checkbox,
         ):
             checkbox.toggled.connect(self._on_provider_option_toggled)
+        self._skip_existing_results_checkbox.toggled.connect(
+            self._on_resume_option_toggled
+        )
         self._toggle_source_panels_button.toggled.connect(
             self._set_source_panels_hidden
         )
@@ -851,6 +872,10 @@ class HomePage(QWidget):
             )
             self._mapping_status.setProperty("valid", False)
         self._refresh_style(self._mapping_status)
+        self._update_workspace_readiness()
+
+
+    def _on_resume_option_toggled(self, _checked: bool) -> None:
         self._update_workspace_readiness()
 
     def _on_provider_configuration_changed(self, _value: str) -> None:

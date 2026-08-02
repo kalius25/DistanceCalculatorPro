@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from app.batch import BatchProgressTracker, RouteJob, RouteJobStatus
 
 
@@ -76,3 +78,53 @@ def test_progress_tracker_rejects_negative_total_and_caps_values() -> None:
 
     assert tracker.snapshot.remaining == 0
     assert tracker.snapshot.percent_complete == 100.0
+
+def test_progress_tracker_rejects_invalid_initial_counts() -> None:
+    with pytest.raises(
+        ValueError,
+        match="Initial completed jobs must be within total",
+    ):
+        BatchProgressTracker(
+            total=5,
+            initial_completed=6,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Initial completed jobs must be within total",
+    ):
+        BatchProgressTracker(
+            total=5,
+            initial_completed=-1,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Initial result counts cannot be negative",
+    ):
+        BatchProgressTracker(
+            total=5,
+            initial_completed=1,
+            initial_successful=-1,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Initial result counts cannot be negative",
+    ):
+        BatchProgressTracker(
+            total=5,
+            initial_completed=1,
+            initial_failed=-1,
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Initial result counts exceed completed jobs",
+    ):
+        BatchProgressTracker(
+            total=5,
+            initial_completed=1,
+            initial_successful=1,
+            initial_failed=1,
+        )

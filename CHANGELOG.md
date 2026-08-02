@@ -1,3 +1,11 @@
+
+## 1.2.0-alpha25
+
+- Added resumable queue construction from existing workbook results.
+- Added the GUI option to skip rows that already contain results.
+- Preserved existing result values during incremental writer startup.
+- Restored Progress Engine exports and runtime metric relay.
+
 ## 1.2.0-alpha24
 
 - Added transient failure retry framework with exponential backoff.

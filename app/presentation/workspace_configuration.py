@@ -32,3 +32,4 @@ class WorkspaceConfiguration:
 
     column_mapping: ColumnMapping
     provider_configuration: ProviderConfiguration
+    skip_existing_results: bool = True

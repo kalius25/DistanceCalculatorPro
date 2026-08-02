@@ -7,14 +7,20 @@ from app.presentation.workspace_configuration import WorkspaceConfiguration
 
 from .exceptions import BatchWorkbookError
 from .models import RouteJob, WorkbookRow
+from .resume_analyzer import ResumeAnalyzer
 from .row_validator import RowValidator
 
 
 class RowMapper:
     """Convert one workbook row using the selected workspace mapping."""
 
-    def __init__(self, validator: RowValidator | None = None) -> None:
+    def __init__(
+        self,
+        validator: RowValidator | None = None,
+        resume_analyzer: ResumeAnalyzer | None = None,
+    ) -> None:
         self._validator = validator or RowValidator()
+        self._resume_analyzer = resume_analyzer or ResumeAnalyzer()
 
     def resolve_indexes(
         self,
@@ -49,6 +55,20 @@ class RowMapper:
             indexes[mapping.destination_column],
         )
         validation = self._validator.validate(origin, destination)
+        result_value = self._raw_cell(
+            row.values, indexes[mapping.result_column]
+        )
+        resume = self._resume_analyzer.analyze(
+            result_value, configuration.skip_existing_results
+        )
+        status = validation.status
+        distance_km = validation.distance_km
+        metadata: dict[str, object] = {"source_row": row.row_number}
+        if status.value == "pending" and resume.should_skip:
+            status = resume.status
+            distance_km = resume.distance_km
+            metadata["resumed_existing_result"] = True
+            metadata["existing_result"] = result_value
         avoid = RoutePreference.AVOID
         automatic = RoutePreference.AUTO
         return RouteJob(
@@ -64,11 +84,17 @@ class RowMapper:
             ferry_preference=(
                 avoid if provider.avoid_ferries else automatic
             ),
-            status=validation.status,
+            status=status,
             validation_error=validation.message,
-            result_distance_km=validation.distance_km,
-            metadata={"source_row": row.row_number},
+            result_distance_km=distance_km,
+            metadata=metadata,
         )
+
+    @staticmethod
+    def _raw_cell(values: tuple[object, ...], index: int) -> object:
+        if index >= len(values):
+            return None
+        return values[index]
 
     @staticmethod
     def _cell(values: tuple[object, ...], index: int) -> str:

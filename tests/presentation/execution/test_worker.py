@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from app.batch import BatchQueue, RouteJob
+from app.batch import BatchQueue, RouteJob, RouteJobStatus
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.presentation.execution.job import CalculationJob
@@ -40,6 +40,7 @@ def test_worker_completes_and_relays_progress(qtbot: object) -> None:
 
     with (
         qtbot.waitSignal(worker.progress),  # type: ignore[attr-defined]
+        qtbot.waitSignal(worker.metrics),  # type: ignore[attr-defined]
         qtbot.waitSignal(worker.completed),  # type: ignore[attr-defined]
         qtbot.waitSignal(worker.finished),  # type: ignore[attr-defined]
     ):
@@ -97,9 +98,21 @@ def test_worker_progress_helper_emits_signal(qtbot: object) -> None:
     request = RouteRequest("A", "B")
     route_job = RouteJob(2, "A", "B", "Distance")
     result = RouteResult(True, request, "Google")
-    with qtbot.waitSignal(  # type: ignore[attr-defined]
-        worker.progress,
-        check_params_cb=lambda *values: values == (1, 2, route_job, result),
+    with qtbot.waitSignal(worker.progress):  # type: ignore[attr-defined]
+        worker._on_progress(1, 2, route_job, result)
+
+    route_job.status = RouteJobStatus.DONE
+    from app.batch.progress import BatchProgressTracker
+
+    worker._progress_tracker = BatchProgressTracker(2, clock=lambda: 1.0)
+    worker.request_pause()
+    worker.request_resume()
+    with (
+        qtbot.waitSignal(  # type: ignore[attr-defined]
+            worker.progress,
+            check_params_cb=lambda *values: values == (1, 2, route_job, result),
+        ),
+        qtbot.waitSignal(worker.metrics),  # type: ignore[attr-defined]
     ):
         worker._on_progress(1, 2, route_job, result)
 
@@ -109,6 +122,7 @@ def test_coordinator_starts_controls_and_clears_worker() -> None:
     thread = MagicMock()
     worker = MagicMock()
     worker.progress = MagicMock()
+    worker.metrics = MagicMock()
     worker.completed = MagicMock()
     worker.stopped = MagicMock()
     worker.failed = MagicMock()

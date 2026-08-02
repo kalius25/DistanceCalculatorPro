@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.batch.progress import ProgressSnapshot
 from app.diagnostics import DiagnosticsManager, DiagnosticsSettings
 from app.logging import LoggingManager
 from app.workbooks import (
@@ -45,6 +46,7 @@ class MainWindow(QMainWindow):
     calculation_resume_requested = Signal()
     calculation_stop_requested = Signal()
     calculation_progress = Signal(int, int, object, object)
+    calculation_metrics = Signal(object)
     calculation_completed = Signal(object)
     calculation_stopped = Signal(object)
     calculation_failed = Signal(str)
@@ -285,6 +287,9 @@ class MainWindow(QMainWindow):
         if self._execution_coordinator is not None:
             self._execution_coordinator.progress.connect(
                 self._on_calculation_progress
+            )
+            self._execution_coordinator.metrics.connect(
+                self._on_calculation_metrics
             )
             self._execution_coordinator.completed.connect(
                 self._on_calculation_completed
@@ -588,6 +593,28 @@ class MainWindow(QMainWindow):
             _request,
             _result,
         )
+
+    def _on_calculation_metrics(self, metrics: object) -> None:
+        if not isinstance(metrics, ProgressSnapshot):
+            return
+        elapsed = self._format_duration(metrics.elapsed_seconds)
+        eta = self._format_duration(metrics.eta_seconds)
+        self._status_label.setText(
+            f"{metrics.completed:,}/{metrics.total:,} · "
+            f"{metrics.percent_complete:.0f}% · "
+            f"{metrics.items_per_minute:.1f} jobs/min · "
+            f"Elapsed {elapsed} · ETA {eta}"
+        )
+        self.calculation_metrics.emit(metrics)
+
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+        total_seconds = max(int(round(seconds)), 0)
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds_value = divmod(remainder, 60)
+        if hours:
+            return f"{hours:02d}:{minutes:02d}:{seconds_value:02d}"
+        return f"{minutes:02d}:{seconds_value:02d}"
 
     def _on_calculation_completed(self, results: object) -> None:
         result_count = len(results) if isinstance(results, list) else 0

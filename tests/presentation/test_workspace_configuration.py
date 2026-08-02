@@ -21,6 +21,7 @@ def test_workspace_configuration_models_are_immutable_value_objects() -> None:
 
     assert configuration.column_mapping == mapping
     assert configuration.provider_configuration == provider
+    assert configuration.skip_existing_results
     assert provider.avoid_tolls
     assert not provider.avoid_highways
     assert provider.avoid_ferries
