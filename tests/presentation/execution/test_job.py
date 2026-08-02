@@ -44,6 +44,7 @@ def test_build_excel_requests_with_route_options(tmp_path: Path) -> None:
     sheet.append(["Only origin", None, None])
     sheet.append([" C ", " D ", None])
     workbook.save(path)
+    workbook.close()
 
     requests = CalculationJobBuilder().build_requests(make_job(path))
 
@@ -110,6 +111,7 @@ def test_builder_handles_missing_sheet_empty_csv_and_short_rows(
     excel_path = tmp_path / "routes.xlsx"
     workbook = Workbook()
     workbook.save(excel_path)
+    workbook.close()
     with pytest.raises(ValueError, match="Worksheet not found"):
         builder.build_requests(make_job(excel_path, "Missing"))
 
@@ -120,6 +122,7 @@ def test_builder_handles_missing_sheet_empty_csv_and_short_rows(
 
     assert builder._cell(["A"], 3) == ""
     assert builder._cell([None], 0) == ""
+
 
 def test_build_queue_preserves_all_row_states(tmp_path: Path) -> None:
     path = tmp_path / "routes.csv"

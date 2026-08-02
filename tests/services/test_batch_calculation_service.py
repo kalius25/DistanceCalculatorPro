@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
@@ -290,7 +290,76 @@ def test_calculate_queue_stops_after_pause_and_marks_unexpected_failure():
     assert job.validation_error == "browser crashed"
     calculation_service.finish_batch.assert_called()
 
+
+def test_calculate_queue_writes_existing_and_processed_results() -> None:
+    from app.batch import BatchQueue, RouteJob, RouteJobStatus
+    from app.models.route_option import RouteOption
+
+    existing = RouteJob(
+        2,
+        "A",
+        "A",
+        "Distance",
+        status=RouteJobStatus.DONE,
+        result_distance_km=0.0,
+    )
+    invalid = RouteJob(
+        3,
+        "10,999",
+        "B",
+        "Distance",
+        status=RouteJobStatus.INVALID,
+        validation_error="invalid coordinates",
+    )
+    pending = RouteJob(4, "C", "D", "Distance")
+    queue = BatchQueue([existing, invalid, pending])
+    request = make_request("C", "D")
+    result = RouteResult(
+        True,
+        request,
+        "Google",
+        routes=[RouteOption(distance_km=7.2, duration_minutes=10)],
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    writer = MagicMock()
+    service = BatchCalculationService(calculation_service)
+
+    assert service.calculate_queue(queue, result_writer=writer) == [result]
+    assert writer.write.call_args_list == [
+        __import__("unittest.mock").mock.call(existing),
+        __import__("unittest.mock").mock.call(invalid),
+        __import__("unittest.mock").mock.call(pending),
+    ]
+    writer.flush.assert_called_once_with()
+
+
+def test_calculate_queue_flushes_writer_for_empty_and_exception() -> None:
+    from app.batch import BatchQueue, RouteJob
+
+    calculation_service = MagicMock()
+    service = BatchCalculationService(calculation_service)
+    writer = MagicMock()
+    assert service.calculate_queue(
+        BatchQueue(),
+        result_writer=writer,
+    ) == []
+    writer.flush.assert_called_once_with()
+
+    writer.reset_mock()
+    calculation_service.calculate.side_effect = RuntimeError("failed")
+    queue = BatchQueue([RouteJob(2, "A", "B", "Distance")])
+    import pytest
+
+    with pytest.raises(RuntimeError, match="failed"):
+        service.calculate_queue(queue, result_writer=writer)
+    writer.write.assert_called_once_with(next(iter(queue)))
+    writer.flush.assert_called_once_with()
+
+
 def test_calculate_queue_stops_when_pending_job_disappears() -> None:
+    from unittest.mock import PropertyMock
+
     from app.batch import BatchQueue
 
     calculation_service = MagicMock()

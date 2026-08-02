@@ -33,6 +33,7 @@ def test_queue_builder_creates_jobs_for_all_source_rows(tmp_path: Path) -> None:
     sheet.append(["C", "C", None])
     sheet.append(["91,106", "10,106", None])
     workbook.save(path)
+    workbook.close()
 
     queue = QueueBuilder().build(path, "Routes", configuration())
 

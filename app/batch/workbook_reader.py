@@ -30,25 +30,59 @@ class WorkbookReader:
             return self._read_csv(path)
         return self._read_excel(path, sheet_name)
 
-    def _read_excel(self, path: Path, sheet_name: str) -> WorkbookStream:
-        workbook = load_workbook(path, read_only=True, data_only=True)
-        if sheet_name not in workbook.sheetnames:
-            workbook.close()
-            raise BatchWorkbookError(f"Worksheet not found: {sheet_name}")
+    def _read_excel(
+        self,
+        path: Path,
+        sheet_name: str,
+    ) -> WorkbookStream:
+        workbook = load_workbook(
+            filename=path,
+            read_only=True,
+            data_only=True,
+            keep_links=False,
+        )
 
-        worksheet = workbook[sheet_name]
-        iterator = worksheet.iter_rows(values_only=True)
-        first_row = next(iterator, ())
-        headers = tuple(self._text(value) for value in first_row)
+        iterator: Iterator[tuple[object, ...]] | None = None
+
+        try:
+            if sheet_name not in workbook.sheetnames:
+                raise BatchWorkbookError(
+                    f"Worksheet not found: {sheet_name}"
+                )
+
+            worksheet = workbook[sheet_name]
+            iterator = worksheet.iter_rows(values_only=True)
+
+            first_row = next(iterator, ())
+            headers = tuple(self._text(value) for value in first_row)
+
+        except Exception:
+            if iterator is not None:
+                close_iterator = getattr(iterator, "close", None)
+                if callable(close_iterator):
+                    close_iterator()
+
+            workbook.close()
+            raise
 
         def rows() -> Iterator[WorkbookRow]:
             try:
                 for row_number, values in enumerate(iterator, start=2):
-                    yield WorkbookRow(row_number, tuple(values))
+                    yield WorkbookRow(
+                        row_number=row_number,
+                        values=tuple(values),
+                    )
             finally:
+                close_iterator = getattr(iterator, "close", None)
+                if callable(close_iterator):
+                    close_iterator()
+
                 workbook.close()
 
-        return WorkbookStream(headers, rows())
+        return WorkbookStream(
+            headers=headers,
+            rows=rows(),
+        )
 
     def _read_csv(self, path: Path) -> WorkbookStream:
         with path.open("r", encoding="utf-8-sig", newline="") as stream:

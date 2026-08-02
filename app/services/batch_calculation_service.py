@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 
 from app.batch.batch_queue import BatchQueue
-from app.batch.models import RouteJob
+from app.batch.models import RouteJob, RouteJobStatus
+from app.batch.result_writer import BaseResultWriter
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.services.calculation_service import CalculationService
@@ -60,11 +61,15 @@ class BatchCalculationService:
         progress_callback: QueueProgressCallback | None = None,
         should_stop: ControlCallback | None = None,
         wait_if_paused: WaitCallback | None = None,
+        result_writer: BaseResultWriter | None = None,
     ) -> list[RouteResult]:
-        """Process pending jobs while updating their queue lifecycle state."""
+        """Process pending jobs while updating state and writing results."""
         total = queue.pending_count
         results: list[RouteResult] = []
+        self._write_existing_results(queue, result_writer)
         if total == 0:
+            if result_writer is not None:
+                result_writer.flush()
             return results
 
         self.calculation_service.start_batch()
@@ -88,6 +93,8 @@ class BatchCalculationService:
                     result = self.calculation_service.calculate(request)
                 except Exception as error:
                     queue.mark_failed(job, str(error))
+                    if result_writer is not None:
+                        result_writer.write(job)
                     raise
 
                 results.append(result)
@@ -100,12 +107,28 @@ class BatchCalculationService:
                 else:
                     queue.mark_failed(job, result.error or "Unknown error.")
 
+                if result_writer is not None:
+                    result_writer.write(job)
+
                 if progress_callback is not None:
                     progress_callback(current, total, job, result)
         finally:
+            if result_writer is not None:
+                result_writer.flush()
             self.calculation_service.finish_batch()
 
         return results
+
+    @staticmethod
+    def _write_existing_results(
+        queue: BatchQueue,
+        result_writer: BaseResultWriter | None,
+    ) -> None:
+        if result_writer is None:
+            return
+        for job in queue:
+            if job.status in {RouteJobStatus.DONE, RouteJobStatus.INVALID}:
+                result_writer.write(job)
 
     @staticmethod
     def _request_from_job(job: RouteJob) -> RouteRequest:

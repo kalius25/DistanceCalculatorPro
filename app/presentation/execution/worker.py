@@ -7,6 +7,7 @@ from threading import Condition
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from app.batch.models import RouteJob
+from app.batch.result_writer import ResultWriterFactory
 from app.models.route_result import RouteResult
 from app.services.batch_calculation_service import BatchCalculationService
 
@@ -27,11 +28,13 @@ class CalculationWorker(QObject):
         job: CalculationJob,
         job_builder: CalculationJobBuilder,
         batch_service: BatchCalculationService,
+        writer_factory: ResultWriterFactory | None = None,
     ) -> None:
         super().__init__()
         self._job = job
         self._job_builder = job_builder
         self._batch_service = batch_service
+        self._writer_factory = writer_factory or ResultWriterFactory()
         self._condition = Condition()
         self._paused = False
         self._stop_requested = False
@@ -41,12 +44,17 @@ class CalculationWorker(QObject):
         results: list[RouteResult] = []
         try:
             queue = self._job_builder.build_queue(self._job)
-            results = self._batch_service.calculate_queue(
-                queue,
-                progress_callback=self._on_progress,
-                should_stop=self._should_stop,
-                wait_if_paused=self._wait_if_paused,
-            )
+            with self._writer_factory.create(
+                self._job.file_path,
+                self._job.sheet_name,
+            ) as writer:
+                results = self._batch_service.calculate_queue(
+                    queue,
+                    progress_callback=self._on_progress,
+                    should_stop=self._should_stop,
+                    wait_if_paused=self._wait_if_paused,
+                    result_writer=writer,
+                )
             if self._should_stop():
                 self.stopped.emit(results)
             else:
@@ -103,10 +111,12 @@ class CalculationExecutionCoordinator(QObject):
         job_builder: CalculationJobBuilder,
         batch_service: BatchCalculationService,
         parent: QObject | None = None,
+        writer_factory: ResultWriterFactory | None = None,
     ) -> None:
         super().__init__(parent)
         self._job_builder = job_builder
         self._batch_service = batch_service
+        self._writer_factory = writer_factory or ResultWriterFactory()
         self._thread: QThread | None = None
         self._worker: CalculationWorker | None = None
 
@@ -119,7 +129,12 @@ class CalculationExecutionCoordinator(QObject):
             return False
 
         thread = QThread(self)
-        worker = CalculationWorker(job, self._job_builder, self._batch_service)
+        worker = CalculationWorker(
+            job,
+            self._job_builder,
+            self._batch_service,
+            self._writer_factory,
+        )
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.progress.connect(self.progress.emit)

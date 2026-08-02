@@ -51,6 +51,7 @@ def test_excel_reader_reads_multiple_sheet_metadata(tmp_path: Path) -> None:
     second = workbook.create_sheet("Settings")
     second.append(["Provider"])
     workbook.save(path)
+    workbook.close()
 
     sheets = OpenPyXLWorkbookReader().read_worksheets(path)
 

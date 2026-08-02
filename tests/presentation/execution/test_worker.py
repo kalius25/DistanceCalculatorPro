@@ -32,7 +32,11 @@ def test_worker_completes_and_relays_progress(qtbot: object) -> None:
         return [result]
 
     batch.calculate_queue.side_effect = calculate_queue
-    worker = CalculationWorker(job, builder, batch)
+    writer = MagicMock()
+    writer.__enter__.return_value = writer
+    writer_factory = MagicMock()
+    writer_factory.create.return_value = writer
+    worker = CalculationWorker(job, builder, batch, writer_factory)
 
     with (
         qtbot.waitSignal(worker.progress),  # type: ignore[attr-defined]
@@ -47,7 +51,11 @@ def test_worker_stopped_failed_and_control_methods(qtbot: object) -> None:
     builder = MagicMock()
     builder.build_queue.return_value = BatchQueue()
     batch = MagicMock()
-    worker = CalculationWorker(job, builder, batch)
+    writer = MagicMock()
+    writer.__enter__.return_value = writer
+    writer_factory = MagicMock()
+    writer_factory.create.return_value = writer
+    worker = CalculationWorker(job, builder, batch, writer_factory)
     worker.request_stop()
     batch.calculate_queue.return_value = []
 
@@ -57,7 +65,7 @@ def test_worker_stopped_failed_and_control_methods(qtbot: object) -> None:
     ):
         worker.run()
 
-    worker = CalculationWorker(job, builder, batch)
+    worker = CalculationWorker(job, builder, batch, writer_factory)
     builder.build_queue.side_effect = ValueError("bad job")
     with (
         qtbot.waitSignal(  # type: ignore[attr-defined]

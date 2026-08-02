@@ -1,4 +1,13 @@
 
+## 1.2.0-alpha22 — Sprint 2.0.3 Result Writer & Incremental Save
+
+- Added Excel, XLSM, and CSV result writers with one open document per batch.
+- Added safe sibling output files using the `.result` naming convention.
+- Added row- and time-based autosave with mandatory final flush.
+- Preserved VBA content when loading and saving XLSM workbooks.
+- Wrote successful distances and failed/invalid messages to mapped result cells.
+- Integrated result persistence with `BatchCalculationService` and the worker.
+
 ## 1.2.0-alpha21 — Sprint 2.0.2 Execution Queue
 
 - Execute workbook rows through `BatchQueue` instead of a detached request list.
