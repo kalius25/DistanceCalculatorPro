@@ -135,3 +135,48 @@ def test_prepare_path_sanitizes_label_and_uses_fallback(tmp_path: Path) -> None:
 
     assert sanitized.name == "timestamp_route___one.json"
     assert fallback.name == "timestamp_diagnostic.html"
+
+
+def test_capture_page_applies_retention_and_reports_metrics(tmp_path: Path) -> None:
+    from app.diagnostics import DiagnosticsRetentionPolicy
+
+    manager = DiagnosticsManager(
+        DiagnosticsSettings(
+            enabled=True,
+            save_html=True,
+            save_screenshot=True,
+            output_directory=tmp_path,
+            retention_policy=DiagnosticsRetentionPolicy(
+                max_files=1,
+                max_total_bytes=1_000,
+            ),
+        )
+    )
+    page = MagicMock()
+    page.content.return_value = "<html>route</html>"
+    page.screenshot.side_effect = lambda *, path, full_page: Path(path).write_bytes(
+        b"png"
+    )
+
+    manager.capture_page(page, label="route")
+
+    metrics = manager.retention_metrics
+    assert metrics.files_created == 2
+    assert metrics.files_deleted == 1
+    assert metrics.current_files == 1
+
+
+def test_update_replaces_retention_directory(tmp_path: Path) -> None:
+    manager = DiagnosticsManager()
+    manager.update(
+        DiagnosticsSettings(
+            enabled=True,
+            save_json=True,
+            output_directory=tmp_path,
+        )
+    )
+    page = MagicMock()
+
+    manager.capture_page(page, label="route")
+
+    assert manager.retention_metrics.current_files == 1

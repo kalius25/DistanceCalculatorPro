@@ -11,6 +11,10 @@ from playwright.sync_api import Page
 from app.models.route_option import RouteOption
 
 from .models import DiagnosticsSettings
+from .retention import (
+    DiagnosticsRetentionManager,
+    DiagnosticsRetentionSnapshot,
+)
 
 
 class DiagnosticsManager:
@@ -18,6 +22,7 @@ class DiagnosticsManager:
 
     def __init__(self, settings: DiagnosticsSettings | None = None) -> None:
         self._settings = settings or DiagnosticsSettings()
+        self._retention = self._make_retention_manager(self._settings)
 
     @property
     def settings(self) -> DiagnosticsSettings:
@@ -25,6 +30,11 @@ class DiagnosticsManager:
 
     def update(self, settings: DiagnosticsSettings) -> None:
         self._settings = settings
+        self._retention = self._make_retention_manager(settings)
+
+    @property
+    def retention_metrics(self) -> DiagnosticsRetentionSnapshot:
+        return self._retention.snapshot
 
     def trace_browser(
         self,
@@ -72,15 +82,31 @@ class DiagnosticsManager:
         if self._settings.save_html:
             path = self._prepare_path(base / "html", timestamp, label, "html")
             path.write_text(page.content(), encoding="utf-8")
+            self._register_artifact(path)
         if self._settings.save_screenshot:
             path = self._prepare_path(base / "screenshots", timestamp, label, "png")
             page.screenshot(path=str(path), full_page=True)
+            self._register_artifact(path)
         if self._settings.save_json:
             path = self._prepare_path(base / "json", timestamp, label, "json")
             path.write_text(
                 json.dumps(payload or {}, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+            self._register_artifact(path)
+
+    def _register_artifact(self, path: Path) -> None:
+        if path.exists():
+            self._retention.register(path)
+
+    @staticmethod
+    def _make_retention_manager(
+        settings: DiagnosticsSettings,
+    ) -> DiagnosticsRetentionManager:
+        return DiagnosticsRetentionManager(
+            settings.output_directory,
+            settings.retention_policy,
+        )
 
     @staticmethod
     def _prepare_path(

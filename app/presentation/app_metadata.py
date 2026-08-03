@@ -6,6 +6,6 @@ class AppMetadata:
     """Immutable application identity shown by the presentation layer."""
 
     name: str = "DistanceCalculatorPro"
-    version: str = "1.2.0-alpha29"
+    version: str = "1.2.0-alpha30"
     organization: str = "DistanceCalculatorPro"
     domain: str = "distancecalculatorpro.local"

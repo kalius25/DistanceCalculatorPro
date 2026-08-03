@@ -251,3 +251,10 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added provider runtime performance metrics.
 - Added adaptive Playwright page reuse and recycling.
 - Added proactive recycling for slow and failed requests.
+
+## 1.2.0-alpha30
+
+- Added diagnostics retention by file count and total disk usage.
+- Added diagnostics artifact creation/deletion and storage metrics.
+- Added provider-free batch benchmark runner and JSON benchmark reports.
+- Added standard synthetic 100, 1,000 and 10,000-job benchmark scenarios.
