@@ -16,6 +16,9 @@ from playwright.sync_api import (
     ViewportSize,
     sync_playwright,
 )
+from playwright.sync_api import (
+    Error as PlaywrightError,
+)
 
 from app.configuration.models import BrowserConfig
 from app.exceptions.engine_exception import EngineException
@@ -41,6 +44,21 @@ class BrowserManager:
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
+
+    @property
+    def is_started(self) -> bool:
+        """Return whether managed browser resources have been allocated."""
+        return self._browser is not None and self._context is not None
+
+    @property
+    def is_healthy(self) -> bool:
+        """Return whether the managed browser can accept a new page."""
+        if self._browser is None or self._context is None:
+            return False
+        try:
+            return self._browser.is_connected()
+        except PlaywrightError:
+            return False
 
     def start(self) -> None:
         if self._browser is not None:
@@ -74,6 +92,11 @@ class BrowserManager:
             self._config.timeout,
         )
 
+    def restart(self) -> None:
+        """Replace all browser resources while preserving configuration."""
+        self.close()
+        self.start()
+
     def new_page(self) -> Page:
         """
         Create a new page in the managed browser context.
@@ -95,17 +118,27 @@ class BrowserManager:
         The method is safe to call repeatedly or when one or more
         resources have already been closed.
         """
-        if self._context is not None:
-            self._context.close()
-            self._context = None
+        context, self._context = self._context, None
+        browser, self._browser = self._browser, None
+        playwright, self._playwright = self._playwright, None
 
-        if self._browser is not None:
-            self._browser.close()
-            self._browser = None
+        if context is not None:
+            try:
+                context.close()
+            except PlaywrightError:
+                pass
 
-        if self._playwright is not None:
-            self._playwright.stop()
-            self._playwright = None
+        if browser is not None:
+            try:
+                browser.close()
+            except PlaywrightError:
+                pass
+
+        if playwright is not None:
+            try:
+                playwright.stop()
+            except PlaywrightError:
+                pass
 
     def __enter__(self) -> BrowserManager:
         """Start the browser and return this manager."""

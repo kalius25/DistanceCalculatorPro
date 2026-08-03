@@ -230,3 +230,11 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added streaming Excel and CSV batch readers.
 - Added RouteJob models, validation, row mapping, queue construction, and state-aware BatchQueue.
 - Reused the batch pipeline from CalculationJobBuilder.
+
+## 1.2.0-alpha27
+
+- Added browser health checks before every Google Maps request.
+- Added smart recovery classification for timeout, closed page/context, and
+  disconnected browser failures.
+- Added safe Playwright cleanup and browser restart support.
+- Added browser recovery runtime metrics and diagnostic events.

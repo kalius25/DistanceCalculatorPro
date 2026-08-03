@@ -175,3 +175,55 @@ def test_calculate_ignores_playwright_error_while_closing_page():
 
     assert result.success
     browser.close.assert_called_once_with()
+
+
+def test_calculate_prepares_recovery_and_records_page() -> None:
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    browser.new_page.return_value = page
+    engine = MagicMock()
+    engine.find_routes.return_value = [make_route()]
+    recovery = MagicMock()
+    provider = GoogleWebProvider(browser, engine, recovery=recovery)
+
+    result = provider.calculate(make_request())
+
+    assert result.success
+    recovery.prepare.assert_called_once_with()
+    recovery.record_page_created.assert_called_once_with()
+    recovery.recover.assert_not_called()
+
+
+def test_engine_failure_requests_smart_recovery() -> None:
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    browser.new_page.return_value = page
+    error = EngineException(
+        "Target page, context or browser has been closed",
+        error_code=ErrorCode.ENGINE_ERROR,
+    )
+    engine = MagicMock()
+    engine.find_routes.side_effect = error
+    recovery = MagicMock()
+    provider = GoogleWebProvider(browser, engine, recovery=recovery)
+
+    result = provider.calculate(make_request())
+
+    assert not result.success
+    recovery.recover.assert_called_once_with(error)
+
+
+def test_playwright_page_creation_failure_requests_recovery() -> None:
+    error_type = __import__("playwright.sync_api", fromlist=["Error"]).Error
+    browser = MagicMock()
+    error = error_type("browser disconnected")
+    browser.new_page.side_effect = error
+    recovery = MagicMock()
+    provider = GoogleWebProvider(browser, MagicMock(), recovery=recovery)
+
+    with pytest.raises(error_type):
+        provider.calculate(make_request())
+
+    recovery.recover.assert_called_once_with(error)

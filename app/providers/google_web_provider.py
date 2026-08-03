@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from playwright.sync_api import Error as PlaywrightError
 
+from app.diagnostics import DiagnosticsManager
 from app.engines.browser_manager import BrowserManager
+from app.engines.browser_recovery import BrowserRecoveryManager
 from app.engines.google_maps_engine import GoogleMapsEngine
 from app.exceptions import EngineException
+from app.logging import LoggingManager
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.providers.base_provider import BaseProvider
+
+logger = LoggingManager.get_logger(__name__)
 
 
 class GoogleWebProvider(BaseProvider):
@@ -21,9 +26,16 @@ class GoogleWebProvider(BaseProvider):
         self,
         browser: BrowserManager,
         engine: GoogleMapsEngine,
+        recovery: BrowserRecoveryManager | None = None,
+        diagnostics: DiagnosticsManager | None = None,
     ) -> None:
         self._browser = browser
         self._engine = engine
+        self._recovery = recovery or BrowserRecoveryManager(
+            browser,
+            diagnostics=diagnostics,
+            logger=logger,
+        )
         self._batch_started = False
 
     def start_batch(self) -> None:
@@ -46,7 +58,9 @@ class GoogleWebProvider(BaseProvider):
 
         page = None
         try:
+            self._recovery.prepare()
             page = self._browser.new_page()
+            self._recovery.record_page_created()
             routes = self._engine.find_routes(page, request)
             return RouteResult(
                 success=True,
@@ -55,6 +69,7 @@ class GoogleWebProvider(BaseProvider):
                 routes=routes,
             )
         except EngineException as exc:
+            self._recovery.recover(exc)
             return RouteResult(
                 success=False,
                 request=request,
@@ -64,6 +79,9 @@ class GoogleWebProvider(BaseProvider):
                 context=exc.context,
                 exception=exc,
             )
+        except PlaywrightError as exc:
+            self._recovery.recover(exc)
+            raise
         finally:
             if page is not None:
                 try:

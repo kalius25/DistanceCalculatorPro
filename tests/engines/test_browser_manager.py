@@ -418,3 +418,62 @@ def test_start_reuses_existing_managed_state(
     assert manager._playwright is existing_playwright
     assert manager._browser is existing_browser
     assert manager._context is existing_context
+
+
+def test_health_properties_and_restart(
+    browser_config: BrowserConfig,
+) -> None:
+    manager = BrowserManager(browser_config)
+
+    assert not manager.is_started
+    assert not manager.is_healthy
+
+    browser = MagicMock()
+    browser.is_connected.return_value = True
+    manager._browser = browser
+    manager._context = MagicMock()
+
+    assert manager.is_started
+    assert manager.is_healthy
+
+    with (
+        patch.object(manager, "close") as close_mock,
+        patch.object(manager, "start") as start_mock,
+    ):
+        manager.restart()
+
+    close_mock.assert_called_once_with()
+    start_mock.assert_called_once_with()
+
+
+def test_health_returns_false_when_playwright_check_fails(
+    browser_config: BrowserConfig,
+) -> None:
+    manager = BrowserManager(browser_config)
+    browser = MagicMock()
+    browser.is_connected.side_effect = __import__(
+        "playwright.sync_api", fromlist=["Error"]
+    ).Error("disconnected")
+    manager._browser = browser
+    manager._context = MagicMock()
+
+    assert not manager.is_healthy
+
+
+def test_close_ignores_playwright_cleanup_errors(
+    browser_config: BrowserConfig,
+) -> None:
+    error_type = __import__("playwright.sync_api", fromlist=["Error"]).Error
+    manager = BrowserManager(browser_config)
+    manager._context = MagicMock()
+    manager._context.close.side_effect = error_type("context closed")
+    manager._browser = MagicMock()
+    manager._browser.close.side_effect = error_type("browser closed")
+    manager._playwright = MagicMock()
+    manager._playwright.stop.side_effect = error_type("playwright stopped")
+
+    manager.close()
+
+    assert manager._context is None
+    assert manager._browser is None
+    assert manager._playwright is None
