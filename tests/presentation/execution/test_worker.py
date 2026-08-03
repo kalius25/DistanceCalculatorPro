@@ -231,3 +231,53 @@ def test_coordinator_starts_retries_controls_and_clears_worker() -> None:
     coordinator.pause()
     coordinator.resume()
     coordinator.stop()
+
+
+def test_coordinator_shutdown_stops_waits_and_releases_resources() -> None:
+    callback = MagicMock()
+    coordinator = CalculationExecutionCoordinator(
+        MagicMock(),
+        MagicMock(),
+        shutdown_callback=callback,
+    )
+    thread = MagicMock()
+    thread.wait.return_value = True
+    worker = MagicMock()
+    coordinator._thread = thread
+    coordinator._worker = worker
+
+    assert coordinator.shutdown(timeout_ms=123)
+
+    worker.request_stop.assert_called_once_with()
+    thread.wait.assert_called_once_with(123)
+    callback.assert_called_once_with()
+    assert not coordinator.is_running
+    assert coordinator.shutdown()
+    callback.assert_called_once_with()
+
+
+def test_coordinator_shutdown_reports_worker_timeout() -> None:
+    callback = MagicMock()
+    coordinator = CalculationExecutionCoordinator(
+        MagicMock(),
+        MagicMock(),
+        shutdown_callback=callback,
+    )
+    thread = MagicMock()
+    thread.wait.return_value = False
+    worker = MagicMock()
+    coordinator._thread = thread
+    coordinator._worker = worker
+
+    assert not coordinator.shutdown(timeout_ms=10)
+
+    worker.request_stop.assert_called_once_with()
+    callback.assert_not_called()
+    assert coordinator.is_running
+
+
+def test_coordinator_shutdown_without_active_thread_is_safe() -> None:
+    coordinator = CalculationExecutionCoordinator(MagicMock(), MagicMock())
+
+    assert coordinator.shutdown()
+    assert coordinator.shutdown()

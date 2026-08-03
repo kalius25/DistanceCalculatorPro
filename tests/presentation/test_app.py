@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from PySide6.QtWidgets import QApplication
 
 from app.presentation import app as app_module
 
@@ -59,6 +61,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
             "load",
             return_value=configuration,
         ),
+        patch.object(app_module, "StartupValidator") as validator_type,
         patch.object(app_module.LoggingManager, "configure") as configure,
         patch.object(
             app_module.LoggingManager,
@@ -124,6 +127,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
         result = app_module.create_application()
 
     metadata = app_module.AppMetadata()
+    validator_type.return_value.validate.assert_called_once_with(configuration)
     configure.assert_called_once_with(configuration.logging)
     get_logger.assert_called_once_with("presentation")
     application_type.assert_called_once_with(app_module.sys.argv)
@@ -183,6 +187,7 @@ def test_create_application_replaces_unsupported_saved_theme() -> None:
             "load",
             return_value=configuration,
         ),
+        patch.object(app_module, "StartupValidator"),
         patch.object(app_module.LoggingManager, "configure"),
         patch.object(
             app_module.LoggingManager,
@@ -255,6 +260,7 @@ def test_main_runs_event_loop_and_always_cleans_up() -> None:
     main_window.show.assert_called_once_with()
     splash_screen.finish.assert_called_once_with(main_window)
     application.exec.assert_called_once_with()
+    main_window.shutdown.assert_called_once_with()
     exception_handler.restore.assert_called_once_with()
     reset.assert_called_once_with()
     assert result == 17
@@ -283,6 +289,7 @@ def test_main_cleans_up_when_event_loop_raises() -> None:
     ):
         app_module.main()
 
+    main_window.shutdown.assert_called_once_with()
     exception_handler.restore.assert_called_once_with()
     reset.assert_called_once_with()
 
@@ -348,5 +355,109 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
     )
     calculation_type.assert_called_once_with(provider)
     batch_type.assert_called_once_with(calculation_service)
-    coordinator_type.assert_called_once_with(builder, batch_service)
+    coordinator_type.assert_called_once_with(
+        builder,
+        batch_service,
+        shutdown_callback=browser.close,
+    )
     assert result is coordinator
+
+
+def test_main_reports_startup_validation_failure(
+    qapp: QApplication,
+) -> None:
+    from app.presentation.startup import (
+        StartupIssue,
+        StartupValidationError,
+    )
+
+    error = StartupValidationError(
+        (
+            StartupIssue(
+                "Chromium",
+                "missing",
+            ),
+        )
+    )
+
+    with (
+        patch.object(
+            app_module,
+            "create_application",
+            side_effect=error,
+        ),
+        patch.object(
+            app_module.QApplication,
+            "instance",
+            return_value=qapp,
+        ),
+        patch.object(
+            app_module.QMessageBox,
+            "critical",
+        ) as critical,
+        patch.object(
+            app_module.LoggingManager,
+            "reset",
+        ) as reset,
+    ):
+        result = app_module.main()
+
+    assert result == 1
+
+    critical.assert_called_once_with(
+        None,
+        "Unable to start DistanceCalculatorPro",
+        str(error),
+    )
+    reset.assert_called_once_with()
+
+
+def test_main_creates_application_to_report_early_startup_failure() -> None:
+    from app.presentation.startup import (
+        StartupIssue,
+        StartupValidationError,
+    )
+
+    error = StartupValidationError(
+        (
+            StartupIssue(
+                "Output",
+                "not writable",
+            ),
+        )
+    )
+    application = MagicMock()
+
+    with (
+        patch.object(
+            app_module,
+            "create_application",
+            side_effect=error,
+        ),
+        patch.object(
+            app_module,
+            "QApplication",
+        ) as application_type,
+        patch.object(
+            app_module.QMessageBox,
+            "critical",
+        ) as critical,
+        patch.object(
+            app_module.LoggingManager,
+            "reset",
+        ) as reset,
+    ):
+        application_type.instance.return_value = None
+        application_type.return_value = application
+
+        result = app_module.main()
+
+    assert result == 1
+
+    application_type.assert_called_once_with(sys.argv)
+    critical.assert_called_once_with(
+        None,
+        "Unable to start DistanceCalculatorPro",
+        str(error),
+    )
+    reset.assert_called_once_with()

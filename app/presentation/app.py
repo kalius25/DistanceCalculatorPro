@@ -1,9 +1,10 @@
 import sys
 from pathlib import Path
+from typing import cast
 
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.configuration.configuration_loader import ConfigurationLoader
 from app.configuration.models import AppConfig
@@ -29,6 +30,7 @@ from .main_window import MainWindow
 from .resource_manager import ResourceManager
 from .settings_manager import SettingsManager
 from .splash_screen import SplashScreen
+from .startup import StartupValidationError, StartupValidator
 from .theme_manager import ThemeManager
 
 
@@ -56,6 +58,7 @@ def create_execution_coordinator(
     return CalculationExecutionCoordinator(
         CalculationJobBuilder(),
         batch_service,
+        shutdown_callback=browser_manager.close,
     )
 
 
@@ -67,6 +70,7 @@ def create_application() -> tuple[
 ]:
     metadata = AppMetadata()
     configuration = ConfigurationLoader.load()
+    StartupValidator().validate(configuration)
     LoggingManager.configure(configuration.logging)
     logger = LoggingManager.get_logger("presentation")
 
@@ -128,13 +132,37 @@ def create_application() -> tuple[
 
 
 def main() -> int:
-    application, main_window, exception_handler, splash_screen = create_application()
-    main_window.show()
-    splash_screen.finish(main_window)
+    main_window: MainWindow | None = None
+    exception_handler: ExceptionHandler | None = None
     try:
+        application, main_window, exception_handler, splash_screen = (
+            create_application()
+        )
+        main_window.show()
+        splash_screen.finish(main_window)
         return application.exec()
+    except StartupValidationError as error:
+        existing_application = QApplication.instance()
+
+        if existing_application is not None:
+            application = cast(
+                QApplication,
+                existing_application,
+            )
+        else:
+            application = QApplication(sys.argv)
+
+        QMessageBox.critical(
+            None,
+            "Unable to start DistanceCalculatorPro",
+            str(error),
+        )
+        return 1
     finally:
-        exception_handler.restore()
+        if main_window is not None:
+            main_window.shutdown()
+        if exception_handler is not None:
+            exception_handler.restore()
         LoggingManager.reset()
 
 

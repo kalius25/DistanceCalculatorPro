@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from threading import Condition
 
 from PySide6.QtCore import QObject, QThread, Signal, Slot
@@ -152,6 +153,7 @@ class CalculationExecutionCoordinator(QObject):
         parent: QObject | None = None,
         writer_factory: ResultWriterFactory | None = None,
         summary_writer: BatchSummaryWriter | None = None,
+        shutdown_callback: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self._job_builder = job_builder
@@ -162,6 +164,8 @@ class CalculationExecutionCoordinator(QObject):
         self._worker: CalculationWorker | None = None
         self._last_job: CalculationJob | None = None
         self._failed_queue: BatchQueue | None = None
+        self._shutdown_callback = shutdown_callback
+        self._shutdown_complete = False
 
     @property
     def is_running(self) -> bool:
@@ -230,6 +234,21 @@ class CalculationExecutionCoordinator(QObject):
     def stop(self) -> None:
         if self._worker is not None:
             self._worker.request_stop()
+
+    def shutdown(self, timeout_ms: int = 5_000) -> bool:
+        """Stop active work, wait for the thread and release runtime resources."""
+        if self._shutdown_complete:
+            return True
+        thread = self._thread
+        if thread is not None:
+            self.stop()
+            if not thread.wait(timeout_ms):
+                return False
+            self._clear_worker()
+        if self._shutdown_callback is not None:
+            self._shutdown_callback()
+        self._shutdown_complete = True
+        return True
 
     @Slot()
     def _clear_worker(self) -> None:

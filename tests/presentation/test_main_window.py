@@ -692,6 +692,10 @@ def test_execution_coordinator_events_update_window(
         stopped = Signal(object)
         failed = Signal(str)
 
+        @property
+        def is_running(self) -> bool:
+            return False
+
         def start(self, _job: object) -> bool:
             return True
 
@@ -703,6 +707,9 @@ def test_execution_coordinator_events_update_window(
 
         def stop(self) -> None:
             pass
+
+        def shutdown(self, _timeout_ms: int = 5_000) -> bool:
+            return True
 
     coordinator = Coordinator()
     with patch(
@@ -766,63 +773,6 @@ def test_execution_coordinator_events_update_window(
     assert result._status_label.text() == "Calculation completed · 0 results"
     result._on_calculation_stopped(tuple())
     assert result._status_label.text() == ("Calculation stopped · 0 results retained")
-
-
-def test_execution_coordinator_rejects_start_and_missing_job_context(
-    qtbot: object,
-    qapp: QApplication,
-    metadata: AppMetadata,
-    theme_manager: MagicMock,
-    settings_manager: MagicMock,
-    workbook_inspector: MagicMock,
-) -> None:
-    from PySide6.QtCore import QObject, Signal
-
-    class Coordinator(QObject):
-        progress = Signal(int, int, object, object)
-        metrics = Signal(object)
-        completed = Signal(object)
-        stopped = Signal(object)
-        failed = Signal(str)
-
-        def __init__(self) -> None:
-            super().__init__()
-            self.start = MagicMock(return_value=False)
-
-        def pause(self) -> None:
-            pass
-
-        def resume(self) -> None:
-            pass
-
-        def stop(self) -> None:
-            pass
-
-    coordinator = Coordinator()
-    with patch(
-        "app.presentation.main_window.qta.icon",
-        return_value=QIcon(),
-    ):
-        result = MainWindow(
-            application=qapp,
-            metadata=metadata,
-            theme_manager=theme_manager,
-            settings_manager=settings_manager,
-            workbook_inspector=workbook_inspector,
-            execution_coordinator=coordinator,
-        )
-    qtbot.addWidget(result)  # type: ignore[attr-defined]
-
-    _make_workspace_ready(result)
-    result._start_calculation()
-    coordinator.start.assert_not_called()
-    assert result.execution_state is ExecutionState.IDLE
-
-    result._home_page.set_selected_file("routes.xlsx")
-    _make_workspace_ready(result)
-    result._start_calculation()
-    coordinator.start.assert_called_once()
-    assert result.execution_state is ExecutionState.IDLE
 
 
 def test_debug_menu_updates_runtime_and_persists_preferences(
@@ -895,22 +845,32 @@ def test_calculation_summary_updates_home_status_and_retry_action(
 def test_retry_failed_uses_execution_coordinator(
     window: MainWindow,
 ) -> None:
+    original_coordinator = window._execution_coordinator
+
     coordinator = MagicMock()
+    coordinator.is_running = False
     coordinator.retry_failed.return_value = True
-    window._execution_coordinator = coordinator
-    window._last_summary = make_batch_summary(failed=1)
-    window._update_execution_actions()
+    coordinator.shutdown.return_value = True
 
-    window._action_retry_failed.trigger()
+    try:
+        window._execution_coordinator = coordinator
+        window._last_summary = make_batch_summary(failed=1)
+        window._update_execution_actions()
 
-    coordinator.retry_failed.assert_called_once_with()
-    assert window.execution_state is ExecutionState.RUNNING
-    assert window._status_label.text() == "Retrying failed routes"
+        window._action_retry_failed.trigger()
 
-    window._set_execution_state(ExecutionState.IDLE)
-    coordinator.retry_failed.return_value = False
-    window._retry_failed()
-    assert window.execution_state is ExecutionState.IDLE
+        coordinator.retry_failed.assert_called_once_with()
+        assert window.execution_state is ExecutionState.RUNNING
+        assert window._status_label.text() == "Retrying failed routes"
+
+        window._set_execution_state(ExecutionState.IDLE)
+        coordinator.retry_failed.return_value = False
+
+        window._retry_failed()
+
+        assert window.execution_state is ExecutionState.IDLE
+    finally:
+        window._execution_coordinator = original_coordinator
 
 
 def test_retry_failed_action_uses_redo_icon(
@@ -957,6 +917,9 @@ def test_execution_coordinator_summary_signal_is_connected(
 
         def stop(self) -> None:
             pass
+
+        def is_running(self) -> bool:
+            return False
 
     coordinator = Coordinator()
 
@@ -1023,3 +986,253 @@ def test_retry_failed_action_uses_theme_specific_icon(
 
     assert light_redo_calls[0].kwargs["color_disabled"] == "#9CA3AF"
     assert dark_redo_calls[0].kwargs["color_disabled"] == "#9CA3AF"
+
+
+def test_close_event_can_cancel_running_calculation(
+    window: MainWindow,
+    settings_manager: MagicMock,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = True
+    coordinator.shutdown.return_value = True
+    event = QCloseEvent()
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with patch.object(
+            QMessageBox,
+            "question",
+            return_value=QMessageBox.StandardButton.No,
+        ) as question:
+            window.closeEvent(event)
+
+        question.assert_called_once()
+        coordinator.shutdown.assert_not_called()
+        settings_manager.set_window_geometry.assert_not_called()
+        assert not event.isAccepted()
+    finally:
+        # Không để coordinator giả đang RUNNING tồn tại khi qtbot teardown.
+        window._execution_coordinator = original_coordinator
+
+
+def test_close_event_stops_running_calculation_and_persists_state(
+    window: MainWindow,
+    settings_manager: MagicMock,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = True
+    coordinator.shutdown.return_value = True
+    event = QCloseEvent()
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with patch.object(
+            QMessageBox,
+            "question",
+            return_value=QMessageBox.StandardButton.Yes,
+        ):
+            window.closeEvent(event)
+
+        coordinator.shutdown.assert_called_once_with(5_000)
+        settings_manager.set_window_geometry.assert_called_once()
+        assert event.isAccepted()
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_close_event_stays_open_when_worker_does_not_stop(
+    window: MainWindow,
+    settings_manager: MagicMock,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = False
+    event = QCloseEvent()
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with patch.object(QMessageBox, "warning") as warning:
+            window.closeEvent(event)
+
+        coordinator.shutdown.assert_called_once_with(5_000)
+        warning.assert_called_once()
+        settings_manager.set_window_geometry.assert_not_called()
+        assert not event.isAccepted()
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_start_calculation_ignores_missing_job_context(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+) -> None:
+    from PySide6.QtCore import QObject, Signal
+
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        metrics = Signal(object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.start = MagicMock(return_value=True)
+            self.pause = MagicMock()
+            self.resume = MagicMock()
+            self.stop = MagicMock()
+            self.shutdown = MagicMock(return_value=True)
+
+        @property
+        def is_running(self) -> bool:
+            return False
+
+    coordinator = Coordinator()
+
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    _make_workspace_ready(result)
+
+    result._start_calculation()
+
+    coordinator.start.assert_not_called()
+    assert result.execution_state is ExecutionState.IDLE
+
+
+def test_start_calculation_stays_idle_when_coordinator_rejects(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+) -> None:
+    from PySide6.QtCore import QObject, Signal
+
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        metrics = Signal(object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.start = MagicMock(return_value=False)
+            self.pause = MagicMock()
+            self.resume = MagicMock()
+            self.stop = MagicMock()
+            self.shutdown = MagicMock(return_value=True)
+
+        @property
+        def is_running(self) -> bool:
+            return False
+
+    coordinator = Coordinator()
+
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    result._home_page.set_selected_file("routes.xlsx")
+    _make_workspace_ready(result)
+
+    result._start_calculation()
+
+    coordinator.start.assert_called_once()
+    assert result.execution_state is ExecutionState.IDLE
+
+
+def test_start_calculation_enters_running_when_coordinator_accepts(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+) -> None:
+    from PySide6.QtCore import QObject, Signal
+
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        metrics = Signal(object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.start = MagicMock(return_value=True)
+            self.pause = MagicMock()
+            self.resume = MagicMock()
+            self.stop = MagicMock()
+            self.shutdown = MagicMock(return_value=True)
+
+        @property
+        def is_running(self) -> bool:
+            return False
+
+    coordinator = Coordinator()
+
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    result._home_page.set_selected_file("routes.xlsx")
+    _make_workspace_ready(result)
+
+    result._start_calculation()
+
+    coordinator.start.assert_called_once()
+    assert result.execution_state is ExecutionState.RUNNING
+    assert result._action_pause.isEnabled()
+    assert result._action_stop.isEnabled()
+    assert not result._action_start.isEnabled()

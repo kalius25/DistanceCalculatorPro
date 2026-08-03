@@ -670,7 +670,40 @@ class MainWindow(QMainWindow):
         elif self._home_page.workspace_ready:
             self._status_label.setText("Ready to calculate")
 
+    def shutdown(self, timeout_ms: int = 5_000) -> bool:
+        """Stop background execution and release runtime resources."""
+        if self._execution_coordinator is None:
+            return True
+        return self._execution_coordinator.shutdown(timeout_ms)
+
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        if (
+            self._execution_coordinator is not None
+            and self._execution_coordinator.is_running
+        ):
+            answer = QMessageBox.question(
+                self,
+                "Calculation in progress",
+                (
+                    "A calculation is still running. Stop it and close "
+                    "DistanceCalculatorPro?"
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
+
+        if not self.shutdown():
+            QMessageBox.warning(
+                self,
+                "Shutdown delayed",
+                "The calculation worker did not stop in time. Please try again.",
+            )
+            event.ignore()
+            return
+
         self._settings_manager.set_window_geometry(self.saveGeometry())
         self._settings_manager.set_window_state(self.saveState())
         self._settings_manager.set_toolbar_visible(self._toolbar.isVisible())

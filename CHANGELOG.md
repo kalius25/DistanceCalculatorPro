@@ -258,3 +258,15 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added diagnostics artifact creation/deletion and storage metrics.
 - Added provider-free batch benchmark runner and JSON benchmark reports.
 - Added standard synthetic 100, 1,000 and 10,000-job benchmark scenarios.
+
+## 1.2.0-rc1
+
+### Added
+- Startup validation for configuration, writable logging/output directories, and the Playwright Chromium executable.
+- Friendly startup failure dialog with actionable Chromium installation guidance.
+- Idempotent execution coordinator shutdown with worker stop, thread wait, and browser cleanup.
+- Confirmation prompt when closing the application during an active calculation.
+- Startup and shutdown smoke tests and lifecycle coverage.
+
+### Changed
+- Application finalization now shuts down runtime resources before restoring the exception hook and resetting logging.
