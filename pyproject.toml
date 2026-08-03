@@ -57,6 +57,11 @@ python_functions = [
     "test_*",
 ]
 
+markers = [
+    "e2e: headless end-to-end reliability scenarios",
+    "smoke: fast release smoke scenarios",
+]
+
 addopts = [
     "-ra",
     "-v",

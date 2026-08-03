@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import qtawesome as qta
@@ -20,7 +21,12 @@ from app.batch import OutputPathPolicy
 from app.batch.file_access import OutputWriteError
 from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
-from app.diagnostics import DiagnosticsManager, DiagnosticsSettings
+from app.diagnostics import (
+    DiagnosticsManager,
+    DiagnosticsSettings,
+    SupportBundleBuilder,
+    SupportBundleError,
+)
 from app.logging import LoggingManager
 from app.workbooks import (
     CsvWorkbookReader,
@@ -77,6 +83,7 @@ class MainWindow(QMainWindow):
         execution_coordinator: CalculationExecutionCoordinator | None = None,
         diagnostics_manager: DiagnosticsManager | None = None,
         preflight_validator: BatchPreflightValidator | None = None,
+        support_bundle_builder: SupportBundleBuilder | None = None,
     ) -> None:
         super().__init__()
         self._application = application
@@ -89,6 +96,10 @@ class MainWindow(QMainWindow):
         self._diagnostics_manager = diagnostics_manager or DiagnosticsManager()
         self._preflight_validator = preflight_validator or BatchPreflightValidator()
         self._output_path_policy = OutputPathPolicy()
+        self._support_bundle_builder = support_bundle_builder or SupportBundleBuilder(
+            app_name=metadata.name,
+            app_version=metadata.version,
+        )
         self._logger = LoggingManager.get_logger("presentation.main_window")
         self._workbook_inspector = workbook_inspector or WorkbookInspectorService(
             (OpenPyXLWorkbookReader(), CsvWorkbookReader())
@@ -158,6 +169,14 @@ class MainWindow(QMainWindow):
         self._action_save_screenshot.setCheckable(True)
         self._action_save_json = QAction("Save Parser JSON", self)
         self._action_save_json.setCheckable(True)
+
+        self._action_export_support_bundle = QAction(
+            "Export Support Bundle...",
+            self,
+        )
+        self._action_export_support_bundle.setToolTip(
+            "Create a privacy-safe diagnostics package for technical support"
+        )
 
         self._action_about = QAction("About", self)
         self._action_home = self._create_navigation_action(
@@ -236,6 +255,8 @@ class MainWindow(QMainWindow):
         self._debug_menu.addAction(self._action_save_json)
 
         self._help_menu: QMenu = menu_bar.addMenu("&Help")
+        self._help_menu.addAction(self._action_export_support_bundle)
+        self._help_menu.addSeparator()
         self._help_menu.addAction(self._action_about)
 
     def _create_toolbar(self) -> None:
@@ -282,6 +303,9 @@ class MainWindow(QMainWindow):
         self._action_dark_theme.triggered.connect(self._on_dark_theme_selected)
         self._action_settings.triggered.connect(self._show_settings_page)
         self._action_about.triggered.connect(self._show_about_dialog)
+        self._action_export_support_bundle.triggered.connect(
+            self._export_support_bundle
+        )
         self._action_open.triggered.connect(self._browse_for_workbook)
         self._home_page.browse_requested.connect(self._browse_for_workbook)
         self._home_page.file_selected.connect(self._select_workbook)
@@ -404,6 +428,65 @@ class MainWindow(QMainWindow):
 
     def _show_about_dialog(self) -> None:
         AboutDialog(self._metadata, self).exec()
+
+    def _export_support_bundle(self) -> None:
+        default_name = (
+            f"{self._metadata.name}_Support_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+        )
+        selected, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export support bundle",
+            default_name,
+            "ZIP archives (*.zip)",
+        )
+        if not selected:
+            self._logger.info(
+                "SUPPORT_BUNDLE_CANCELLED",
+                extra={"event": "SUPPORT_BUNDLE_CANCELLED"},
+            )
+            self._status_label.setText("Support bundle export cancelled")
+            return
+
+        output_path = (
+            selected if selected.casefold().endswith(".zip") else f"{selected}.zip"
+        )
+        try:
+            result = self._support_bundle_builder.build(output_path)
+        except SupportBundleError as error:
+            self._logger.error(
+                "SUPPORT_BUNDLE_FAILED",
+                extra={
+                    "event": "SUPPORT_BUNDLE_FAILED",
+                    "error": str(error),
+                },
+            )
+            self._status_label.setText("Support bundle export failed")
+            QMessageBox.critical(
+                self,
+                "Support bundle export failed",
+                str(error),
+            )
+            return
+
+        self._logger.info(
+            "SUPPORT_BUNDLE_CREATED",
+            extra={
+                "event": "SUPPORT_BUNDLE_CREATED",
+                "bundle_path": str(result.output_path),
+                "bundle_size_bytes": result.bundle_size_bytes,
+                "included_files": len(result.included),
+                "skipped_files": len(result.skipped),
+            },
+        )
+        self._status_label.setText(
+            f"Support bundle created · {result.output_path.name}"
+        )
+        QMessageBox.information(
+            self,
+            "Support bundle created",
+            f"Support bundle saved to:\n\n{result.output_path}",
+        )
 
     def _show_action_page(self) -> None:
         action = self.sender()

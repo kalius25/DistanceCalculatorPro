@@ -2059,3 +2059,78 @@ def test_blocking_dialog_change_location(
         )
 
         assert window._show_blocking_preflight_dialog(result) == "change"
+
+
+def test_export_support_bundle_cancelled(window: MainWindow) -> None:
+    window._support_bundle_builder = MagicMock()
+
+    with patch.object(
+        QFileDialog,
+        "getSaveFileName",
+        return_value=("", ""),
+    ):
+        window._export_support_bundle()
+
+    window._support_bundle_builder.build.assert_not_called()
+    assert window._status_label.text() == "Support bundle export cancelled"
+
+
+def test_export_support_bundle_success_adds_zip_suffix(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    from app.diagnostics import SupportBundleResult
+
+    builder = MagicMock()
+    output = tmp_path / "support.zip"
+    builder.build.return_value = SupportBundleResult(
+        output_path=output,
+        included=(),
+        skipped=(),
+        bundle_size_bytes=123,
+    )
+    window._support_bundle_builder = builder
+
+    with (
+        patch.object(
+            QFileDialog,
+            "getSaveFileName",
+            return_value=(str(tmp_path / "support"), "ZIP archives"),
+        ),
+        patch.object(QMessageBox, "information") as information,
+    ):
+        window._export_support_bundle()
+
+    builder.build.assert_called_once_with(str(output))
+    information.assert_called_once()
+    assert window._status_label.text() == "Support bundle created · support.zip"
+
+
+def test_export_support_bundle_failure_keeps_window_open(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    from app.diagnostics import SupportBundleError
+
+    builder = MagicMock()
+    builder.build.side_effect = SupportBundleError("locked")
+    window._support_bundle_builder = builder
+    output = tmp_path / "support.zip"
+
+    with (
+        patch.object(
+            QFileDialog,
+            "getSaveFileName",
+            return_value=(str(output), "ZIP archives"),
+        ),
+        patch.object(QMessageBox, "critical") as critical,
+    ):
+        window._export_support_bundle()
+
+    builder.build.assert_called_once_with(str(output))
+    critical.assert_called_once_with(
+        window,
+        "Support bundle export failed",
+        "locked",
+    )
+    assert window._status_label.text() == "Support bundle export failed"

@@ -5,6 +5,13 @@ from .retention import (
     DiagnosticsRetentionPolicy,
     DiagnosticsRetentionSnapshot,
 )
+from .support_bundle import (
+    SupportBundleBuilder,
+    SupportBundleEntry,
+    SupportBundleError,
+    SupportBundlePolicy,
+    SupportBundleResult,
+)
 
 __all__ = [
     "DiagnosticsManager",
@@ -12,4 +19,9 @@ __all__ = [
     "DiagnosticsRetentionPolicy",
     "DiagnosticsRetentionSnapshot",
     "DiagnosticsSettings",
+    "SupportBundleBuilder",
+    "SupportBundleEntry",
+    "SupportBundleError",
+    "SupportBundlePolicy",
+    "SupportBundleResult",
 ]
