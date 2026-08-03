@@ -1,5 +1,6 @@
 """Workbook-backed batch processing primitives."""
 
+from .autosave_metrics import AutosaveMetrics, AutosaveSnapshot
 from .autosave_policy import AutoSavePolicy
 from .batch_queue import BatchQueue
 from .exceptions import BatchWorkbookError
@@ -22,19 +23,22 @@ from .summary import BatchSummary, BatchSummaryWriter
 from .workbook_reader import WorkbookReader
 
 __all__ = [
+    "ResumeAnalyzer",
+    "ResumeDecision",
+    "RowValidation",
+    "BatchSummaryWriter",
     "AutoSavePolicy",
+    "AutosaveMetrics",
+    "AutosaveSnapshot",
     "BaseResultWriter",
+    "BatchProgressTracker",
     "BatchQueue",
     "BatchSummary",
-    "BatchSummaryWriter",
-    "ResumeDecision",
-    "ResumeAnalyzer",
-    "ProgressSnapshot",
-    "BatchProgressTracker",
     "BatchWorkbookError",
     "CsvResultWriter",
     "ExcelResultWriter",
     "OutputPathPolicy",
+    "ProgressSnapshot",
     "QueueBuilder",
     "ResultWriterFactory",
     "RetryDecision",
@@ -43,7 +47,6 @@ __all__ = [
     "RouteJobStatus",
     "RowMapper",
     "RowValidator",
-    "RowValidation",
     "WorkbookReader",
     "WorkbookRow",
     "WorkbookStream",

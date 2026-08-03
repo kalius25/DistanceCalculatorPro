@@ -267,3 +267,32 @@ def test_factory_can_resume_from_existing_output(tmp_path: Path) -> None:
     assert isinstance(writer, CsvResultWriter)
     assert writer._rows[1][2] == "8.6"
     writer.close()
+
+
+def test_writer_records_autosave_metrics(tmp_path: Path) -> None:
+    source = tmp_path / "routes.csv"
+    output = tmp_path / "routes.result.csv"
+    source.write_text(
+        "Origin,Destination,Distance\nA,B,\n",
+        encoding="utf-8",
+    )
+    writer = CsvResultWriter(
+        source,
+        output,
+        AutoSavePolicy(1, 60.0),
+    )
+
+    with patch(
+        "app.batch.result_writer.perf_counter",
+        side_effect=[10.0, 10.4],
+    ):
+        assert writer.write(done_job())
+
+    metrics = writer.autosave_metrics
+    assert metrics.saves_completed == 1
+    assert metrics.rows_saved == 1
+    assert metrics.last_rows_saved == 1
+    assert metrics.total_save_seconds == pytest.approx(0.4)
+    assert metrics.average_save_seconds == pytest.approx(0.4)
+    assert metrics.maximum_save_seconds == pytest.approx(0.4)
+    writer.close()

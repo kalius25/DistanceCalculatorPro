@@ -1,3 +1,10 @@
+
+## 1.2.0-alpha29
+
+- Added autosave duration and row-count metrics.
+- Added adaptive request pacing with bounded increase/decrease rules.
+- Reset pacing state at the beginning of each batch.
+- Added tests for autosave metrics and pacing lifecycle.
 ## 1.2.0-alpha26
 
 - Added Retry Failed Only execution based on the previous failed job queue.

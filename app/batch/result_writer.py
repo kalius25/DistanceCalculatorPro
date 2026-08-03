@@ -5,11 +5,13 @@ from __future__ import annotations
 import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
+from time import perf_counter
 
 from openpyxl import load_workbook
 from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+from .autosave_metrics import AutosaveMetrics, AutosaveSnapshot
 from .autosave_policy import AutoSavePolicy
 from .models import RouteJob, RouteJobStatus
 from .output_path_policy import OutputPathPolicy
@@ -27,6 +29,7 @@ class BaseResultWriter(ABC):
         self._autosave_policy = autosave_policy or AutoSavePolicy()
         self._dirty = False
         self._closed = False
+        self._autosave_metrics = AutosaveMetrics()
 
     @property
     def dirty(self) -> bool:
@@ -35,6 +38,10 @@ class BaseResultWriter(ABC):
     @property
     def closed(self) -> bool:
         return self._closed
+
+    @property
+    def autosave_metrics(self) -> AutosaveSnapshot:
+        return self._autosave_metrics.snapshot
 
     def write(self, job: RouteJob) -> bool:
         value = self._value_for(job)
@@ -51,7 +58,11 @@ class BaseResultWriter(ABC):
         if self._closed or not self._dirty:
             return False
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        dirty_rows = self._autosave_policy.dirty_rows
+        started_at = perf_counter()
         self._save()
+        elapsed = perf_counter() - started_at
+        self._autosave_metrics.record(dirty_rows, elapsed)
         self._dirty = False
         self._autosave_policy.mark_saved()
         return True

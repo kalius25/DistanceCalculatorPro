@@ -384,3 +384,37 @@ def test_starting_new_batch_resets_performance_metrics() -> None:
     assert provider.performance_metrics.requests_started == 0
     assert provider.performance_metrics.requests_completed == 0
     provider.finish_batch()
+
+
+def test_request_pacing_increases_after_failure_and_decreases_after_success() -> None:
+    browser = MagicMock()
+    page = MagicMock()
+    page.is_closed.return_value = False
+    browser.new_page.return_value = page
+    engine = MagicMock()
+    engine.find_routes.side_effect = [
+        EngineException(
+            "temporary timeout",
+            error_code=ErrorCode.ENGINE_ERROR,
+        ),
+        [make_route()],
+    ]
+    pacer = MagicMock()
+    provider = GoogleWebProvider(
+        browser,
+        engine,
+        pacer=pacer,
+    )
+
+    provider.start_batch()
+    failed = provider.calculate(make_request())
+    succeeded = provider.calculate(make_request())
+
+    assert not failed.success
+    assert succeeded.success
+    assert pacer.wait.call_count == 2
+    pacer.record_failure.assert_called_once_with()
+    pacer.record_success.assert_called_once_with()
+    assert provider.pacing_metrics is pacer.snapshot
+    pacer.reset.assert_called_once_with()
+    provider.finish_batch()

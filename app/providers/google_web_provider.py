@@ -22,6 +22,11 @@ from app.logging import LoggingManager
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.providers.base_provider import BaseProvider
+from app.providers.request_pacing import (
+    AdaptiveRequestPacer,
+    RequestPacingPolicy,
+    RequestPacingSnapshot,
+)
 
 logger = LoggingManager.get_logger(__name__)
 Clock = Callable[[], float]
@@ -39,6 +44,8 @@ class GoogleWebProvider(BaseProvider):
         recovery: BrowserRecoveryManager | None = None,
         diagnostics: DiagnosticsManager | None = None,
         performance_policy: ProviderPerformancePolicy | None = None,
+        pacing_policy: RequestPacingPolicy | None = None,
+        pacer: AdaptiveRequestPacer | None = None,
         clock: Clock = perf_counter,
     ) -> None:
         self._browser = browser
@@ -51,6 +58,7 @@ class GoogleWebProvider(BaseProvider):
         )
         self._performance_policy = performance_policy or ProviderPerformancePolicy()
         self._clock = clock
+        self._pacer = pacer or AdaptiveRequestPacer(pacing_policy)
         self._performance = ProviderPerformanceMetrics()
         self._batch_started = False
         self._page: Page | None = None
@@ -61,10 +69,15 @@ class GoogleWebProvider(BaseProvider):
         """Return an immutable snapshot of current provider metrics."""
         return self._performance.snapshot
 
+    @property
+    def pacing_metrics(self) -> RequestPacingSnapshot:
+        return self._pacer.snapshot
+
     def start_batch(self) -> None:
         if self._batch_started:
             return
         self._performance = ProviderPerformanceMetrics()
+        self._pacer.reset()
         self._browser.start()
         self._batch_started = True
 
@@ -81,6 +94,7 @@ class GoogleWebProvider(BaseProvider):
         if owns_browser:
             self.start_batch()
 
+        self._pacer.wait()
         started_at = self._clock()
         self._performance.requests_started += 1
         try:
@@ -89,6 +103,7 @@ class GoogleWebProvider(BaseProvider):
             routes = self._engine.find_routes(page, request)
             self._record_page_use()
             self._performance.requests_completed += 1
+            self._pacer.record_success()
             return RouteResult(
                 success=True,
                 request=request,
@@ -97,6 +112,7 @@ class GoogleWebProvider(BaseProvider):
             )
         except EngineException as exc:
             self._performance.requests_failed += 1
+            self._pacer.record_failure()
             self._recovery.recover(exc)
             self._discard_page(recycled=True)
             return RouteResult(
@@ -110,11 +126,13 @@ class GoogleWebProvider(BaseProvider):
             )
         except PlaywrightError as exc:
             self._performance.requests_failed += 1
+            self._pacer.record_failure()
             self._recovery.recover(exc)
             self._discard_page(recycled=True)
             raise
         except Exception:
             self._performance.requests_failed += 1
+            self._pacer.record_failure()
             self._discard_page(recycled=True)
             raise
         finally:
