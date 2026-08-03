@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.batch import OutputPathPolicy
 from app.batch.file_access import OutputWriteError
 from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
@@ -35,6 +36,7 @@ from .pages.about_page import AboutPage
 from .pages.history_page import HistoryPage
 from .pages.home_page import HomePage
 from .pages.settings_page import SettingsPage
+from .preflight import BatchPreflightValidator, PreflightResult
 from .settings_manager import SettingsManager
 from .theme_manager import ThemeManager
 from .widgets.navigation_panel import NavigationPanel
@@ -74,6 +76,7 @@ class MainWindow(QMainWindow):
         workbook_inspector: WorkbookInspectorService | None = None,
         execution_coordinator: CalculationExecutionCoordinator | None = None,
         diagnostics_manager: DiagnosticsManager | None = None,
+        preflight_validator: BatchPreflightValidator | None = None,
     ) -> None:
         super().__init__()
         self._application = application
@@ -84,6 +87,9 @@ class MainWindow(QMainWindow):
         self._execution_coordinator = execution_coordinator
         self._last_summary: BatchSummary | None = None
         self._diagnostics_manager = diagnostics_manager or DiagnosticsManager()
+        self._preflight_validator = preflight_validator or BatchPreflightValidator()
+        self._output_path_policy = OutputPathPolicy()
+        self._logger = LoggingManager.get_logger("presentation.main_window")
         self._workbook_inspector = workbook_inspector or WorkbookInspectorService(
             (OpenPyXLWorkbookReader(), CsvWorkbookReader())
         )
@@ -534,7 +540,15 @@ class MainWindow(QMainWindow):
         if self._execution_coordinator is not None:
             if file_path is None or sheet_name is None:
                 return
-            job = CalculationJob(file_path, sheet_name, configuration)
+            output_path = self._run_batch_preflight(file_path, sheet_name)
+            if output_path is None:
+                return
+            job = CalculationJob(
+                file_path,
+                sheet_name,
+                configuration,
+                output_path=output_path,
+            )
             if not self._execution_coordinator.start(job):
                 return
 
@@ -542,6 +556,178 @@ class MainWindow(QMainWindow):
         self._last_summary = None
         self._set_execution_state(ExecutionState.RUNNING)
         self.calculation_requested.emit(configuration)
+
+    def _run_batch_preflight(
+        self,
+        file_path: str,
+        sheet_name: str,
+    ) -> str | None:
+        output_path = self._output_path_policy.build(file_path)
+        estimated_jobs, source_size = self._preflight_inputs(sheet_name)
+
+        while True:
+            result = self._preflight_validator.validate(
+                source_path=file_path,
+                output_path=output_path,
+                estimated_job_count=estimated_jobs,
+                source_size_bytes=source_size,
+            )
+            if result.issues:
+                self._log_preflight_result(result)
+
+            if result.blocking_issues:
+                issue = result.blocking_issues[0]
+                self._status_label.setText(f"Cannot start · {issue.title}")
+                action = self._show_blocking_preflight_dialog(result)
+            elif result.warnings:
+                action = self._show_preflight_warning_dialog(result)
+            else:
+                return str(output_path)
+
+            if action == "retry":
+                continue
+            if action == "continue":
+                return str(output_path)
+            if action == "change":
+                selected, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "Choose result file",
+                    str(output_path),
+                    "Excel or CSV (*.xlsx *.xlsm *.csv)",
+                )
+                if selected:
+                    output_path = Path(selected)
+                    continue
+                self._status_label.setText("Calculation cancelled during preflight")
+                return None
+            if not result.blocking_issues:
+                self._status_label.setText("Calculation cancelled during preflight")
+            return None
+
+    def _preflight_inputs(self, sheet_name: str) -> tuple[int, int | None]:
+        workbook_info = self._home_page.workbook_info
+        if workbook_info is None:
+            return 0, None
+        worksheet = next(
+            (item for item in workbook_info.worksheets if item.name == sheet_name),
+            None,
+        )
+        estimated_jobs = max((worksheet.row_count if worksheet else 0) - 1, 0)
+        return estimated_jobs, workbook_info.file_size_bytes
+
+    def _show_blocking_preflight_dialog(self, result: PreflightResult) -> str:
+        issue = result.blocking_issues[0]
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Critical)
+        message_box.setWindowTitle(issue.title)
+        message_box.setText(issue.message)
+        message_box.setDetailedText(self._format_preflight_details(result))
+        retry_button = message_box.addButton(
+            "Check Again",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        change_button = message_box.addButton(
+            "Choose Another Location",
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        message_box.addButton(
+            "Cancel",
+            QMessageBox.ButtonRole.RejectRole,
+        )
+        message_box.exec()
+        clicked = message_box.clickedButton()
+        if clicked is retry_button:
+            return "retry"
+        if clicked is change_button:
+            return "change"
+        return "cancel"
+
+    def _show_preflight_warning_dialog(self, result: PreflightResult) -> str:
+        issue = result.warnings[0]
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Warning)
+        message_box.setWindowTitle(issue.title)
+        message_box.setText(issue.message)
+        message_box.setDetailedText(self._format_preflight_details(result))
+        continue_button = message_box.addButton(
+            "Continue",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        change_button = message_box.addButton(
+            "Choose Another Location",
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        message_box.addButton(
+            "Cancel",
+            QMessageBox.ButtonRole.RejectRole,
+        )
+        message_box.exec()
+        clicked = message_box.clickedButton()
+        if clicked is continue_button:
+            return "continue"
+        if clicked is change_button:
+            return "change"
+        return "cancel"
+
+    @staticmethod
+    def _format_preflight_details(result: PreflightResult) -> str:
+        available = (
+            MainWindow._format_bytes(result.available_bytes)
+            if result.available_bytes is not None
+            else "Unknown"
+        )
+        estimated_output = MainWindow._format_bytes(
+            result.estimated_output_bytes,
+        )
+        required_space = MainWindow._format_bytes(
+            result.required_free_bytes,
+        )
+
+        return (
+            f"Estimated jobs: {result.estimated_job_count:,}\n"
+            f"Estimated output: {estimated_output}\n"
+            f"Required free space: {required_space}\n"
+            f"Available free space: {available}\n"
+            f"Output file: {result.output_path}"
+        )
+
+    @staticmethod
+    def _format_bytes(value: int) -> str:
+        amount = float(max(value, 0))
+
+        if amount < 1024:
+            return f"{amount:.0f} B"
+
+        amount /= 1024
+        if amount < 1024:
+            return f"{amount:.2f} KB"
+
+        amount /= 1024
+        if amount < 1024:
+            return f"{amount:.2f} MB"
+
+        amount /= 1024
+        if amount < 1024:
+            return f"{amount:.2f} GB"
+
+        amount /= 1024
+        return f"{amount:.2f} TB"
+
+    def _log_preflight_result(self, result: PreflightResult) -> None:
+        blocking = bool(result.blocking_issues)
+        event = "BATCH_PREFLIGHT_BLOCKED" if blocking else "BATCH_PREFLIGHT_WARNING"
+        self._logger.warning(
+            event,
+            extra={
+                "event": event,
+                "output_path": str(result.output_path),
+                "estimated_job_count": result.estimated_job_count,
+                "estimated_output_bytes": result.estimated_output_bytes,
+                "required_free_bytes": result.required_free_bytes,
+                "available_bytes": result.available_bytes,
+                "issue_codes": [issue.code for issue in result.issues],
+            },
+        )
 
     def _retry_failed(self) -> None:
         if (

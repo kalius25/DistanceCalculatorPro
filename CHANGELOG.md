@@ -1,3 +1,10 @@
+## 1.2.0-rc3
+
+- Added reusable batch resource preflight validation.
+- Added output writability and disk-space checks before execution starts.
+- Added blocking dialogs with Check Again, Choose Another Location, and Cancel.
+- Added large-batch warnings with an explicit Continue action.
+- Added preflight diagnostics and persistent status-bar feedback.
 
 ## 1.2.0-alpha29
 

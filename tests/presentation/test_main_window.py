@@ -1551,3 +1551,511 @@ def test_output_write_failure_cancel_keeps_window_idle(
         assert window._status_label.text() == "Result save cancelled"
     finally:
         window._execution_coordinator = original_coordinator
+
+
+def _preflight_result(
+    tmp_path: Path,
+    *,
+    blocking: bool = False,
+    warning: bool = False,
+) -> object:
+    from app.presentation.preflight import PreflightIssue, PreflightResult
+
+    issues = []
+    if blocking:
+        issues.append(
+            PreflightIssue(
+                "insufficient_disk_space",
+                "Insufficient disk space",
+                "Not enough free space.",
+                True,
+            )
+        )
+    if warning:
+        issues.append(
+            PreflightIssue(
+                "large_batch",
+                "Large batch detected",
+                "This batch is large.",
+                False,
+            )
+        )
+    return PreflightResult(
+        output_path=tmp_path / "routes.result.xlsx",
+        estimated_job_count=10_000,
+        estimated_output_bytes=1_024,
+        required_free_bytes=2_048,
+        available_bytes=512,
+        issues=tuple(issues),
+    )
+
+
+def _configure_preflight_message_box(
+    message_box_type: MagicMock,
+    clicked_index: int,
+) -> tuple[object, object, object]:
+    message_box = message_box_type.return_value
+    buttons = (object(), object(), object())
+    message_box.addButton.side_effect = list(buttons)
+    message_box.clickedButton.return_value = buttons[clicked_index]
+    return buttons
+
+
+def test_preflight_inputs_and_format_helpers(
+    window: MainWindow,
+) -> None:
+    window._home_page._workbook_info = None
+    assert window._preflight_inputs("Routes") == (0, None)
+
+    workbook = WorkbookInfo(
+        file_path="routes.xlsx",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=4_096,
+        modified_at=datetime(2026, 8, 3, 16, 0),
+        worksheets=(WorksheetInfo("Routes", 101, 3, ("A", "B", "C")),),
+    )
+    window._home_page._workbook_info = workbook
+
+    assert window._preflight_inputs("Routes") == (100, 4_096)
+    assert window._preflight_inputs("Missing") == (0, 4_096)
+    assert window._format_bytes(-1) == "0 B"
+    assert window._format_bytes(1_024) == "1.00 KB"
+    assert window._format_bytes(1_024**2) == "1.00 MB"
+    assert window._format_bytes(1_024**3) == "1.00 GB"
+    assert window._format_bytes(1_024**4) == "1.00 TB"
+
+
+def test_preflight_details_support_known_and_unknown_space(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    from dataclasses import replace
+
+    result = _preflight_result(tmp_path, blocking=True)
+    details = window._format_preflight_details(result)  # type: ignore[arg-type]
+    assert "Available free space: 512 B" in details
+    assert "Estimated jobs: 10,000" in details
+
+    unknown = replace(result, available_bytes=None)  # type: ignore[arg-type]
+    assert "Available free space: Unknown" in window._format_preflight_details(unknown)
+
+
+def test_run_preflight_returns_output_when_clean(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    validator = MagicMock()
+    validator.validate.return_value = _preflight_result(tmp_path)
+    window._preflight_validator = validator
+    window._output_path_policy = MagicMock()
+    window._output_path_policy.build.return_value = tmp_path / "routes.result.xlsx"
+
+    assert window._run_batch_preflight("routes.xlsx", "Routes") == str(
+        tmp_path / "routes.result.xlsx"
+    )
+    validator.validate.assert_called_once()
+
+
+def test_run_preflight_can_retry_then_pass(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    validator = MagicMock()
+    validator.validate.side_effect = [
+        _preflight_result(tmp_path, blocking=True),
+        _preflight_result(tmp_path),
+    ]
+    window._preflight_validator = validator
+    window._output_path_policy = MagicMock()
+    window._output_path_policy.build.return_value = tmp_path / "routes.result.xlsx"
+
+    with (
+        patch.object(window, "_show_blocking_preflight_dialog", return_value="retry"),
+        patch.object(window, "_log_preflight_result") as log_result,
+    ):
+        selected = window._run_batch_preflight("routes.xlsx", "Routes")
+
+    assert selected == str(tmp_path / "routes.result.xlsx")
+    assert validator.validate.call_count == 2
+    log_result.assert_called_once()
+
+
+def test_run_preflight_can_change_location_then_pass(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    validator = MagicMock()
+    validator.validate.side_effect = [
+        _preflight_result(tmp_path, blocking=True),
+        _preflight_result(tmp_path),
+    ]
+    window._preflight_validator = validator
+    window._output_path_policy = MagicMock()
+    window._output_path_policy.build.return_value = tmp_path / "routes.result.xlsx"
+    recovered = tmp_path / "recovered.xlsx"
+
+    with (
+        patch.object(window, "_show_blocking_preflight_dialog", return_value="change"),
+        patch.object(
+            QFileDialog,
+            "getSaveFileName",
+            return_value=(str(recovered), "Excel"),
+        ),
+    ):
+        selected = window._run_batch_preflight("routes.xlsx", "Routes")
+
+    assert selected == str(recovered)
+    assert validator.validate.call_args_list[-1].kwargs["output_path"] == recovered
+
+
+def test_run_preflight_cancel_or_empty_location_stays_idle(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    validator = MagicMock()
+    validator.validate.return_value = _preflight_result(tmp_path, blocking=True)
+    window._preflight_validator = validator
+    window._output_path_policy = MagicMock()
+    window._output_path_policy.build.return_value = tmp_path / "routes.result.xlsx"
+
+    with patch.object(
+        window,
+        "_show_blocking_preflight_dialog",
+        return_value="cancel",
+    ):
+        assert window._run_batch_preflight("routes.xlsx", "Routes") is None
+
+    assert window._status_label.text() == "Cannot start · Insufficient disk space"
+
+    with (
+        patch.object(window, "_show_blocking_preflight_dialog", return_value="change"),
+        patch.object(QFileDialog, "getSaveFileName", return_value=("", "")),
+    ):
+        assert window._run_batch_preflight("routes.xlsx", "Routes") is None
+
+
+def test_run_preflight_warning_can_continue_or_cancel(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    validator = MagicMock()
+    validator.validate.return_value = _preflight_result(tmp_path, warning=True)
+    window._preflight_validator = validator
+    window._output_path_policy = MagicMock()
+    window._output_path_policy.build.return_value = tmp_path / "routes.result.xlsx"
+
+    with patch.object(
+        window,
+        "_show_preflight_warning_dialog",
+        return_value="continue",
+    ):
+        assert window._run_batch_preflight("routes.xlsx", "Routes") == str(
+            tmp_path / "routes.result.xlsx"
+        )
+
+    with patch.object(
+        window,
+        "_show_preflight_warning_dialog",
+        return_value="cancel",
+    ):
+        assert window._run_batch_preflight("routes.xlsx", "Routes") is None
+
+
+def test_blocking_preflight_dialog_returns_all_actions(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    result = _preflight_result(tmp_path, blocking=True)
+
+    with patch("app.presentation.main_window.QMessageBox") as message_box_type:
+        _configure_preflight_message_box(message_box_type, 2)
+
+        assert window._show_blocking_preflight_dialog(result) == "cancel"
+
+
+def test_warning_preflight_dialog_returns_all_actions(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    result = _preflight_result(tmp_path, warning=True)
+
+    with patch("app.presentation.main_window.QMessageBox") as message_box_type:
+        _configure_preflight_message_box(message_box_type, 0)
+        assert window._show_preflight_warning_dialog(result) == "continue"  # type: ignore[arg-type]
+
+    with patch("app.presentation.main_window.QMessageBox") as message_box_type:
+        _configure_preflight_message_box(message_box_type, 1)
+        assert window._show_preflight_warning_dialog(result) == "change"  # type: ignore[arg-type]
+
+    with patch("app.presentation.main_window.QMessageBox") as message_box_type:
+        _configure_preflight_message_box(message_box_type, 2)
+        assert window._show_preflight_warning_dialog(result) == "cancel"  # type: ignore[arg-type]
+
+
+def test_preflight_result_is_logged(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    window._logger = MagicMock()
+    blocked = _preflight_result(tmp_path, blocking=True)
+    warning = _preflight_result(tmp_path, warning=True)
+
+    window._log_preflight_result(blocked)  # type: ignore[arg-type]
+    window._log_preflight_result(warning)  # type: ignore[arg-type]
+
+    assert window._logger.warning.call_count == 2
+    assert window._logger.warning.call_args_list[0].args[0] == "BATCH_PREFLIGHT_BLOCKED"
+    assert window._logger.warning.call_args_list[1].args[0] == "BATCH_PREFLIGHT_WARNING"
+
+
+def test_start_calculation_stays_idle_when_preflight_passes_but_start_rejected(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.start.return_value = False
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+
+    try:
+        window._execution_coordinator = coordinator
+        window._home_page.set_selected_file("routes.xlsx")
+        _make_workspace_ready(window)
+
+        with patch.object(
+            window,
+            "_run_batch_preflight",
+            return_value="routes.result.xlsx",
+        ):
+            window._start_calculation()
+
+        coordinator.start.assert_called_once()
+        assert window.execution_state is ExecutionState.IDLE
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_run_preflight_change_location_cancel_stays_idle(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    validator = MagicMock()
+    validator.validate.return_value = _preflight_result(
+        tmp_path,
+        blocking=True,
+    )
+    window._preflight_validator = validator
+
+    window._output_path_policy = MagicMock()
+    window._output_path_policy.build.return_value = tmp_path / "routes.result.xlsx"
+
+    with (
+        patch.object(
+            window,
+            "_show_blocking_preflight_dialog",
+            return_value="change",
+        ),
+        patch.object(
+            QFileDialog,
+            "getSaveFileName",
+            return_value=("", ""),
+        ),
+    ):
+        result = window._run_batch_preflight(
+            "routes.xlsx",
+            "Routes",
+        )
+
+    assert result is None
+    assert window._status_label.text() == "Calculation cancelled during preflight"
+
+
+def test_run_preflight_warning_logs_and_continues(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    validator = MagicMock()
+    validator.validate.return_value = _preflight_result(
+        tmp_path,
+        blocking=False,
+        warning=True,
+    )
+    window._preflight_validator = validator
+
+    output = tmp_path / "routes.result.xlsx"
+    window._output_path_policy = MagicMock()
+    window._output_path_policy.build.return_value = output
+
+    with (
+        patch.object(
+            window,
+            "_show_preflight_warning_dialog",
+            return_value="continue",
+        ),
+        patch.object(
+            window,
+            "_log_preflight_result",
+        ) as log_result,
+    ):
+        result = window._run_batch_preflight(
+            "routes.xlsx",
+            "Routes",
+        )
+
+    assert result == str(output)
+    log_result.assert_called_once_with(validator.validate.return_value)
+
+
+def test_start_calculation_stays_idle_when_coordinator_rejects_after_preflight(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.start.return_value = False
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+
+    try:
+        window._execution_coordinator = coordinator
+        window._home_page.set_selected_file("routes.xlsx")
+        _make_workspace_ready(window)
+
+        with patch.object(
+            window,
+            "_run_batch_preflight",
+            return_value="routes.result.xlsx",
+        ):
+            window._start_calculation()
+
+        coordinator.start.assert_called_once()
+
+        job = coordinator.start.call_args.args[0]
+
+        assert job.file_path == "routes.xlsx"
+        assert job.output_path == "routes.result.xlsx"
+        assert window.execution_state is ExecutionState.IDLE
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_preflight_inputs_without_workbook_returns_zero(
+    window: MainWindow,
+) -> None:
+    original_workbook_info = window._home_page._workbook_info
+
+    try:
+        window._home_page._workbook_info = None
+
+        assert window._preflight_inputs("Routes") == (
+            0,
+            None,
+        )
+    finally:
+        window._home_page._workbook_info = original_workbook_info
+
+
+def test_preflight_inputs_unknown_sheet_returns_zero_jobs(
+    window: MainWindow,
+) -> None:
+    original_workbook_info = window._home_page._workbook_info
+
+    workbook_info = WorkbookInfo(
+        file_path="routes.xlsx",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=4_096,
+        modified_at=datetime(2026, 8, 3, 17, 0),
+        worksheets=(
+            WorksheetInfo(
+                "Routes",
+                101,
+                3,
+                (
+                    "Origin",
+                    "Destination",
+                    "Distance",
+                ),
+            ),
+        ),
+    )
+
+    try:
+        window._home_page._workbook_info = workbook_info
+
+        assert window._preflight_inputs("Missing") == (
+            0,
+            4_096,
+        )
+    finally:
+        window._home_page._workbook_info = original_workbook_info
+
+
+def test_start_calculation_stops_when_preflight_returns_none(
+    window: MainWindow,
+) -> None:
+    coordinator = MagicMock()
+    coordinator.start.return_value = True
+    coordinator.is_running = False
+
+    original = window._execution_coordinator
+    window._execution_coordinator = coordinator
+
+    try:
+        window._home_page.set_selected_file("routes.xlsx")
+        _make_workspace_ready(window)
+
+        with patch.object(
+            window,
+            "_run_batch_preflight",
+            return_value=None,
+        ):
+            window._start_calculation()
+
+        coordinator.start.assert_not_called()
+        assert window.execution_state is ExecutionState.IDLE
+
+    finally:
+        window._execution_coordinator = original
+
+
+def test_blocking_dialog_retry(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    result = _preflight_result(
+        tmp_path,
+        blocking=True,
+    )
+
+    with patch(
+        "app.presentation.main_window.QMessageBox",
+    ) as message_box_type:
+        _configure_preflight_message_box(
+            message_box_type,
+            0,
+        )
+
+        assert window._show_blocking_preflight_dialog(result) == "retry"
+
+
+def test_blocking_dialog_change_location(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    result = _preflight_result(
+        tmp_path,
+        blocking=True,
+    )
+
+    with patch(
+        "app.presentation.main_window.QMessageBox",
+    ) as message_box_type:
+        _configure_preflight_message_box(
+            message_box_type,
+            1,
+        )
+
+        assert window._show_blocking_preflight_dialog(result) == "change"
