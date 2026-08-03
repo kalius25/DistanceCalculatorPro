@@ -41,9 +41,7 @@ class OpenPyXLWorkbookReader:
                 )
                 first_row = next(rows, ())
                 headers = self._normalize_row(first_row)
-                preview_rows = tuple(
-                    self._normalize_row(row) for row in rows
-                )
+                preview_rows = tuple(self._normalize_row(row) for row in rows)
                 worksheets.append(
                     WorksheetInfo(
                         name=worksheet.title,

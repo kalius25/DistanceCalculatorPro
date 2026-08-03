@@ -66,6 +66,7 @@ def test_browser_config_is_frozen():
     with pytest.raises(FrozenInstanceError):
         config.timeout = 60
 
+
 def test_app_config_creation():
     app_config = AppConfig(
         browser=BrowserConfig(
@@ -78,9 +79,7 @@ def test_app_config_creation():
             locale="vi-VN",
         ),
         google_maps=GoogleMapsConfig(
-            base_url=(
-                "https://www.google.com/maps/dir/?api=1"
-            ),
+            base_url=("https://www.google.com/maps/dir/?api=1"),
             action_timeout=30_000,
         ),
         provider=ProviderConfig(
@@ -105,10 +104,9 @@ def test_app_config_creation():
     )
 
     assert app_config.browser.timeout == 30_000
-    assert app_config.google_maps.base_url == (
-        "https://www.google.com/maps/dir/?api=1"
-    )
+    assert app_config.google_maps.base_url == ("https://www.google.com/maps/dir/?api=1")
     assert app_config.google_maps.action_timeout == 30_000
+
 
 def test_app_config_is_frozen():
     app_config = AppConfig(
@@ -122,9 +120,7 @@ def test_app_config_is_frozen():
             locale="vi-VN",
         ),
         google_maps=GoogleMapsConfig(
-            base_url=(
-                "https://www.google.com/maps/dir/?api=1"
-            ),
+            base_url=("https://www.google.com/maps/dir/?api=1"),
             action_timeout=30_000,
         ),
         provider=ProviderConfig(
@@ -153,6 +149,7 @@ def test_app_config_is_frozen():
             base_url="https://example.com",
             action_timeout=60_000,
         )
+
 
 def test_configuration_models_use_slots():
     browser_config = BrowserConfig(

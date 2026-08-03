@@ -89,9 +89,7 @@ class BatchCalculationService:
         self.calculation_service.start_batch()
         try:
             current = 0
-            while queue.pending_count > 0 and not self._should_stop(
-                should_stop
-            ):
+            while queue.pending_count > 0 and not self._should_stop(should_stop):
                 if wait_if_paused is not None:
                     wait_if_paused()
                 if self._should_stop(should_stop):

@@ -146,6 +146,7 @@ def test_csv_writer_rewrites_output_and_validates_rows(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="header row"):
         CsvResultWriter(empty, output)
 
+
 def test_result_writer_factory_selects_supported_writer(
     tmp_path: Path,
 ) -> None:
@@ -214,6 +215,7 @@ def test_result_writer_factory_selects_supported_writer(
             "Routes",
         )
 
+
 def test_writer_context_manager_and_unknown_error(tmp_path: Path) -> None:
     source = tmp_path / "routes.csv"
     output = tmp_path / "routes.result.csv"
@@ -248,3 +250,20 @@ def test_csv_writer_extends_short_rows(tmp_path: Path) -> None:
     with output.open("r", encoding="utf-8-sig", newline="") as stream:
         rows = list(csv.reader(stream))
     assert rows[1] == ["A", "B", "8.6"]
+
+
+def test_factory_can_resume_from_existing_output(tmp_path: Path) -> None:
+    source = tmp_path / "routes.csv"
+    output = tmp_path / "routes.result.csv"
+    source.write_text("Origin,Destination,Distance\nA,B,\n", encoding="utf-8")
+    output.write_text("Origin,Destination,Distance\nA,B,8.6\n", encoding="utf-8")
+
+    writer = ResultWriterFactory().create(
+        source,
+        "Routes",
+        resume_from_output=True,
+    )
+
+    assert isinstance(writer, CsvResultWriter)
+    assert writer._rows[1][2] == "8.6"
+    writer.close()

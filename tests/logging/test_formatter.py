@@ -109,9 +109,7 @@ def test_format_includes_exception():
 
     assert payload["level"] == "ERROR"
     assert payload["error_code"] == "ENGINE_ERROR"
-    assert "RuntimeError: Engine failed." in (
-        payload["exception"]
-    )
+    assert "RuntimeError: Engine failed." in (payload["exception"])
 
 
 def test_format_includes_existing_exception_text():
@@ -127,9 +125,7 @@ def test_format_includes_existing_exception_text():
         formatter.format(record),
     )
 
-    assert payload["exception"] == (
-        "Stored exception text"
-    )
+    assert payload["exception"] == ("Stored exception text")
 
 
 def test_format_includes_stack_info():
@@ -143,9 +139,7 @@ def test_format_includes_stack_info():
         formatter.format(record),
     )
 
-    assert payload["stack_info"] == (
-        "Stack information"
-    )
+    assert payload["stack_info"] == ("Stack information")
 
 
 def test_json_default_converts_unsupported_value():
@@ -177,14 +171,12 @@ def test_extract_extra_ignores_private_fields():
         },
     )
 
-    result = (
-        StructuredJsonFormatter
-        ._extract_extra_fields(record)
-    )
+    result = StructuredJsonFormatter._extract_extra_fields(record)
 
     assert result == {
         "provider": "google_web",
     }
+
 
 def test_formatter_redacts_sensitive_extra_fields():
     formatter = StructuredJsonFormatter()
@@ -204,6 +196,7 @@ def test_formatter_redacts_sensitive_extra_fields():
 
     assert payload["password"] == "[REDACTED]"
     assert payload["email"] == "u***@example.com"
+
 
 def test_json_default_converts_unknown_object():
     class CustomValue:

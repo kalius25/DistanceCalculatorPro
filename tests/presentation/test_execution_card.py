@@ -8,9 +8,7 @@ def test_execution_card_initial_state(qtbot: object) -> None:
     assert not card.running
     assert not card._action_button.isEnabled()
     assert card._action_button.text() == "Start Calculation"
-    assert card._status_label.text() == (
-        "Complete workspace configuration first."
-    )
+    assert card._status_label.text() == ("Complete workspace configuration first.")
 
 
 def test_execution_card_summary_and_readiness(qtbot: object) -> None:

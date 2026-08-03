@@ -6,8 +6,12 @@ from PySide6.QtCore import QMimeData, QPoint, Qt, QUrl
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import QListWidgetItem
 
+from app.batch.summary import BatchSummary
 from app.presentation.pages.home_page import HomePage
-from app.workbooks.models import WorkbookInfo, WorksheetInfo
+from app.workbooks.models import (
+    WorkbookInfo,
+    WorksheetInfo,
+)
 
 
 def test_initial_workspace_state(qtbot: object) -> None:
@@ -22,9 +26,7 @@ def test_initial_workspace_state(qtbot: object) -> None:
     assert page._workspace_status.text() == "No workbook selected"
     assert page._recent_files.count() == 1
     assert page._recent_files.item(0).text() == "No recent workbooks"
-    assert not bool(
-        page._recent_files.item(0).flags() & Qt.ItemFlag.ItemIsEnabled
-    )
+    assert not bool(page._recent_files.item(0).flags() & Qt.ItemFlag.ItemIsEnabled)
 
 
 def test_supported_extensions_are_case_insensitive() -> None:
@@ -333,9 +335,7 @@ def test_preview_row_selector_supports_configured_limits(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
     qtbot.addWidget(page)  # type: ignore[attr-defined]
-    preview_rows = tuple(
-        (str(index), f"Value {index}") for index in range(1, 501)
-    )
+    preview_rows = tuple((str(index), f"Value {index}") for index in range(1, 501))
     info = WorkbookInfo(
         file_path="preview.xlsx",
         file_name="preview.xlsx",
@@ -416,6 +416,7 @@ def test_workspace_guidance_stays_visible_when_source_panels_are_toggled(
     assert page._description_label.isVisible()
     assert page._workspace_status.isVisible()
 
+
 def test_invalid_preview_row_limit_is_ignored(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
@@ -476,9 +477,7 @@ def test_column_mapping_rejects_duplicate_roles(qtbot: object) -> None:
             file_type="CSV",
             file_size_bytes=100,
             modified_at=datetime(2026, 7, 31),
-            worksheets=(
-                WorksheetInfo("routes", 2, 3, ("From", "To", "Distance")),
-            ),
+            worksheets=(WorksheetInfo("routes", 2, 3, ("From", "To", "Distance")),),
         )
     )
 
@@ -553,9 +552,7 @@ def test_preview_extends_missing_headers_and_handles_no_rows(qtbot: object) -> N
         file_type="XLSX",
         file_size_bytes=1,
         modified_at=datetime(2026, 7, 31, 15, 0),
-        worksheets=(
-            WorksheetInfo("Wide", 1, 3, ("Only header",), ()),
-        ),
+        worksheets=(WorksheetInfo("Wide", 1, 3, ("Only header",), ()),),
     )
 
     page.set_inspection(info)
@@ -672,14 +669,8 @@ def test_preview_generates_headers_when_worksheet_has_none(qtbot: object) -> Non
     )
 
     assert page._preview_model.columnCount() == 2
-    assert (
-        page._preview_model.headerData(0, Qt.Orientation.Horizontal)
-        == "Column 1"
-    )
-    assert (
-        page._preview_model.headerData(1, Qt.Orientation.Horizontal)
-        == "Column 2"
-    )
+    assert page._preview_model.headerData(0, Qt.Orientation.Horizontal) == "Column 1"
+    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Column 2"
 
 
 def test_sheet_change_before_inspection_is_ignored(qtbot: object) -> None:
@@ -810,9 +801,7 @@ def test_complete_workspace_configuration_emits_ready_state(
     assert page.workspace_ready
     assert ready_states == [True]
     assert configurations[-1] == configuration
-    assert page._workspace_readiness_status.text() == (
-        "Setup ready for calculation"
-    )
+    assert page._workspace_readiness_status.text() == ("Setup ready for calculation")
     assert page._workspace_readiness_status.property("valid") is True
 
 
@@ -906,8 +895,6 @@ def test_workspace_reports_both_incomplete_sections(qtbot: object) -> None:
     assert page._workspace_readiness_status.property("valid") is False
 
 
-
-
 def test_mapping_and_provider_share_configuration_row(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
@@ -969,10 +956,55 @@ def test_skip_existing_results_option_updates_workspace_configuration(
         )
     )
 
-    assert page.workspace_configuration is not None
-    assert page.workspace_configuration.skip_existing_results
-
     page._skip_existing_results_checkbox.setChecked(False)
 
-    assert page.workspace_configuration is not None
-    assert not page.workspace_configuration.skip_existing_results
+    configuration = page.workspace_configuration
+    assert configuration is not None
+    assert configuration.skip_existing_results is False
+
+
+def make_summary(*, failed: int = 0, stopped: bool = False) -> BatchSummary:
+    return BatchSummary(
+        total=10,
+        completed=10,
+        successful=8 if failed else 10,
+        failed=failed,
+        skipped=1 if failed else 0,
+        invalid=1 if failed else 0,
+        resumed=2,
+        retry_count=3,
+        elapsed_seconds=12.0,
+        items_per_minute=50.0,
+        output_file="routes.result.xlsx",
+        stopped=stopped,
+    )
+
+
+def test_batch_summary_is_rendered_and_retry_is_emitted(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    assert not page._summary_frame.isVisible()
+    assert not page._retry_failed_button.isEnabled()
+
+    page.set_batch_summary(make_summary(failed=2))
+
+    assert page._summary_frame.isVisibleTo(page)
+    assert "8/10 successful" in page._summary_label.text()
+    assert "Failed 2" in page._summary_label.text()
+    assert "Skipped 1" in page._summary_label.text()
+    assert page._retry_failed_button.isEnabled()
+
+    with qtbot.waitSignal(page.retry_failed_requested):  # type: ignore[attr-defined]
+        page._retry_failed_button.click()
+
+    page.set_batch_summary(make_summary(stopped=True))
+    assert page._summary_label.text().startswith("Stopped:")
+    assert not page._retry_failed_button.isEnabled()
+
+    page.clear_batch_summary()
+    assert not page._summary_frame.isVisible()
+    assert page._summary_label.text() == "No batch summary available"

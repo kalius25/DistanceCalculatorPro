@@ -33,9 +33,7 @@ def test_apply_theme_normalizes_name_and_applies_stylesheet(
 
     manager.apply_theme(application, "  DARK ")
 
-    application.setStyleSheet.assert_called_once_with(
-        "QWidget { color: white; }"
-    )
+    application.setStyleSheet.assert_called_once_with("QWidget { color: white; }")
     assert manager.current_theme == "dark"
 
 
@@ -46,9 +44,7 @@ def test_apply_theme_rejects_unsupported_theme(
 
     with pytest.raises(
         ValueError,
-        match=(
-            "Unsupported theme 'blue'. Supported themes: light, dark."
-        ),
+        match=("Unsupported theme 'blue'. Supported themes: light, dark."),
     ):
         manager.apply_theme(MagicMock(), "blue")
 

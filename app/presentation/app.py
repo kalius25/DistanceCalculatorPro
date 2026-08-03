@@ -74,9 +74,7 @@ def create_application() -> tuple[
 
     package_directory = Path(__file__).resolve().parent
     resource_manager = ResourceManager(package_directory)
-    application.setWindowIcon(
-        QIcon(str(resource_manager.application_icon_path()))
-    )
+    application.setWindowIcon(QIcon(str(resource_manager.application_icon_path())))
 
     splash_screen = SplashScreen(resource_manager)
     splash_screen.show()
@@ -126,9 +124,7 @@ def create_application() -> tuple[
 
 
 def main() -> int:
-    application, main_window, exception_handler, splash_screen = (
-        create_application()
-    )
+    application, main_window, exception_handler, splash_screen = create_application()
     main_window.show()
     splash_screen.finish(main_window)
     try:

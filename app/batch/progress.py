@@ -19,6 +19,7 @@ class ProgressSnapshot:
     completed: int
     successful: int
     failed: int
+    skipped: int
     remaining: int
     elapsed_seconds: float
     average_seconds_per_item: float
@@ -37,14 +38,15 @@ class BatchProgressTracker:
         initial_completed: int = 0,
         initial_successful: int = 0,
         initial_failed: int = 0,
+        initial_skipped: int = 0,
     ) -> None:
         if total < 0:
             raise ValueError("Total jobs cannot be negative.")
         if not 0 <= initial_completed <= total:
             raise ValueError("Initial completed jobs must be within total.")
-        if initial_successful < 0 or initial_failed < 0:
+        if initial_successful < 0 or initial_failed < 0 or initial_skipped < 0:
             raise ValueError("Initial result counts cannot be negative.")
-        if initial_successful + initial_failed > initial_completed:
+        if initial_successful + initial_failed + initial_skipped > initial_completed:
             raise ValueError("Initial result counts exceed completed jobs.")
         self._total = total
         self._clock = clock
@@ -54,6 +56,7 @@ class BatchProgressTracker:
         self._completed = initial_completed
         self._successful = initial_successful
         self._failed = initial_failed
+        self._skipped = initial_skipped
 
     @property
     def snapshot(self) -> ProgressSnapshot:
@@ -63,15 +66,14 @@ class BatchProgressTracker:
         remaining = max(self._total - self._completed, 0)
         eta = average * remaining if self._completed else 0.0
         percent = (
-            min(self._completed / self._total * 100.0, 100.0)
-            if self._total
-            else 100.0
+            min(self._completed / self._total * 100.0, 100.0) if self._total else 100.0
         )
         return ProgressSnapshot(
             total=self._total,
             completed=self._completed,
             successful=self._successful,
             failed=self._failed,
+            skipped=self._skipped,
             remaining=remaining,
             elapsed_seconds=elapsed,
             average_seconds_per_item=average,
@@ -85,6 +87,8 @@ class BatchProgressTracker:
         self._completed += 1
         if job.status is RouteJobStatus.DONE:
             self._successful += 1
+        elif job.status is RouteJobStatus.SKIPPED:
+            self._skipped += 1
         else:
             self._failed += 1
         return self.snapshot

@@ -47,6 +47,7 @@ def test_best_route_returns_none_when_routes_empty():
 
     assert result.best_route is None
 
+
 def test_best_route_returns_none_when_selected_route_out_of_range():
     request = make_request()
 
@@ -117,6 +118,7 @@ def test_route_result_context_is_mutable():
     result.context["retry"] = 2
 
     assert result.context["retry"] == 2
+
 
 def test_best_route_returns_none_when_selected_route_negative():
     request = make_request()

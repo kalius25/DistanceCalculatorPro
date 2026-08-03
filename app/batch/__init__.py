@@ -18,12 +18,15 @@ from .retry_decision import RetryDecision
 from .retry_policy import RetryPolicy
 from .row_mapper import RowMapper
 from .row_validator import RowValidation, RowValidator
+from .summary import BatchSummary, BatchSummaryWriter
 from .workbook_reader import WorkbookReader
 
 __all__ = [
     "AutoSavePolicy",
     "BaseResultWriter",
     "BatchQueue",
+    "BatchSummary",
+    "BatchSummaryWriter",
     "ResumeDecision",
     "ResumeAnalyzer",
     "ProgressSnapshot",

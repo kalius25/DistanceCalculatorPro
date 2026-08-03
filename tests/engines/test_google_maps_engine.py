@@ -128,9 +128,7 @@ def test_find_routes_timeout_raises_engine_exception(engine):
     assert exception.error_code is ErrorCode.ENGINE_ERROR
     assert isinstance(exception.cause, PlaywrightTimeoutError)
     assert exception.context["origin"] == request.origin
-    assert exception.context["url"].startswith(
-        "https://www.google.com/maps/dir/"
-    )
+    assert exception.context["url"].startswith("https://www.google.com/maps/dir/")
 
 
 def test_find_routes_playwright_error(engine):

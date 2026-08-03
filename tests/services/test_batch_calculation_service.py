@@ -186,6 +186,7 @@ def test_calculate_finishes_batch_when_calculation_raises():
     service = BatchCalculationService(calculation_service)
 
     import pytest
+
     with pytest.raises(RuntimeError, match="failed"):
         service.calculate([request])
     calculation_service.finish_batch.assert_called_once_with()
@@ -277,11 +278,14 @@ def test_calculate_queue_stops_after_pause_and_marks_unexpected_failure():
     queue = BatchQueue([job])
     checks = iter([False, True])
 
-    assert service.calculate_queue(
-        queue,
-        should_stop=lambda: next(checks),
-        wait_if_paused=MagicMock(),
-    ) == []
+    assert (
+        service.calculate_queue(
+            queue,
+            should_stop=lambda: next(checks),
+            wait_if_paused=MagicMock(),
+        )
+        == []
+    )
     assert job.status is RouteJobStatus.PENDING
 
     job = RouteJob(2, "A", "B", "Distance")
@@ -345,10 +349,13 @@ def test_calculate_queue_flushes_writer_for_empty_and_exception() -> None:
     calculation_service = MagicMock()
     service = BatchCalculationService(calculation_service)
     writer = MagicMock()
-    assert service.calculate_queue(
-        BatchQueue(),
-        result_writer=writer,
-    ) == []
+    assert (
+        service.calculate_queue(
+            BatchQueue(),
+            result_writer=writer,
+        )
+        == []
+    )
     writer.flush.assert_called_once_with()
 
     writer.reset_mock()
@@ -460,9 +467,7 @@ def test_calculate_queue_exhausts_retries_and_reports_once() -> None:
         ),
     )
 
-    assert service.calculate_queue(queue, progress_callback=callback) == [
-        failures[-1]
-    ]
+    assert service.calculate_queue(queue, progress_callback=callback) == [failures[-1]]
 
     assert job.status is RouteJobStatus.FAILED
     assert job.attempt_count == 3
@@ -558,11 +563,14 @@ def test_calculate_queue_stop_during_retry_returns_job_to_pending() -> None:
         sleep_callback=sleeper,
     )
 
-    assert service.calculate_queue(
-        queue,
-        should_stop=lambda: next(checks),
-        wait_if_paused=wait,
-    ) == []
+    assert (
+        service.calculate_queue(
+            queue,
+            should_stop=lambda: next(checks),
+            wait_if_paused=wait,
+        )
+        == []
+    )
 
     assert job.status is RouteJobStatus.PENDING
     assert job.attempt_count == 1
@@ -585,10 +593,13 @@ def test_calculate_queue_stop_after_retryable_exception_requeues_job() -> None:
         sleep_callback=MagicMock(),
     )
 
-    assert service.calculate_queue(
-        queue,
-        should_stop=lambda: next(checks),
-    ) == []
+    assert (
+        service.calculate_queue(
+            queue,
+            should_stop=lambda: next(checks),
+        )
+        == []
+    )
     assert job.status is RouteJobStatus.PENDING
     assert job.attempt_count == 1
     assert job.retry_count == 1
@@ -615,10 +626,13 @@ def test_calculate_queue_stop_after_zero_retry_delay_requeues_job() -> None:
         retry_policy=RetryPolicy(max_attempts=2, initial_delay_seconds=0),
     )
 
-    assert service.calculate_queue(
-        queue,
-        should_stop=lambda: next(checks),
-    ) == []
+    assert (
+        service.calculate_queue(
+            queue,
+            should_stop=lambda: next(checks),
+        )
+        == []
+    )
     assert job.status is RouteJobStatus.PENDING
     assert job.attempt_count == 1
     assert job.retry_count == 1

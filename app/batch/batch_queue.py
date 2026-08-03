@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Iterable, Iterator
+from dataclasses import replace
 
 from .models import RouteJob, RouteJobStatus
 
@@ -41,7 +42,6 @@ class BatchQueue:
         job.status = RouteJobStatus.FAILED
         job.validation_error = message
 
-
     def mark_retry(self, job: RouteJob, message: str) -> None:
         """Record a transient failure while retaining the active job."""
         self._require(job, RouteJobStatus.RUNNING)
@@ -66,6 +66,23 @@ class BatchQueue:
             job.retry_count += 1
         job.status = RouteJobStatus.PENDING
         self._pending.append(job)
+
+    def failed_only(self) -> BatchQueue:
+        """Create a new queue containing only failed jobs reset to pending."""
+        jobs = [
+            replace(
+                job,
+                status=RouteJobStatus.PENDING,
+                validation_error=None,
+                last_error=None,
+                started_at=None,
+                finished_at=None,
+                metadata={**job.metadata, "retry_failed_only": True},
+            )
+            for job in self._jobs
+            if job.status is RouteJobStatus.FAILED
+        ]
+        return BatchQueue(jobs)
 
     def count(self, status: RouteJobStatus) -> int:
         return sum(job.status is status for job in self._jobs)

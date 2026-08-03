@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.batch.progress import ProgressSnapshot
+from app.batch.summary import BatchSummary
 from app.diagnostics import DiagnosticsManager, DiagnosticsSettings
 from app.logging import LoggingManager
 from app.workbooks import (
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
     calculation_completed = Signal(object)
     calculation_stopped = Signal(object)
     calculation_failed = Signal(str)
+    calculation_summary = Signal(object)
 
     HOME_PAGE_INDEX = 0
     HISTORY_PAGE_INDEX = 1
@@ -79,6 +81,7 @@ class MainWindow(QMainWindow):
         self._settings_manager = settings_manager
         self._execution_state = ExecutionState.IDLE
         self._execution_coordinator = execution_coordinator
+        self._last_summary: BatchSummary | None = None
         self._diagnostics_manager = diagnostics_manager or DiagnosticsManager()
         self._workbook_inspector = workbook_inspector or WorkbookInspectorService(
             (OpenPyXLWorkbookReader(), CsvWorkbookReader())
@@ -127,6 +130,11 @@ class MainWindow(QMainWindow):
         self._action_stop.setShortcut(QKeySequence("Shift+F5"))
         self._action_stop.setToolTip("Stop calculation (Shift+F5)")
 
+        self._action_retry_failed = QAction("Retry Failed", self)
+        self._action_retry_failed.setToolTip(
+            "Run only rows that failed in the previous batch"
+        )
+
         self._action_settings = QAction("Settings", self)
         self._action_settings.setShortcut(QKeySequence("Ctrl+,"))
         self._action_settings.setToolTip("Open settings (Ctrl+,)")
@@ -135,9 +143,7 @@ class MainWindow(QMainWindow):
         self._action_debug_mode.setCheckable(True)
         self._action_trace_browser = QAction("Trace Browser", self)
         self._action_trace_browser.setCheckable(True)
-        self._action_parser_diagnostics = QAction(
-            "Parser Diagnostics", self
-        )
+        self._action_parser_diagnostics = QAction("Parser Diagnostics", self)
         self._action_parser_diagnostics.setCheckable(True)
         self._action_save_html = QAction("Save HTML", self)
         self._action_save_html.setCheckable(True)
@@ -204,9 +210,7 @@ class MainWindow(QMainWindow):
 
         self._file_menu: QMenu = menu_bar.addMenu("&File")
         self._file_menu.addAction(self._action_open)
-        self._recent_files_menu: QMenu = self._file_menu.addMenu(
-            "Recent Files"
-        )
+        self._recent_files_menu: QMenu = self._file_menu.addMenu("Recent Files")
         self._file_menu.addSeparator()
         self._file_menu.addAction(self._action_exit)
 
@@ -236,6 +240,7 @@ class MainWindow(QMainWindow):
         self._toolbar.addAction(self._action_start)
         self._toolbar.addAction(self._action_pause)
         self._toolbar.addAction(self._action_stop)
+        self._toolbar.addAction(self._action_retry_failed)
         self._toolbar.addSeparator()
         self._toolbar.addAction(self._action_settings)
         self.addToolBar(self._toolbar)
@@ -264,9 +269,7 @@ class MainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self._navigation.page_changed.connect(self._content_stack.setCurrentIndex)
-        self._content_stack.currentChanged.connect(
-            self._on_current_page_changed
-        )
+        self._content_stack.currentChanged.connect(self._on_current_page_changed)
         self._action_exit.triggered.connect(self.close)
         self._action_light_theme.triggered.connect(self._on_light_theme_selected)
         self._action_dark_theme.triggered.connect(self._on_dark_theme_selected)
@@ -275,49 +278,36 @@ class MainWindow(QMainWindow):
         self._action_open.triggered.connect(self._browse_for_workbook)
         self._home_page.browse_requested.connect(self._browse_for_workbook)
         self._home_page.file_selected.connect(self._select_workbook)
-        self._home_page.clear_recent_requested.connect(
-            self._clear_recent_files
-        )
+        self._home_page.clear_recent_requested.connect(self._clear_recent_files)
         self._action_start.triggered.connect(self._start_calculation)
         self._action_pause.triggered.connect(self._toggle_pause)
         self._action_stop.triggered.connect(self._stop_calculation)
+        self._action_retry_failed.triggered.connect(self._retry_failed)
+        self._home_page.retry_failed_requested.connect(self._retry_failed)
         self._home_page.workspace_ready_changed.connect(
             self._on_workspace_ready_changed
         )
         if self._execution_coordinator is not None:
-            self._execution_coordinator.progress.connect(
-                self._on_calculation_progress
-            )
-            self._execution_coordinator.metrics.connect(
-                self._on_calculation_metrics
-            )
+            self._execution_coordinator.progress.connect(self._on_calculation_progress)
+            self._execution_coordinator.metrics.connect(self._on_calculation_metrics)
             self._execution_coordinator.completed.connect(
                 self._on_calculation_completed
             )
-            self._execution_coordinator.stopped.connect(
-                self._on_calculation_stopped
+            self._execution_coordinator.stopped.connect(self._on_calculation_stopped)
+            self._execution_coordinator.failed.connect(self._on_calculation_failed)
+            summary_signal = getattr(
+                self._execution_coordinator,
+                "summary",
+                None,
             )
-            self._execution_coordinator.failed.connect(
-                self._on_calculation_failed
-            )
-        self._action_debug_mode.toggled.connect(
-            self._on_diagnostics_changed
-        )
-        self._action_trace_browser.toggled.connect(
-            self._on_diagnostics_changed
-        )
-        self._action_parser_diagnostics.toggled.connect(
-            self._on_diagnostics_changed
-        )
-        self._action_save_html.toggled.connect(
-            self._on_diagnostics_changed
-        )
-        self._action_save_screenshot.toggled.connect(
-            self._on_diagnostics_changed
-        )
-        self._action_save_json.toggled.connect(
-            self._on_diagnostics_changed
-        )
+            if summary_signal is not None:
+                summary_signal.connect(self._on_calculation_summary)
+        self._action_debug_mode.toggled.connect(self._on_diagnostics_changed)
+        self._action_trace_browser.toggled.connect(self._on_diagnostics_changed)
+        self._action_parser_diagnostics.toggled.connect(self._on_diagnostics_changed)
+        self._action_save_html.toggled.connect(self._on_diagnostics_changed)
+        self._action_save_screenshot.toggled.connect(self._on_diagnostics_changed)
+        self._action_save_json.toggled.connect(self._on_diagnostics_changed)
         self._action_home.triggered.connect(self._show_action_page)
         self._action_history.triggered.connect(self._show_action_page)
         self._action_settings_page.triggered.connect(self._show_action_page)
@@ -374,9 +364,7 @@ class MainWindow(QMainWindow):
         settings = DiagnosticsSettings(
             enabled=enabled,
             trace_browser=self._action_trace_browser.isChecked(),
-            parser_diagnostics=(
-                self._action_parser_diagnostics.isChecked()
-            ),
+            parser_diagnostics=(self._action_parser_diagnostics.isChecked()),
             save_html=self._action_save_html.isChecked(),
             save_screenshot=self._action_save_screenshot.isChecked(),
             save_json=self._action_save_json.isChecked(),
@@ -385,16 +373,10 @@ class MainWindow(QMainWindow):
         LoggingManager.set_debug_enabled(enabled)
         if persist:
             self._settings_manager.set_debug_enabled(enabled)
-            self._settings_manager.set_trace_browser(
-                settings.trace_browser
-            )
-            self._settings_manager.set_parser_diagnostics(
-                settings.parser_diagnostics
-            )
+            self._settings_manager.set_trace_browser(settings.trace_browser)
+            self._settings_manager.set_parser_diagnostics(settings.parser_diagnostics)
             self._settings_manager.set_save_html(settings.save_html)
-            self._settings_manager.set_save_screenshot(
-                settings.save_screenshot
-            )
+            self._settings_manager.set_save_screenshot(settings.save_screenshot)
             self._settings_manager.set_save_json(settings.save_json)
 
     def _on_light_theme_selected(self) -> None:
@@ -432,21 +414,18 @@ class MainWindow(QMainWindow):
 
     def _update_action_icons(self, theme_name: str) -> None:
         icon_color = (
-            self.LIGHT_ICON_COLOR
-            if theme_name == "light"
-            else self.DARK_ICON_COLOR
+            self.LIGHT_ICON_COLOR if theme_name == "light" else self.DARK_ICON_COLOR
         )
         icon_options = {
             "color": icon_color,
             "color_disabled": self.DISABLED_ICON_COLOR,
         }
 
-        self._action_open.setIcon(
-            qta.icon("fa5s.folder-open", **icon_options)
-        )
+        self._action_open.setIcon(qta.icon("fa5s.folder-open", **icon_options))
         self._action_start.setIcon(qta.icon("fa5s.play", **icon_options))
         self._action_pause.setIcon(qta.icon("fa5s.pause", **icon_options))
         self._action_stop.setIcon(qta.icon("fa5s.stop", **icon_options))
+        self._action_retry_failed.setIcon(qta.icon("fa5s.redo", **icon_options))
         self._action_settings.setIcon(qta.icon("fa5s.cog", **icon_options))
 
     def _restore_window_state(self) -> None:
@@ -541,10 +520,7 @@ class MainWindow(QMainWindow):
         configuration = self._home_page.workspace_configuration
         file_path = self._home_page.selected_file
         sheet_name = self._home_page.selected_sheet_name
-        if (
-            self._execution_state is not ExecutionState.IDLE
-            or configuration is None
-        ):
+        if self._execution_state is not ExecutionState.IDLE or configuration is None:
             return
 
         if self._execution_coordinator is not None:
@@ -554,8 +530,20 @@ class MainWindow(QMainWindow):
             if not self._execution_coordinator.start(job):
                 return
 
+        self._home_page.clear_batch_summary()
+        self._last_summary = None
         self._set_execution_state(ExecutionState.RUNNING)
         self.calculation_requested.emit(configuration)
+
+    def _retry_failed(self) -> None:
+        if (
+            self._execution_state is not ExecutionState.IDLE
+            or self._execution_coordinator is None
+            or not self._execution_coordinator.retry_failed()
+        ):
+            return
+        self._set_execution_state(ExecutionState.RUNNING)
+        self._status_label.setText("Retrying failed routes")
 
     def _toggle_pause(self) -> None:
         if self._execution_state is ExecutionState.RUNNING:
@@ -584,9 +572,7 @@ class MainWindow(QMainWindow):
         _request: object,
         _result: object,
     ) -> None:
-        self._status_label.setText(
-            f"Calculating route {current:,} of {total:,}"
-        )
+        self._status_label.setText(f"Calculating route {current:,} of {total:,}")
         self.calculation_progress.emit(
             current,
             total,
@@ -616,12 +602,22 @@ class MainWindow(QMainWindow):
             return f"{hours:02d}:{minutes:02d}:{seconds_value:02d}"
         return f"{minutes:02d}:{seconds_value:02d}"
 
+    def _on_calculation_summary(self, summary: object) -> None:
+        if not isinstance(summary, BatchSummary):
+            return
+        self._last_summary = summary
+        self._home_page.set_batch_summary(summary)
+        self._status_label.setText(
+            f"Completed {summary.successful:,}/{summary.total:,} · "
+            f"Failed {summary.failed:,} · Retried {summary.retry_count:,}"
+        )
+        self.calculation_summary.emit(summary)
+        self._update_execution_actions()
+
     def _on_calculation_completed(self, results: object) -> None:
         result_count = len(results) if isinstance(results, list) else 0
         self._set_execution_state(ExecutionState.IDLE)
-        self._status_label.setText(
-            f"Calculation completed · {result_count:,} results"
-        )
+        self._status_label.setText(f"Calculation completed · {result_count:,} results")
         self.calculation_completed.emit(results)
 
     def _on_calculation_stopped(self, results: object) -> None:
@@ -646,9 +642,7 @@ class MainWindow(QMainWindow):
         if state is self._execution_state:
             return
         self._execution_state = state
-        self._home_page.set_workspace_locked(
-            state is not ExecutionState.IDLE
-        )
+        self._home_page.set_workspace_locked(state is not ExecutionState.IDLE)
         self._update_execution_actions()
 
     def _update_execution_actions(self) -> None:
@@ -659,6 +653,9 @@ class MainWindow(QMainWindow):
         self._action_start.setEnabled(idle and self._home_page.workspace_ready)
         self._action_pause.setEnabled(running or paused)
         self._action_stop.setEnabled(running or paused)
+        self._action_retry_failed.setEnabled(
+            idle and self._last_summary is not None and self._last_summary.failed > 0
+        )
         self._action_open.setEnabled(idle)
 
         self._action_pause.setText("Resume" if paused else "Pause")

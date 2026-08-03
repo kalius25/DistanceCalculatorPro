@@ -36,9 +36,7 @@ class RowMapper:
         )
         missing = [column for column in required if column not in indexes]
         if missing:
-            raise BatchWorkbookError(
-                "Missing mapped columns: " + ", ".join(missing)
-            )
+            raise BatchWorkbookError("Missing mapped columns: " + ", ".join(missing))
         return indexes
 
     def map_row(
@@ -55,9 +53,7 @@ class RowMapper:
             indexes[mapping.destination_column],
         )
         validation = self._validator.validate(origin, destination)
-        result_value = self._raw_cell(
-            row.values, indexes[mapping.result_column]
-        )
+        result_value = self._raw_cell(row.values, indexes[mapping.result_column])
         resume = self._resume_analyzer.analyze(
             result_value, configuration.skip_existing_results
         )
@@ -78,12 +74,8 @@ class RowMapper:
             result_column=mapping.result_column,
             travel_mode=provider.travel_mode,
             toll_preference=avoid if provider.avoid_tolls else automatic,
-            highway_preference=(
-                avoid if provider.avoid_highways else automatic
-            ),
-            ferry_preference=(
-                avoid if provider.avoid_ferries else automatic
-            ),
+            highway_preference=(avoid if provider.avoid_highways else automatic),
+            ferry_preference=(avoid if provider.avoid_ferries else automatic),
             status=status,
             validation_error=validation.message,
             result_distance_km=distance_km,

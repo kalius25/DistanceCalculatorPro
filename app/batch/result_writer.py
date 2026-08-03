@@ -187,19 +187,22 @@ class ResultWriterFactory:
         source_path: str | Path,
         sheet_name: str,
         autosave_policy: AutoSavePolicy | None = None,
+        *,
+        resume_from_output: bool = False,
     ) -> BaseResultWriter:
         source = Path(source_path)
         output = self._output_path_policy.build(source)
+        input_path = output if resume_from_output and output.exists() else source
         suffix = source.suffix.casefold()
         if suffix in {".xlsx", ".xlsm"}:
             return ExcelResultWriter(
-                source,
+                input_path,
                 sheet_name,
                 output,
                 autosave_policy,
             )
         if suffix == ".csv":
-            return CsvResultWriter(source, output, autosave_policy)
+            return CsvResultWriter(input_path, output, autosave_policy)
         raise ValueError(f"Unsupported workbook type: {source.suffix}")
 
 

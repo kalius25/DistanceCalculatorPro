@@ -16,10 +16,7 @@ def test_calculation_started(
     }
 
     monkeypatch.setattr(
-        (
-            "app.logging.log_events."
-            "LocationLogPolicy.build"
-        ),
+        ("app.logging.log_events." "LocationLogPolicy.build"),
         lambda **kwargs: location_fields,
     )
 
@@ -34,9 +31,7 @@ def test_calculation_started(
         extra={
             "event": "CALCULATION_STARTED",
             "origin_hash": "origin-hash",
-            "destination_hash": (
-                "destination-hash"
-            ),
+            "destination_hash": ("destination-hash"),
         },
     )
 
@@ -213,6 +208,7 @@ def test_parser_completed():
         },
     )
 
+
 def test_extra_omits_none_values():
     result = LoggingEvents._extra(
         "TEST_EVENT",
@@ -224,4 +220,3 @@ def test_extra_omits_none_values():
         "event": "TEST_EVENT",
         "provider": "google_web",
     }
-

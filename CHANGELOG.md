@@ -1,3 +1,10 @@
+## 1.2.0-alpha26
+
+- Added Retry Failed Only execution based on the previous failed job queue.
+- Added batch summary metrics and timestamped JSON reports.
+- Added Retry Failed toolbar action and compact GUI summary.
+- Retry-failed execution now resumes from the existing result workbook.
+
 
 ## 1.2.0-alpha25
 

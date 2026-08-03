@@ -40,9 +40,7 @@ def make_result(
 def test_retry_decision_accepts_transient_error_codes(
     error_code: ErrorCode,
 ) -> None:
-    assert RetryDecision().should_retry_result(
-        make_result(error_code=error_code)
-    )
+    assert RetryDecision().should_retry_result(make_result(error_code=error_code))
 
 
 def test_retry_decision_rejects_success_and_terminal_failures() -> None:

@@ -36,6 +36,7 @@ def test_constructor():
 
     assert service.provider is provider
 
+
 def test_validate_success():
     request = make_request()
 
@@ -55,6 +56,7 @@ def test_validate_empty_origin():
     assert exc.value.context == {
         "field": "origin",
     }
+
 
 def test_validate_empty_destination():
     request = make_request(destination=" ")
@@ -127,6 +129,7 @@ def test_calculate_provider_exception():
     with pytest.raises(RuntimeError, match="boom"):
         service.calculate(request)
 
+
 def test_calculate_validation_exception():
     request = make_request(origin="")
 
@@ -141,6 +144,7 @@ def test_calculate_validation_exception():
         service.calculate(request)
 
     provider.calculate.assert_not_called()
+
 
 def test_calculate_returns_and_logs_failed_provider_result(
     monkeypatch,
@@ -192,6 +196,7 @@ def test_calculate_returns_and_logs_failed_provider_result(
         exception=provider_exception,
     )
 
+
 def test_calculate_failed_result_uses_provider_class_name(
     monkeypatch,
 ):
@@ -230,6 +235,7 @@ def test_calculate_failed_result_uses_provider_class_name(
         error_message="Unknown provider error.",
         exception=None,
     )
+
 
 def test_calculate_failed_result_uses_fallback_values(
     monkeypatch,
@@ -270,6 +276,7 @@ def test_calculate_failed_result_uses_fallback_values(
         exception=None,
     )
 
+
 def test_validate_origin_equals_destination():
     request = make_request(
         origin="Can Tho",
@@ -288,6 +295,7 @@ def test_validate_origin_equals_destination():
         "destination": "Can Tho",
     }
 
+
 def test_validate_origin_equals_destination_after_strip():
     request = make_request(
         origin="  Can Tho ",
@@ -299,6 +307,7 @@ def test_validate_origin_equals_destination_after_strip():
         match="Origin and destination cannot be the same.",
     ):
         CalculationService._validate(request)
+
 
 class SampleErrorCode(Enum):
     ENGINE_ERROR = "ENGINE_ERROR"
@@ -330,6 +339,7 @@ def test_calculate_distance_calculator_exception():
         result.exception,
         ProviderException,
     )
+
 
 def test_batch_lifecycle_is_delegated_to_provider():
     provider = MagicMock()

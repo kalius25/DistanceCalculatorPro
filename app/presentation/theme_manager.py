@@ -21,8 +21,7 @@ class ThemeManager:
         if normalized_theme not in self.SUPPORTED_THEMES:
             supported = ", ".join(self.SUPPORTED_THEMES)
             raise ValueError(
-                f"Unsupported theme '{theme_name}'. "
-                f"Supported themes: {supported}."
+                f"Unsupported theme '{theme_name}'. " f"Supported themes: {supported}."
             )
 
         theme_path = self._resource_manager.style_path(normalized_theme)

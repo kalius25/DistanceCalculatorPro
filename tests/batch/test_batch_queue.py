@@ -103,3 +103,22 @@ def test_queue_rejects_invalid_retry_state_transitions() -> None:
         queue.mark_retry(pending, "timeout")
     with pytest.raises(ValueError, match="Expected job state retry"):
         queue.resume_retry(pending)
+
+
+def test_queue_builds_failed_only_retry_queue() -> None:
+    done = RouteJob(2, "A", "B", "Distance")
+    done.status = RouteJobStatus.DONE
+    failed = RouteJob(3, "C", "D", "Distance")
+    failed.status = RouteJobStatus.FAILED
+    failed.validation_error = "timeout"
+    failed.last_error = "timeout"
+
+    retry_queue = BatchQueue((done, failed)).failed_only()
+
+    assert len(retry_queue) == 1
+    retry_job = next(iter(retry_queue))
+    assert retry_job.status is RouteJobStatus.PENDING
+    assert retry_job.validation_error is None
+    assert retry_job.last_error is None
+    assert retry_job.metadata["retry_failed_only"] is True
+    assert failed.status is RouteJobStatus.FAILED

@@ -13,6 +13,7 @@ from app.batch.workbook_reader import WorkbookReader
 
 FIXTURE_DIRECTORY = Path(__file__).parent.parent / "fixtures"
 
+
 def test_excel_reader_streams_rows_and_closes_after_iteration(
     tmp_path: Path,
 ) -> None:
@@ -28,13 +29,11 @@ def test_excel_reader_streams_rows_and_closes_after_iteration(
         "Destination",
         "",
     )
-    assert [
-        (row.row_number, row.values)
-        for row in stream.rows
-    ] == [
+    assert [(row.row_number, row.values) for row in stream.rows] == [
         (2, ("A", "B", None)),
         (3, ("C", "D", 12)),
     ]
+
 
 def test_csv_reader_streams_rows_and_supports_empty_file(tmp_path: Path) -> None:
     path = tmp_path / "routes.csv"
@@ -53,6 +52,7 @@ def test_csv_reader_streams_rows_and_supports_empty_file(tmp_path: Path) -> None
     empty_stream = WorkbookReader().read(empty, "ignored")
     assert empty_stream.headers == ()
     assert list(empty_stream.rows) == []
+
 
 def test_reader_rejects_missing_unsupported_and_unknown_sheet(
     tmp_path: Path,
@@ -107,6 +107,7 @@ def test_reader_rejects_missing_unsupported_and_unknown_sheet(
     )
     workbook.close.assert_called_once_with()
 
+
 def test_excel_reader_closes_source_when_workbook_is_invalid(
     tmp_path: Path,
 ) -> None:
@@ -120,6 +121,7 @@ def test_excel_reader_closes_source_when_workbook_is_invalid(
             path,
             "Routes",
         )
+
 
 def test_excel_stream_can_be_closed_before_full_iteration(
     tmp_path: Path,
@@ -142,6 +144,7 @@ def test_excel_stream_can_be_closed_before_full_iteration(
     assert first_row.row_number == 2
 
     rows.close()
+
 
 class _UnprintableHeader:
     def __str__(self) -> str:
@@ -207,6 +210,7 @@ def test_excel_reader_supports_iterator_without_close(
         (2, ("A", "B")),
     ]
     workbook.close.assert_called_once_with()
+
 
 def test_excel_reader_handles_non_closable_iterator_during_header_error(
     tmp_path: Path,

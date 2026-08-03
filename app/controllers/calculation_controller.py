@@ -193,10 +193,7 @@ class CalculationController:
             sheet_name,
         )
 
-        header_index = {
-            header: index
-            for index, header in enumerate(headers)
-        }
+        header_index = {header: index for index, header in enumerate(headers)}
 
         requests: list[RouteRequest] = []
 
@@ -204,13 +201,9 @@ class CalculationController:
             rows,
             start=2,
         ):
-            origin = values[
-                header_index[mapping.origin]
-            ]
+            origin = values[header_index[mapping.origin]]
 
-            destination = values[
-                header_index[mapping.destination]
-            ]
+            destination = values[header_index[mapping.destination]]
 
             requests.append(
                 RouteRequest(

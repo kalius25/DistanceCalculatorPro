@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.batch.summary import BatchSummary
 from app.enums.provider_type import ProviderType
 from app.enums.travel_mode import TravelMode
 from app.presentation.workspace_configuration import (
@@ -48,6 +49,7 @@ class HomePage(QWidget):
     provider_configuration_changed = Signal(str, str, bool, bool, bool)
     workspace_configuration_changed = Signal(object)
     workspace_ready_changed = Signal(bool)
+    retry_failed_requested = Signal()
 
     SUPPORTED_EXTENSIONS = frozenset({".xlsx", ".xlsm", ".csv"})
     DEFAULT_PREVIEW_ROWS = 20
@@ -90,9 +92,7 @@ class HomePage(QWidget):
             return None
         return ColumnMapping(
             origin_column=str(self._origin_column_selector.currentData()),
-            destination_column=str(
-                self._destination_column_selector.currentData()
-            ),
+            destination_column=str(self._destination_column_selector.currentData()),
             result_column=str(self._result_column_selector.currentData()),
         )
 
@@ -102,9 +102,7 @@ class HomePage(QWidget):
             return None
         return ProviderConfiguration(
             provider=ProviderType(str(self._provider_selector.currentData())),
-            travel_mode=TravelMode(
-                str(self._travel_mode_selector.currentData())
-            ),
+            travel_mode=TravelMode(str(self._travel_mode_selector.currentData())),
             avoid_tolls=self._avoid_tolls_checkbox.isChecked(),
             avoid_highways=self._avoid_highways_checkbox.isChecked(),
             avoid_ferries=self._avoid_ferries_checkbox.isChecked(),
@@ -119,9 +117,7 @@ class HomePage(QWidget):
         return WorkspaceConfiguration(
             mapping,
             provider,
-            skip_existing_results=(
-                self._skip_existing_results_checkbox.isChecked()
-            ),
+            skip_existing_results=(self._skip_existing_results_checkbox.isChecked()),
         )
 
     @property
@@ -315,9 +311,7 @@ class HomePage(QWidget):
         self._recent_files.setObjectName("lstRecentWorkbooks")
         self._recent_files.setAlternatingRowColors(True)
         recent_layout.addWidget(self._recent_files, 1)
-        self._clear_recent_button = QPushButton(
-            "Clear Recent List", self._recent_frame
-        )
+        self._clear_recent_button = QPushButton("Clear Recent List", self._recent_frame)
         self._clear_recent_button.setObjectName("btnClearRecent")
         self._clear_recent_button.setIcon(qta.icon("fa5s.trash-alt"))
         recent_layout.addWidget(self._clear_recent_button)
@@ -380,13 +374,12 @@ class HomePage(QWidget):
         file_panel_layout.addWidget(self._file_information_frame, 1)
 
         self._create_inspector_widgets()
+        self._create_summary_widgets()
         self._workspace_status = QLabel(self)
         self._workspace_status.setObjectName("lblWorkspaceStatus")
 
     def _create_inspector_widgets(self) -> None:
-        self._inspector_frame = self._create_section_frame(
-            "frmWorkbookInspector"
-        )
+        self._inspector_frame = self._create_section_frame("frmWorkbookInspector")
         inspector_layout = QVBoxLayout(self._inspector_frame)
         inspector_layout.setContentsMargins(16, 14, 16, 14)
         inspector_layout.setSpacing(10)
@@ -410,9 +403,7 @@ class HomePage(QWidget):
         self._preview_rows_selector.addItems(
             tuple(str(value) for value in self.PREVIEW_ROW_OPTIONS)
         )
-        self._preview_rows_selector.setCurrentText(
-            str(self.DEFAULT_PREVIEW_ROWS)
-        )
+        self._preview_rows_selector.setCurrentText(str(self.DEFAULT_PREVIEW_ROWS))
         preview_rows_layout.addWidget(preview_rows_caption)
         preview_rows_layout.addWidget(self._preview_rows_selector)
         summary_layout.addLayout(preview_rows_layout, 1)
@@ -492,9 +483,7 @@ class HomePage(QWidget):
             "Avoid highways", self._provider_frame
         )
         self._avoid_highways_checkbox.setObjectName("chkAvoidHighways")
-        self._avoid_ferries_checkbox = QCheckBox(
-            "Avoid ferries", self._provider_frame
-        )
+        self._avoid_ferries_checkbox = QCheckBox("Avoid ferries", self._provider_frame)
         self._avoid_ferries_checkbox.setObjectName("chkAvoidFerries")
         avoid_layout.addWidget(self._avoid_tolls_checkbox)
         avoid_layout.addWidget(self._avoid_highways_checkbox)
@@ -506,25 +495,17 @@ class HomePage(QWidget):
             "Skip rows already containing a result",
             self._provider_frame,
         )
-        self._skip_existing_results_checkbox.setObjectName(
-            "chkSkipExistingResults"
-        )
+        self._skip_existing_results_checkbox.setObjectName("chkSkipExistingResults")
         self._skip_existing_results_checkbox.setChecked(True)
-        provider_layout.addWidget(
-            self._skip_existing_results_checkbox, 3, 0, 1, 3
-        )
+        provider_layout.addWidget(self._skip_existing_results_checkbox, 3, 0, 1, 3)
 
         self._provider_status = QLabel(self._provider_frame)
         self._provider_status.setObjectName("lblProviderStatus")
         provider_layout.addWidget(self._provider_status, 4, 0, 1, 3)
 
         self._workspace_readiness_status = QLabel(self._provider_frame)
-        self._workspace_readiness_status.setObjectName(
-            "lblWorkspaceReadinessStatus"
-        )
-        provider_layout.addWidget(
-            self._workspace_readiness_status, 5, 0, 1, 3
-        )
+        self._workspace_readiness_status.setObjectName("lblWorkspaceReadinessStatus")
+        provider_layout.addWidget(self._workspace_readiness_status, 5, 0, 1, 3)
         provider_layout.setColumnStretch(0, 1)
         provider_layout.setColumnStretch(1, 1)
         provider_layout.setColumnStretch(2, 3)
@@ -564,6 +545,39 @@ class HomePage(QWidget):
         preview_layout.addWidget(self._preview_table, 1)
         inspector_layout.addWidget(preview_frame, 1)
 
+    def _create_summary_widgets(self) -> None:
+        self._summary_frame = self._create_section_frame("frmBatchSummary")
+        summary_layout = QHBoxLayout(self._summary_frame)
+        summary_layout.setContentsMargins(16, 10, 16, 10)
+        summary_layout.setSpacing(12)
+        self._summary_label = QLabel("No batch summary available", self._summary_frame)
+        self._summary_label.setObjectName("lblBatchSummary")
+        self._summary_label.setWordWrap(True)
+        self._retry_failed_button = QPushButton("Retry Failed", self._summary_frame)
+        self._retry_failed_button.setObjectName("btnRetryFailed")
+        self._retry_failed_button.setIcon(qta.icon("fa5s.redo"))
+        self._retry_failed_button.setEnabled(False)
+        summary_layout.addWidget(self._summary_label, 1)
+        summary_layout.addWidget(self._retry_failed_button)
+        self._summary_frame.setVisible(False)
+
+    def set_batch_summary(self, summary: BatchSummary) -> None:
+        """Render the latest batch summary and expose retry when useful."""
+        state = "Stopped" if summary.stopped else "Completed"
+        self._summary_label.setText(
+            f"{state}: {summary.successful:,}/{summary.total:,} successful · "
+            f"Failed {summary.failed:,} · Skipped {summary.skipped:,} · "
+            f"Invalid {summary.invalid:,} · Retried {summary.retry_count:,}"
+        )
+        self._retry_failed_button.setEnabled(summary.failed > 0)
+        self._summary_frame.setVisible(True)
+
+    def clear_batch_summary(self) -> None:
+        """Clear the visible batch summary and disable retry."""
+        self._summary_label.setText("No batch summary available")
+        self._retry_failed_button.setEnabled(False)
+        self._summary_frame.setVisible(False)
+
     def _create_layout(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 16, 20, 16)
@@ -601,6 +615,7 @@ class HomePage(QWidget):
             0,
             Qt.AlignmentFlag.AlignTop,
         )
+        layout.addWidget(self._summary_frame)
 
         self._source_panels_container = QWidget(self)
         top_layout = QHBoxLayout(self._source_panels_container)
@@ -614,9 +629,7 @@ class HomePage(QWidget):
 
     def _connect_signals(self) -> None:
         self._browse_button.clicked.connect(self.browse_requested.emit)
-        self._clear_recent_button.clicked.connect(
-            self.clear_recent_requested.emit
-        )
+        self._clear_recent_button.clicked.connect(self.clear_recent_requested.emit)
         self._recent_files.itemActivated.connect(self._on_recent_file_activated)
         self._sheet_selector.currentTextChanged.connect(self._on_sheet_changed)
         self._preview_rows_selector.currentTextChanged.connect(
@@ -646,6 +659,7 @@ class HomePage(QWidget):
         self._toggle_source_panels_button.toggled.connect(
             self._set_source_panels_hidden
         )
+        self._retry_failed_button.clicked.connect(self.retry_failed_requested.emit)
 
     def _apply_initial_state(self) -> None:
         self.clear_selected_file()
@@ -653,6 +667,7 @@ class HomePage(QWidget):
         self._sync_route_option_availability()
         self._validate_provider_configuration()
         self._update_workspace_readiness()
+        self.clear_batch_summary()
 
     def _show_worksheet(self, worksheet: WorksheetInfo) -> None:
         self._current_worksheet = worksheet
@@ -675,8 +690,7 @@ class HomePage(QWidget):
             headers = [f"Column {index}" for index in range(1, column_count + 1)]
         elif len(headers) < column_count:
             headers.extend(
-                f"Column {index}"
-                for index in range(len(headers) + 1, column_count + 1)
+                f"Column {index}" for index in range(len(headers) + 1, column_count + 1)
             )
         self._preview_model.setHorizontalHeaderLabels(headers)
         for row in worksheet.preview_rows[: self._preview_row_limit]:
@@ -687,9 +701,7 @@ class HomePage(QWidget):
                 item.setToolTip(value)
                 items.append(item)
             self._preview_model.appendRow(items)
-        preview_count = min(
-            len(worksheet.preview_rows), self._preview_row_limit
-        )
+        preview_count = min(len(worksheet.preview_rows), self._preview_row_limit)
         self._preview_title.setText(
             f"Data Preview (first {preview_count} rows)"
             if preview_count
@@ -754,9 +766,7 @@ class HomePage(QWidget):
         if isinstance(file_path, str):
             self.file_selected.emit(file_path)
 
-    def _event_file_path(
-        self, event: QDragEnterEvent | QDropEvent
-    ) -> str | None:
+    def _event_file_path(self, event: QDragEnterEvent | QDropEvent) -> str | None:
         urls = event.mimeData().urls()
         if len(urls) != 1 or not urls[0].isLocalFile():
             return None
@@ -813,9 +823,7 @@ class HomePage(QWidget):
         self._validate_mapping()
 
     def _auto_detect_mapping(self, headers: tuple[str, ...]) -> None:
-        normalized = {
-            header.casefold().strip(): header for header in headers if header
-        }
+        normalized = {header.casefold().strip(): header for header in headers if header}
         keyword_groups = (
             (
                 self._origin_column_selector,
@@ -856,9 +864,7 @@ class HomePage(QWidget):
         destination = self._destination_column_selector.currentData() or ""
         result = self._result_column_selector.currentData() or ""
         selected = [value for value in (origin, destination, result) if value]
-        self._mapping_valid = (
-            len(selected) == 3 and len(set(selected)) == 3
-        )
+        self._mapping_valid = len(selected) == 3 and len(set(selected)) == 3
         if self._mapping_valid:
             self._mapping_status.setText("Mapping ready")
             self._mapping_status.setProperty("valid", True)
@@ -873,7 +879,6 @@ class HomePage(QWidget):
             self._mapping_status.setProperty("valid", False)
         self._refresh_style(self._mapping_status)
         self._update_workspace_readiness()
-
 
     def _on_resume_option_toggled(self, _checked: bool) -> None:
         self._update_workspace_readiness()
@@ -910,9 +915,7 @@ class HomePage(QWidget):
                 self._avoid_ferries_checkbox.isChecked(),
             )
         else:
-            self._provider_status.setText(
-                "Select a provider and travel mode"
-            )
+            self._provider_status.setText("Select a provider and travel mode")
             self._provider_status.setProperty("valid", False)
         self._refresh_style(self._provider_status)
         self._update_workspace_readiness()
@@ -921,9 +924,7 @@ class HomePage(QWidget):
         configuration = self.workspace_configuration
         ready = configuration is not None
         if ready:
-            self._workspace_readiness_status.setText(
-                "Setup ready for calculation"
-            )
+            self._workspace_readiness_status.setText("Setup ready for calculation")
             self._workspace_readiness_status.setProperty("valid", True)
             self.workspace_configuration_changed.emit(configuration)
         elif not self._mapping_valid and not self._provider_valid:
@@ -932,14 +933,10 @@ class HomePage(QWidget):
             )
             self._workspace_readiness_status.setProperty("valid", False)
         elif not self._mapping_valid:
-            self._workspace_readiness_status.setText(
-                "Complete column mapping"
-            )
+            self._workspace_readiness_status.setText("Complete column mapping")
             self._workspace_readiness_status.setProperty("valid", False)
         else:
-            self._workspace_readiness_status.setText(
-                "Complete provider configuration"
-            )
+            self._workspace_readiness_status.setText("Complete provider configuration")
             self._workspace_readiness_status.setProperty("valid", False)
 
         if ready != self._workspace_ready:

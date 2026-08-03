@@ -9,6 +9,7 @@ from PySide6.QtCore import QByteArray
 from PySide6.QtGui import QCloseEvent, QIcon
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
+from app.batch import BatchSummary
 from app.batch.progress import ProgressSnapshot
 from app.logging import LoggingManager
 from app.presentation.app_metadata import AppMetadata
@@ -53,9 +54,7 @@ def workbook_inspector(tmp_path: Path) -> MagicMock:
         file_name=Path(file_path).name,
         file_type=Path(file_path).suffix.lstrip(".").upper(),
         file_size_bytes=Path(file_path).stat().st_size,
-        modified_at=datetime.fromtimestamp(
-            Path(file_path).stat().st_mtime
-        ),
+        modified_at=datetime.fromtimestamp(Path(file_path).stat().st_mtime),
         worksheets=(WorksheetInfo("Sheet1", 1, 1, ("Header",)),),
     )
     return inspector
@@ -100,9 +99,7 @@ def test_initial_shell_structure_and_state(
     assert window._status_label.text() == "Ready · Home"
     assert window._provider_label.text() == "Provider: -"
     assert window._theme_label.text() == "Theme: Light"
-    assert window._version_label.text() == (
-        f"{metadata.name} v{metadata.version}"
-    )
+    assert window._version_label.text() == (f"{metadata.name} v{metadata.version}")
     assert window._action_light_theme.isChecked()
     assert not window._action_dark_theme.isChecked()
     assert window._toolbar.isVisible()
@@ -238,22 +235,27 @@ def test_action_icons_use_theme_specific_and_disabled_colors(
         window._update_action_icons("dark")
         dark_calls = icon_factory.call_args_list
 
-    assert len(light_calls) == 5
-    assert len(dark_calls) == 5
+    assert len(light_calls) == 6
+    assert len(dark_calls) == 6
     assert all(
-        item.kwargs == {
+        item.kwargs
+        == {
             "color": window.LIGHT_ICON_COLOR,
             "color_disabled": window.DISABLED_ICON_COLOR,
         }
         for item in light_calls
     )
     assert all(
-        item.kwargs == {
+        item.kwargs
+        == {
             "color": window.DARK_ICON_COLOR,
             "color_disabled": window.DISABLED_ICON_COLOR,
         }
         for item in dark_calls
     )
+    assert any(call.args[0] == "fa5s.redo" for call in light_calls)
+
+    assert any(call.args[0] == "fa5s.redo" for call in dark_calls)
 
 
 def test_empty_recent_files_menu_contains_disabled_placeholder(
@@ -725,6 +727,7 @@ def test_execution_coordinator_events_update_window(
         completed=2,
         successful=2,
         failed=0,
+        skipped=0,
         remaining=8,
         elapsed_seconds=30.0,
         average_seconds_per_item=15.0,
@@ -747,9 +750,7 @@ def test_execution_coordinator_events_update_window(
 
     result._set_execution_state(ExecutionState.RUNNING)
     coordinator.stopped.emit([object()])
-    assert result._status_label.text() == (
-        "Calculation stopped · 1 results retained"
-    )
+    assert result._status_label.text() == ("Calculation stopped · 1 results retained")
 
     result._set_execution_state(ExecutionState.RUNNING)
     with patch.object(QMessageBox, "critical") as critical:
@@ -764,9 +765,7 @@ def test_execution_coordinator_events_update_window(
     result._on_calculation_completed(tuple())
     assert result._status_label.text() == "Calculation completed · 0 results"
     result._on_calculation_stopped(tuple())
-    assert result._status_label.text() == (
-        "Calculation stopped · 0 results retained"
-    )
+    assert result._status_label.text() == ("Calculation stopped · 0 results retained")
 
 
 def test_execution_coordinator_rejects_start_and_missing_job_context(
@@ -855,3 +854,172 @@ def test_debug_menu_updates_runtime_and_persists_preferences(
     settings_manager.set_save_html.assert_called_with(True)
     settings_manager.set_save_screenshot.assert_called_with(True)
     settings_manager.set_save_json.assert_called_with(True)
+
+
+def make_batch_summary(*, failed: int = 0) -> BatchSummary:
+    return BatchSummary(
+        total=5,
+        completed=5,
+        successful=5 - failed,
+        failed=failed,
+        skipped=0,
+        invalid=0,
+        resumed=1,
+        retry_count=2,
+        elapsed_seconds=10.0,
+        items_per_minute=30.0,
+        output_file="routes.result.xlsx",
+    )
+
+
+def test_calculation_summary_updates_home_status_and_retry_action(
+    window: MainWindow,
+) -> None:
+    summary = make_batch_summary(failed=1)
+
+    window._on_calculation_summary(summary)
+
+    assert window._last_summary is summary
+    assert "Completed 4/5" in window._status_label.text()
+    assert window._action_retry_failed.isEnabled()
+    assert "Failed 1" in window._home_page._summary_label.text()
+
+    window._on_calculation_summary(make_batch_summary())
+    assert not window._action_retry_failed.isEnabled()
+
+    previous = window._last_summary
+    window._on_calculation_summary(object())
+    assert window._last_summary is previous
+
+
+def test_retry_failed_uses_execution_coordinator(
+    window: MainWindow,
+) -> None:
+    coordinator = MagicMock()
+    coordinator.retry_failed.return_value = True
+    window._execution_coordinator = coordinator
+    window._last_summary = make_batch_summary(failed=1)
+    window._update_execution_actions()
+
+    window._action_retry_failed.trigger()
+
+    coordinator.retry_failed.assert_called_once_with()
+    assert window.execution_state is ExecutionState.RUNNING
+    assert window._status_label.text() == "Retrying failed routes"
+
+    window._set_execution_state(ExecutionState.IDLE)
+    coordinator.retry_failed.return_value = False
+    window._retry_failed()
+    assert window.execution_state is ExecutionState.IDLE
+
+
+def test_retry_failed_action_uses_redo_icon(
+    window: MainWindow,
+) -> None:
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ) as icon_factory:
+        window._update_action_icons("light")
+
+    assert any(call.args[0] == "fa5s.redo" for call in icon_factory.call_args_list)
+
+
+def test_execution_coordinator_summary_signal_is_connected(
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+    qtbot: object,
+) -> None:
+    from PySide6.QtCore import QObject, Signal
+
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        metrics = Signal(object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+        summary = Signal(object)
+
+        def start(self, job: object) -> bool:
+            return True
+
+        def retry_failed(self) -> bool:
+            return True
+
+        def pause(self) -> None:
+            pass
+
+        def resume(self) -> None:
+            pass
+
+        def stop(self) -> None:
+            pass
+
+    coordinator = Coordinator()
+
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        window = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+
+    qtbot.addWidget(window)  # type: ignore[attr-defined]
+
+    summary = BatchSummary(
+        total=10,
+        completed=10,
+        successful=8,
+        failed=2,
+        skipped=0,
+        invalid=0,
+        resumed=0,
+        retry_count=1,
+        elapsed_seconds=20.0,
+        items_per_minute=30.0,
+        output_file="routes.result.xlsx",
+        stopped=False,
+    )
+
+    coordinator.summary.emit(summary)
+
+    assert window._last_summary == summary
+    assert window._action_retry_failed.isEnabled()
+
+
+def test_retry_failed_action_uses_theme_specific_icon(
+    window: MainWindow,
+) -> None:
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ) as icon_factory:
+        window._update_action_icons("light")
+        light_redo_calls = [
+            item for item in icon_factory.call_args_list if item.args[0] == "fa5s.redo"
+        ]
+
+        icon_factory.reset_mock()
+
+        window._update_action_icons("dark")
+        dark_redo_calls = [
+            item for item in icon_factory.call_args_list if item.args[0] == "fa5s.redo"
+        ]
+
+    assert len(light_redo_calls) == 1
+    assert len(dark_redo_calls) == 1
+
+    assert light_redo_calls[0].kwargs["color"] == "#111827"
+    assert dark_redo_calls[0].kwargs["color"] == "#F8FAFC"
+
+    assert light_redo_calls[0].kwargs["color_disabled"] == "#9CA3AF"
+    assert dark_redo_calls[0].kwargs["color_disabled"] == "#9CA3AF"

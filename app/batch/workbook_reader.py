@@ -46,9 +46,7 @@ class WorkbookReader:
 
         try:
             if sheet_name not in workbook.sheetnames:
-                raise BatchWorkbookError(
-                    f"Worksheet not found: {sheet_name}"
-                )
+                raise BatchWorkbookError(f"Worksheet not found: {sheet_name}")
 
             worksheet = workbook[sheet_name]
             iterator = worksheet.iter_rows(values_only=True)

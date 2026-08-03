@@ -41,10 +41,7 @@ class DiagnosticsManager:
         logger: logging.Logger,
         routes: list[RouteOption],
     ) -> None:
-        if not (
-            self._settings.enabled
-            and self._settings.parser_diagnostics
-        ):
+        if not (self._settings.enabled and self._settings.parser_diagnostics):
             return
         for index, route in enumerate(routes, start=1):
             logger.debug(
@@ -76,9 +73,7 @@ class DiagnosticsManager:
             path = self._prepare_path(base / "html", timestamp, label, "html")
             path.write_text(page.content(), encoding="utf-8")
         if self._settings.save_screenshot:
-            path = self._prepare_path(
-                base / "screenshots", timestamp, label, "png"
-            )
+            path = self._prepare_path(base / "screenshots", timestamp, label, "png")
             page.screenshot(path=str(path), full_page=True)
         if self._settings.save_json:
             path = self._prepare_path(base / "json", timestamp, label, "json")
@@ -95,8 +90,11 @@ class DiagnosticsManager:
         suffix: str,
     ) -> Path:
         directory.mkdir(parents=True, exist_ok=True)
-        safe_label = "".join(
-            character if character.isalnum() or character in "-_" else "_"
-            for character in label
-        ).strip("_") or "diagnostic"
+        safe_label = (
+            "".join(
+                character if character.isalnum() or character in "-_" else "_"
+                for character in label
+            ).strip("_")
+            or "diagnostic"
+        )
         return directory / f"{timestamp}_{safe_label}.{suffix}"

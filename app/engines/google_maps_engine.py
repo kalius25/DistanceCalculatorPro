@@ -122,7 +122,6 @@ class GoogleMapsEngine(BaseEngine):
                 context={**context, "url": url},
             ) from exc
 
-
     def _capture_failure(
         self,
         page: Page,
@@ -156,9 +155,7 @@ class GoogleMapsEngine(BaseEngine):
         """Keep driving as URL default; reject unsupported modes explicitly."""
         if request.travel_mode is TravelMode.DRIVING:
             return
-        raise NotImplementedError(
-            f"Unsupported travel mode: {request.travel_mode}"
-        )
+        raise NotImplementedError(f"Unsupported travel mode: {request.travel_mode}")
 
 
 __all__ = ["GoogleMapsEngine"]

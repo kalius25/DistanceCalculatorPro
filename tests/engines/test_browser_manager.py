@@ -191,6 +191,7 @@ def test_close(
     assert manager._browser is None
     assert manager._playwright is None
 
+
 def test_close_without_context(
     browser_config: BrowserConfig,
 ):

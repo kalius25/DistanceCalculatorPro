@@ -130,25 +130,19 @@ def test_configure_different_config_resets_manager(
 def test_get_logger_returns_application_child_logger(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
 
     logger = LoggingManager.get_logger(
         "test-module",
     )
 
-    assert logger.name == (
-        f"{LOGGER_NAME}.test-module"
-    )
+    assert logger.name == (f"{LOGGER_NAME}.test-module")
 
 
 def test_get_logger_initializes_application_logger(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
 
     LoggingManager.get_logger("module")
 
@@ -162,9 +156,7 @@ def test_get_logger_initializes_application_logger(
 def test_repeated_get_logger_returns_existing_root_logger(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
 
     first_logger = LoggingManager.get_logger("first")
     root_logger = LoggingManager._root_logger
@@ -187,10 +179,7 @@ def test_logging_manager_uses_configured_level(
     LoggingManager.configure(config)
     LoggingManager.get_logger("module")
 
-    assert (
-        get_application_logger().level
-        == logging.DEBUG
-    )
+    assert get_application_logger().level == logging.DEBUG
 
 
 def test_logging_manager_accepts_lowercase_level(
@@ -204,22 +193,15 @@ def test_logging_manager_accepts_lowercase_level(
     LoggingManager.configure(config)
     LoggingManager.get_logger("module")
 
-    assert (
-        get_application_logger().level
-        == logging.WARNING
-    )
+    assert get_application_logger().level == logging.WARNING
 
 
 def test_logging_manager_creates_log_directory(
     tmp_path: Path,
 ):
-    log_directory = (
-        tmp_path / "nested" / "logs"
-    )
+    log_directory = tmp_path / "nested" / "logs"
 
-    LoggingManager.configure(
-        create_logging_config(log_directory)
-    )
+    LoggingManager.configure(create_logging_config(log_directory))
     LoggingManager.get_logger("module")
 
     assert log_directory.is_dir()
@@ -245,9 +227,7 @@ def test_logging_manager_creates_two_managed_handlers(
 def test_logging_manager_creates_console_handler(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
 
     LoggingManager.get_logger("module")
 
@@ -284,17 +264,13 @@ def test_logging_manager_creates_file_handler(
     ]
 
     assert len(file_handlers) == 1
-    assert file_handlers[0].baseFilename == str(
-        tmp_path / log_filename
-    )
+    assert file_handlers[0].baseFilename == str(tmp_path / log_filename)
 
 
 def test_managed_handlers_use_structured_json_formatter(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
 
     LoggingManager.get_logger("module")
 
@@ -314,14 +290,10 @@ def test_managed_handlers_use_structured_json_formatter(
 def test_repeated_get_logger_does_not_duplicate_managed_handlers(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
 
     LoggingManager.get_logger("first")
-    original_handlers = list(
-        get_managed_handlers()
-    )
+    original_handlers = list(get_managed_handlers())
 
     LoggingManager.get_logger("second")
 
@@ -340,15 +312,10 @@ def test_external_handler_is_preserved_during_initialization(
     )
 
     try:
-        LoggingManager.configure(
-            create_logging_config(tmp_path)
-        )
+        LoggingManager.configure(create_logging_config(tmp_path))
         LoggingManager.get_logger("module")
 
-        assert (
-            external_handler
-            in application_logger.handlers
-        )
+        assert external_handler in application_logger.handlers
         assert len(get_managed_handlers()) == 2
     finally:
         application_logger.removeHandler(
@@ -382,18 +349,12 @@ def test_configure_different_config_preserves_external_handler(
 
         LoggingManager.configure(second_config)
 
-        assert (
-            external_handler
-            in application_logger.handlers
-        )
+        assert external_handler in application_logger.handlers
         assert get_managed_handlers() == []
 
         LoggingManager.get_logger("second")
 
-        assert (
-            external_handler
-            in application_logger.handlers
-        )
+        assert external_handler in application_logger.handlers
         assert len(get_managed_handlers()) == 2
     finally:
         LoggingManager.reset()
@@ -407,9 +368,7 @@ def test_configure_different_config_preserves_external_handler(
 def test_reset_clears_manager_state(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
     LoggingManager.get_logger("module")
 
     LoggingManager.reset()
@@ -430,9 +389,7 @@ def test_reset_removes_only_managed_handlers(
     )
 
     try:
-        LoggingManager.configure(
-            create_logging_config(tmp_path)
-        )
+        LoggingManager.configure(create_logging_config(tmp_path))
         LoggingManager.get_logger("module")
 
         assert len(get_managed_handlers()) == 2
@@ -440,10 +397,7 @@ def test_reset_removes_only_managed_handlers(
         LoggingManager.reset()
 
         assert get_managed_handlers() == []
-        assert (
-            external_handler
-            in application_logger.handlers
-        )
+        assert external_handler in application_logger.handlers
     finally:
         application_logger.removeHandler(
             external_handler,
@@ -454,24 +408,16 @@ def test_reset_removes_only_managed_handlers(
 def test_reset_preserves_pytest_external_handlers(
     tmp_path: Path,
 ):
-    external_handlers_before = list(
-        get_external_handlers()
-    )
+    external_handlers_before = list(get_external_handlers())
 
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
     LoggingManager.get_logger("module")
 
     LoggingManager.reset()
 
-    external_handlers_after = (
-        get_external_handlers()
-    )
+    external_handlers_after = get_external_handlers()
 
-    assert external_handlers_after == (
-        external_handlers_before
-    )
+    assert external_handlers_after == (external_handlers_before)
 
 
 def test_manager_uses_legacy_config_when_not_configured(
@@ -491,32 +437,21 @@ def test_manager_uses_legacy_config_when_not_configured(
     monkeypatch.setattr(
         LoggingManager,
         "_get_effective_config",
-        classmethod(
-            lambda cls: fallback_config
-        ),
+        classmethod(lambda cls: fallback_config),
     )
 
     logger = LoggingManager.get_logger(
         "fallback",
     )
 
-    logger.warning(
-        "Fallback logging test"
-    )
+    logger.warning("Fallback logging test")
 
     for handler in get_managed_handlers():
         handler.flush()
 
-    assert logger.name == (
-        f"{LOGGER_NAME}.fallback"
-    )
-    assert (
-        get_application_logger().level
-        == logging.WARNING
-    )
-    assert (
-        tmp_path / "fallback.log"
-    ).is_file()
+    assert logger.name == (f"{LOGGER_NAME}.fallback")
+    assert get_application_logger().level == logging.WARNING
+    assert (tmp_path / "fallback.log").is_file()
 
 
 def test_legacy_config_creates_managed_handlers(
@@ -532,9 +467,7 @@ def test_legacy_config_creates_managed_handlers(
     monkeypatch.setattr(
         LoggingManager,
         "_get_effective_config",
-        classmethod(
-            lambda cls: fallback_config
-        ),
+        classmethod(lambda cls: fallback_config),
     )
 
     LoggingManager.get_logger("legacy")
@@ -545,15 +478,11 @@ def test_legacy_config_creates_managed_handlers(
 def test_existing_managed_handlers_are_reused(
     tmp_path: Path,
 ):
-    LoggingManager.configure(
-        create_logging_config(tmp_path)
-    )
+    LoggingManager.configure(create_logging_config(tmp_path))
 
     LoggingManager.get_logger("first")
 
-    original_handlers = list(
-        get_managed_handlers()
-    )
+    original_handlers = list(get_managed_handlers())
 
     LoggingManager._initialized = False
     LoggingManager._root_logger = None
@@ -562,6 +491,7 @@ def test_existing_managed_handlers_are_reused(
 
     assert get_managed_handlers() == original_handlers
     assert len(get_managed_handlers()) == 2
+
 
 def test_set_debug_enabled_switches_managed_logger_level(
     tmp_path: Path,
@@ -572,15 +502,9 @@ def test_set_debug_enabled_switches_managed_logger_level(
     LoggingManager.set_debug_enabled(True)
 
     assert get_application_logger().level == logging.DEBUG
-    assert all(
-        handler.level == logging.DEBUG
-        for handler in get_managed_handlers()
-    )
+    assert all(handler.level == logging.DEBUG for handler in get_managed_handlers())
 
     LoggingManager.set_debug_enabled(False)
 
     assert get_application_logger().level == logging.INFO
-    assert all(
-        handler.level == logging.INFO
-        for handler in get_managed_handlers()
-    )
+    assert all(handler.level == logging.INFO for handler in get_managed_handlers())

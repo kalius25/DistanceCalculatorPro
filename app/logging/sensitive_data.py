@@ -45,21 +45,12 @@ _SENSITIVE_KEYWORDS = frozenset(
 
 
 _EMAIL_PATTERN = re.compile(
-    r"\b"
-    r"[A-Za-z0-9._%+-]+"
-    r"@"
-    r"[A-Za-z0-9.-]+"
-    r"\.[A-Za-z]{2,}"
-    r"\b"
+    r"\b" r"[A-Za-z0-9._%+-]+" r"@" r"[A-Za-z0-9.-]+" r"\.[A-Za-z]{2,}" r"\b"
 )
 
 
 _PHONE_PATTERN = re.compile(
-    r"(?<!\d)"
-    r"(?:\+?84|0)"
-    r"(?:[\s.\-]?\d)"
-    r"{8,10}"
-    r"(?!\d)"
+    r"(?<!\d)" r"(?:\+?84|0)" r"(?:[\s.\-]?\d)" r"{8,10}" r"(?!\d)"
 )
 
 
@@ -72,11 +63,7 @@ _COORDINATE_PATTERN = re.compile(
 )
 
 
-_BEARER_TOKEN_PATTERN = re.compile(
-    r"(?i)"
-    r"\bBearer\s+"
-    r"[A-Za-z0-9._~+/=-]+"
-)
+_BEARER_TOKEN_PATTERN = re.compile(r"(?i)" r"\bBearer\s+" r"[A-Za-z0-9._~+/=-]+")
 
 
 _SECRET_ASSIGNMENT_PATTERN = re.compile(
@@ -235,9 +222,7 @@ class SensitiveDataSanitizer:
                 depth=depth + 1,
                 key=None,
             )
-            for item in value[
-                :_MAX_COLLECTION_ITEMS
-            ]
+            for item in value[:_MAX_COLLECTION_ITEMS]
         ]
 
         if len(value) > _MAX_COLLECTION_ITEMS:
@@ -260,9 +245,7 @@ class SensitiveDataSanitizer:
         )
 
         sanitized = _SECRET_ASSIGNMENT_PATTERN.sub(
-            lambda match: (
-                f"{match.group(1)}={_REDACTED}"
-            ),
+            lambda match: (f"{match.group(1)}={_REDACTED}"),
             sanitized,
         )
 
@@ -282,10 +265,7 @@ class SensitiveDataSanitizer:
         )
 
         if len(sanitized) > _MAX_STRING_LENGTH:
-            sanitized = (
-                sanitized[:_MAX_STRING_LENGTH]
-                + "...[TRUNCATED]"
-            )
+            sanitized = sanitized[:_MAX_STRING_LENGTH] + "...[TRUNCATED]"
 
         return sanitized
 
@@ -298,20 +278,12 @@ class SensitiveDataSanitizer:
         if key is None:
             return False
 
-        normalized = (
-            key.strip()
-            .casefold()
-            .replace("-", "_")
-            .replace(" ", "_")
-        )
+        normalized = key.strip().casefold().replace("-", "_").replace(" ", "_")
 
         if normalized in _SENSITIVE_KEYWORDS:
             return True
 
-        return any(
-            keyword in normalized
-            for keyword in _SENSITIVE_KEYWORDS
-        )
+        return any(keyword in normalized for keyword in _SENSITIVE_KEYWORDS)
 
     @staticmethod
     def _mask_email(
@@ -328,10 +300,7 @@ class SensitiveDataSanitizer:
         if len(local_part) <= 1:
             masked_local = "*"
         else:
-            masked_local = (
-                local_part[0]
-                + "***"
-            )
+            masked_local = local_part[0] + "***"
 
         return f"{masked_local}@{domain}"
 
@@ -343,16 +312,9 @@ class SensitiveDataSanitizer:
 
         value = match.group(0)
 
-        digits = "".join(
-            character
-            for character in value
-            if character.isdigit()
-        )
+        digits = "".join(character for character in value if character.isdigit())
 
-        return (
-            "***"
-            + digits[-4:]
-        )
+        return "***" + digits[-4:]
 
 
 __all__ = [

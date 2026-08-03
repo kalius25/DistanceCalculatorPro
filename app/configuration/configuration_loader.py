@@ -34,17 +34,13 @@ class ConfigurationLoader:
                 locale="vi-VN",
             ),
             google_maps=GoogleMapsConfig(
-                base_url=(
-                    "https://www.google.com/maps/dir/?api=1"
-                ),
+                base_url=("https://www.google.com/maps/dir/?api=1"),
                 action_timeout=30_000,
             ),
             provider=ProviderConfig(
                 retry_count=3,
                 retry_delay=1.0,
-                default_provider=(
-                    ProviderType.GOOGLE_MAPS_WEB
-                ),
+                default_provider=(ProviderType.GOOGLE_MAPS_WEB),
             ),
             logging=LoggingConfig(
                 level="INFO",

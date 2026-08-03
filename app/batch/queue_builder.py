@@ -31,7 +31,6 @@ class QueueBuilder:
         stream = self._reader.read(file_path, sheet_name)
         indexes = self._mapper.resolve_indexes(stream.headers, configuration)
         jobs = (
-            self._mapper.map_row(row, indexes, configuration)
-            for row in stream.rows
+            self._mapper.map_row(row, indexes, configuration) for row in stream.rows
         )
         return BatchQueue(jobs)

@@ -129,13 +129,9 @@ def test_create_application_composes_and_initializes_shell() -> None:
     application_type.assert_called_once_with(app_module.sys.argv)
     application.setApplicationName.assert_called_once_with(metadata.name)
     application.setApplicationVersion.assert_called_once_with(metadata.version)
-    application.setOrganizationName.assert_called_once_with(
-        metadata.organization
-    )
+    application.setOrganizationName.assert_called_once_with(metadata.organization)
     application.setOrganizationDomain.assert_called_once_with(metadata.domain)
-    resource_type.assert_called_once_with(
-        Path(app_module.__file__).resolve().parent
-    )
+    resource_type.assert_called_once_with(Path(app_module.__file__).resolve().parent)
     icon_type.assert_called_once_with("app.ico")
     application.setWindowIcon.assert_called_once_with("icon")
     splash_type.assert_called_once_with(resource_manager)
@@ -160,9 +156,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
         execution_coordinator="execution_coordinator",
         diagnostics_manager="diagnostics_manager",
     )
-    logger.info.assert_called_once_with(
-        "Presentation application initialized"
-    )
+    logger.info.assert_called_once_with("Presentation application initialized")
     assert result == (
         application,
         main_window,
@@ -341,9 +335,7 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
             return_value=coordinator,
         ) as coordinator_type,
     ):
-        result = app_module.create_execution_coordinator(
-            configuration, diagnostics
-        )
+        result = app_module.create_execution_coordinator(configuration, diagnostics)
 
     browser_type.assert_called_once_with(configuration.browser)
     engine_type.assert_called_once_with(

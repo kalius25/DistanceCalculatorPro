@@ -28,9 +28,7 @@ def test_nested_sensitive_key_is_redacted():
         {
             "request": {
                 "headers": {
-                    "Authorization": (
-                        "Bearer secret-token"
-                    ),
+                    "Authorization": ("Bearer secret-token"),
                 },
             },
         },
@@ -50,9 +48,7 @@ def test_email_is_masked():
         "Contact duy.nguyen@example.com",
     )
 
-    assert result == (
-        "Contact d***@example.com"
-    )
+    assert result == ("Contact d***@example.com")
 
 
 def test_single_character_email_is_masked():
@@ -76,9 +72,7 @@ def test_coordinates_are_redacted():
         "10.337437629699707,105.46455383300781",
     )
 
-    assert result == (
-        "[COORDINATES_REDACTED]"
-    )
+    assert result == ("[COORDINATES_REDACTED]")
 
 
 def test_bearer_token_is_redacted():
@@ -86,9 +80,7 @@ def test_bearer_token_is_redacted():
         "Authorization: Bearer abc.def.ghi",
     )
 
-    assert result == (
-        "Authorization: Bearer [REDACTED]"
-    )
+    assert result == ("Authorization: Bearer [REDACTED]")
 
 
 def test_secret_assignment_is_redacted():
@@ -96,9 +88,7 @@ def test_secret_assignment_is_redacted():
         "password=my-secret",
     )
 
-    assert result == (
-        "password=[REDACTED]"
-    )
+    assert result == ("password=[REDACTED]")
 
 
 def test_long_string_is_truncated():
@@ -106,10 +96,7 @@ def test_long_string_is_truncated():
         "A" * 300,
     )
 
-    assert result == (
-        "A" * 256
-        + "...[TRUNCATED]"
-    )
+    assert result == ("A" * 256 + "...[TRUNCATED]")
 
 
 def test_binary_value_is_not_logged():
@@ -157,6 +144,7 @@ def test_fingerprint_is_stable():
     assert first == second
     assert len(first) == 16
 
+
 def test_collection_is_truncated():
     result = SensitiveDataSanitizer.sanitize(
         list(range(25)),
@@ -167,23 +155,16 @@ def test_collection_is_truncated():
 
 
 def test_mapping_is_truncated():
-    source = {
-        f"field_{index}": index
-        for index in range(25)
-    }
+    source = {f"field_{index}": index for index in range(25)}
 
-    result = (
-        SensitiveDataSanitizer
-        .sanitize_mapping(source)
+    result = SensitiveDataSanitizer.sanitize_mapping(source)
+
+    assert (
+        len(
+            [key for key in result if key != "_truncated"],
+        )
+        == 20
     )
-
-    assert len(
-        [
-            key
-            for key in result
-            if key != "_truncated"
-        ],
-    ) == 20
 
     assert result["_truncated"] is True
 
@@ -209,6 +190,7 @@ def test_maximum_depth_is_limited():
 
     assert "MAX_DEPTH" in str(result)
 
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
@@ -224,10 +206,8 @@ def test_sanitize_preserves_primitive_values(
     value,
     expected,
 ):
-    assert (
-        SensitiveDataSanitizer.sanitize(value)
-        == expected
-    )
+    assert SensitiveDataSanitizer.sanitize(value) == expected
+
 
 def test_none_key_is_not_sensitive():
     result = SensitiveDataSanitizer._is_sensitive_key(
@@ -235,6 +215,7 @@ def test_none_key_is_not_sensitive():
     )
 
     assert result is False
+
 
 @pytest.mark.parametrize(
     "key",
@@ -249,11 +230,8 @@ def test_none_key_is_not_sensitive():
 def test_sensitive_key_variations_are_detected(
     key,
 ):
-    assert (
-        SensitiveDataSanitizer
-        ._is_sensitive_key(key)
-        is True
-    )
+    assert SensitiveDataSanitizer._is_sensitive_key(key) is True
+
 
 def test_nested_sensitive_field_name_is_detected():
     result = SensitiveDataSanitizer._is_sensitive_key(
@@ -262,12 +240,14 @@ def test_nested_sensitive_field_name_is_detected():
 
     assert result is True
 
+
 def test_normal_key_is_not_sensitive():
     result = SensitiveDataSanitizer._is_sensitive_key(
         "route_count",
     )
 
     assert result is False
+
 
 def test_bytearray_is_not_logged():
     value = bytearray(
@@ -279,4 +259,3 @@ def test_bytearray_is_not_logged():
     )
 
     assert result == "[BINARY:6]"
-

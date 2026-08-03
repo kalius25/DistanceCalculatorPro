@@ -84,9 +84,7 @@ class BrowserManager:
             If the browser context has not been started.
         """
         if self._context is None:
-            raise EngineException(
-                "Browser chưa được khởi động."
-            )
+            raise EngineException("Browser chưa được khởi động.")
 
         return self._context.new_page()
 
