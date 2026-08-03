@@ -341,7 +341,11 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
     engine_type.assert_called_once_with(
         configuration.google_maps, locator, parser, diagnostics
     )
-    provider_type.assert_called_once_with(browser, engine)
+    provider_type.assert_called_once_with(
+        browser,
+        engine,
+        diagnostics=diagnostics,
+    )
     calculation_type.assert_called_once_with(provider)
     batch_type.assert_called_once_with(calculation_service)
     coordinator_type.assert_called_once_with(builder, batch_service)

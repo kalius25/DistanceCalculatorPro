@@ -238,3 +238,9 @@ All notable changes to DistanceCalculatorPro are documented in this file.
   disconnected browser failures.
 - Added safe Playwright cleanup and browser restart support.
 - Added browser recovery runtime metrics and diagnostic events.
+
+## 1.2.0-alpha28
+
+- Added provider runtime performance metrics.
+- Added adaptive Playwright page reuse and recycling.
+- Added proactive recycling for slow and failed requests.

@@ -46,7 +46,11 @@ def create_execution_coordinator(
         parser,
         diagnostics,
     )
-    provider = GoogleWebProvider(browser_manager, maps_engine)
+    provider = GoogleWebProvider(
+        browser_manager,
+        maps_engine,
+        diagnostics=diagnostics,
+    )
     calculation_service = CalculationService(provider)
     batch_service = BatchCalculationService(calculation_service)
     return CalculationExecutionCoordinator(

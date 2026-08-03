@@ -81,6 +81,7 @@ def test_restart_failure_is_recorded_and_reraised() -> None:
 
     assert recovery.metrics.recovery_failures == 1
 
+
 def test_recover_non_browser_error_returns_none_without_recovery() -> None:
     browser = MagicMock()
     diagnostics = MagicMock()
@@ -103,6 +104,7 @@ def test_recover_non_browser_error_returns_none_without_recovery() -> None:
     assert recovery.metrics.recovery_failures == 0
 
     diagnostics.trace_browser.assert_called_once()
+
 
 def test_recover_generic_playwright_error_restarts_browser() -> None:
     browser = MagicMock()
