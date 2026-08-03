@@ -80,6 +80,7 @@ def test_worker_completes_and_emits_summary_and_failed_queue(
         job.file_path,
         job.sheet_name,
         resume_from_output=False,
+        output_path=job.output_path,
     )
 
 
@@ -116,6 +117,7 @@ def test_worker_uses_override_queue_and_emits_stopped_summary(
         job.file_path,
         job.sheet_name,
         resume_from_output=True,
+        output_path=job.output_path,
     )
 
 
@@ -183,6 +185,7 @@ def test_coordinator_starts_retries_controls_and_clears_worker() -> None:
         "completed",
         "stopped",
         "failed",
+        "output_write_failed",
         "summary",
         "failed_queue",
         "finished",
@@ -281,3 +284,70 @@ def test_coordinator_shutdown_without_active_thread_is_safe() -> None:
 
     assert coordinator.shutdown()
     assert coordinator.shutdown()
+
+
+def test_worker_emits_structured_output_write_failure(qtbot: object) -> None:
+    from pathlib import Path
+
+    from app.batch.file_access import OutputWriteError
+
+    job = CalculationJob(
+        "routes.xlsx",
+        "Routes",
+        MagicMock(),
+    )
+    builder = MagicMock()
+    queue = BatchQueue([])
+    builder.build_queue.return_value = queue
+    writer_factory = MagicMock()
+    writer_factory.create.side_effect = OutputWriteError(
+        Path("routes.result.xlsx"),
+        "write",
+        "locked",
+    )
+    worker = CalculationWorker(job, builder, MagicMock(), writer_factory)
+
+    with (
+        qtbot.waitSignal(worker.output_write_failed) as signal,  # type: ignore[attr-defined]
+        qtbot.waitSignal(worker.finished),  # type: ignore[attr-defined]
+    ):
+        worker.run()
+
+    assert isinstance(signal.args[0], OutputWriteError)
+
+
+def test_worker_passes_explicit_output_path_and_coordinator_can_retry() -> None:
+    job = CalculationJob(
+        "routes.xlsx",
+        "Routes",
+        MagicMock(),
+        output_path="alternate.xlsx",
+    )
+    builder = MagicMock()
+    builder.build_queue.return_value = BatchQueue([])
+    writer = MagicMock()
+    writer.output_path = "alternate.xlsx"
+    writer.__enter__.return_value = writer
+    writer_factory = MagicMock()
+    writer_factory.create.return_value = writer
+    worker = CalculationWorker(job, builder, MagicMock(), writer_factory)
+    worker.run()
+
+    writer_factory.create.assert_called_once_with(
+        "routes.xlsx",
+        "Routes",
+        resume_from_output=False,
+        output_path="alternate.xlsx",
+    )
+
+    coordinator = CalculationExecutionCoordinator(MagicMock(), MagicMock())
+    coordinator._last_job = CalculationJob("routes.xlsx", "Routes", MagicMock())
+    with patch.object(coordinator, "_start_worker", return_value=True) as start:
+        assert coordinator.retry_with_output("new.xlsx")
+    retry_job = start.call_args.args[0]
+    assert retry_job.output_path == "new.xlsx"
+    coordinator._last_job = None
+    assert not coordinator.retry_with_output("blocked.xlsx")
+    coordinator._last_job = job
+    coordinator._thread = MagicMock()
+    assert not coordinator.retry_with_output("blocked.xlsx")

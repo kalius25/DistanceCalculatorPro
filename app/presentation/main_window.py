@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.batch.file_access import OutputWriteError
 from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
 from app.diagnostics import DiagnosticsManager, DiagnosticsSettings
@@ -295,6 +296,13 @@ class MainWindow(QMainWindow):
             )
             self._execution_coordinator.stopped.connect(self._on_calculation_stopped)
             self._execution_coordinator.failed.connect(self._on_calculation_failed)
+            output_write_failed = getattr(
+                self._execution_coordinator,
+                "output_write_failed",
+                None,
+            )
+            if output_write_failed is not None:
+                output_write_failed.connect(self._on_output_write_failed)
             summary_signal = getattr(
                 self._execution_coordinator,
                 "summary",
@@ -627,6 +635,59 @@ class MainWindow(QMainWindow):
             f"Calculation stopped · {result_count:,} results retained"
         )
         self.calculation_stopped.emit(results)
+
+    def _on_output_write_failed(self, error: object) -> None:
+        self._set_execution_state(ExecutionState.IDLE)
+
+        if not isinstance(error, OutputWriteError):
+            self._on_calculation_failed(str(error))
+            return
+
+        coordinator = self._execution_coordinator
+        if coordinator is None:
+            self._status_label.setText("Result save cancelled")
+            return
+
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Warning)
+        message_box.setWindowTitle("Result file is unavailable")
+        message_box.setText(str(error))
+
+        retry_button = message_box.addButton(
+            "Retry",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        save_as_button = message_box.addButton(
+            "Save As...",
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        message_box.addButton(
+            "Cancel",
+            QMessageBox.ButtonRole.RejectRole,
+        )
+
+        message_box.exec()
+
+        clicked = message_box.clickedButton()
+
+        if clicked is retry_button:
+            started = coordinator.retry_with_output(str(error.output_path))
+        elif clicked is save_as_button:
+            selected, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save calculation results as",
+                str(error.output_path),
+                "Excel or CSV (*.xlsx *.xlsm *.csv)",
+            )
+            started = bool(selected) and coordinator.retry_with_output(selected)
+        else:
+            started = False
+
+        if started:
+            self._set_execution_state(ExecutionState.RUNNING)
+            self._status_label.setText("Retrying with a writable result file")
+        else:
+            self._status_label.setText("Result save cancelled")
 
     def _on_calculation_failed(self, message: str) -> None:
         self._set_execution_state(ExecutionState.IDLE)

@@ -5,11 +5,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
-from PySide6.QtCore import QByteArray
+from PySide6.QtCore import QByteArray, QObject, Signal
 from PySide6.QtGui import QCloseEvent, QIcon
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
-from app.batch import BatchSummary
+from app.batch import BatchSummary, OutputWriteError
 from app.batch.progress import ProgressSnapshot
 from app.logging import LoggingManager
 from app.presentation.app_metadata import AppMetadata
@@ -1236,3 +1236,318 @@ def test_start_calculation_enters_running_when_coordinator_accepts(
     assert result._action_pause.isEnabled()
     assert result._action_stop.isEnabled()
     assert not result._action_start.isEnabled()
+
+
+def test_output_write_failure_without_coordinator_is_cancelled(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    try:
+        window._execution_coordinator = None
+
+        error = OutputWriteError(
+            Path("routes.result.xlsx"),
+            "replace",
+            "locked",
+        )
+
+        window._on_output_write_failed(error)
+
+        assert window._status_label.text() == "Result save cancelled"
+        assert window.execution_state is ExecutionState.IDLE
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def configure_output_error_dialog(
+    message_box_type: MagicMock,
+    clicked: str,
+) -> tuple[MagicMock, object, object, object]:
+    message_box = message_box_type.return_value
+
+    retry_button = object()
+    save_as_button = object()
+    cancel_button = object()
+
+    message_box.addButton.side_effect = [
+        retry_button,
+        save_as_button,
+        cancel_button,
+    ]
+
+    clicked_buttons = {
+        "retry": retry_button,
+        "save_as": save_as_button,
+        "cancel": cancel_button,
+    }
+    message_box.clickedButton.return_value = clicked_buttons[clicked]
+
+    return (
+        message_box,
+        retry_button,
+        save_as_button,
+        cancel_button,
+    )
+
+
+def test_execution_coordinator_output_write_failed_signal_is_connected(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+    workbook_inspector: MagicMock,
+) -> None:
+    class Coordinator(QObject):
+        progress = Signal(int, int, object, object)
+        metrics = Signal(object)
+        completed = Signal(object)
+        stopped = Signal(object)
+        failed = Signal(str)
+        output_write_failed = Signal(object)
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.start = MagicMock(return_value=True)
+            self.pause = MagicMock()
+            self.resume = MagicMock()
+            self.stop = MagicMock()
+            self.shutdown = MagicMock(return_value=True)
+            self.retry_with_output = MagicMock(return_value=False)
+
+        @property
+        def is_running(self) -> bool:
+            return False
+
+    coordinator = Coordinator()
+
+    with patch(
+        "app.presentation.main_window.qta.icon",
+        return_value=QIcon(),
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+            workbook_inspector=workbook_inspector,
+            execution_coordinator=coordinator,
+        )
+
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    with patch.object(
+        QMessageBox,
+        "critical",
+    ) as critical:
+        coordinator.output_write_failed.emit(RuntimeError("unexpected writer error"))
+
+    assert result.execution_state is ExecutionState.IDLE
+    assert result._status_label.text() == "Calculation failed"
+
+    critical.assert_called_once_with(
+        result,
+        "Calculation failed",
+        "unexpected writer error",
+    )
+
+
+def test_output_write_failure_retry_starts_calculation(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+    coordinator.retry_with_output.return_value = True
+
+    error = OutputWriteError(
+        Path("routes.result.xlsx"),
+        "replace",
+        "locked",
+    )
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with patch(
+            "app.presentation.main_window.QMessageBox",
+        ) as message_box_type:
+            configure_output_error_dialog(
+                message_box_type,
+                "retry",
+            )
+
+            window._on_output_write_failed(error)
+
+        coordinator.retry_with_output.assert_called_once_with("routes.result.xlsx")
+        assert window.execution_state is ExecutionState.RUNNING
+        assert window._status_label.text() == "Retrying with a writable result file"
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_output_write_failure_retry_can_be_rejected(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+    coordinator.retry_with_output.return_value = False
+
+    error = OutputWriteError(
+        Path("routes.result.xlsx"),
+        "replace",
+        "locked",
+    )
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with patch(
+            "app.presentation.main_window.QMessageBox",
+        ) as message_box_type:
+            configure_output_error_dialog(
+                message_box_type,
+                "retry",
+            )
+
+            window._on_output_write_failed(error)
+
+        coordinator.retry_with_output.assert_called_once_with("routes.result.xlsx")
+        assert window.execution_state is ExecutionState.IDLE
+        assert window._status_label.text() == "Result save cancelled"
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_output_write_failure_save_as_starts_with_selected_path(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+    coordinator.retry_with_output.return_value = True
+
+    error = OutputWriteError(
+        Path("routes.result.xlsx"),
+        "replace",
+        "locked",
+    )
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with (
+            patch(
+                "app.presentation.main_window.QMessageBox",
+            ) as message_box_type,
+            patch.object(
+                QFileDialog,
+                "getSaveFileName",
+                return_value=(
+                    "routes-recovered.xlsx",
+                    "Excel or CSV",
+                ),
+            ) as save_dialog,
+        ):
+            configure_output_error_dialog(
+                message_box_type,
+                "save_as",
+            )
+
+            window._on_output_write_failed(error)
+
+        save_dialog.assert_called_once_with(
+            window,
+            "Save calculation results as",
+            "routes.result.xlsx",
+            "Excel or CSV (*.xlsx *.xlsm *.csv)",
+        )
+        coordinator.retry_with_output.assert_called_once_with("routes-recovered.xlsx")
+        assert window.execution_state is ExecutionState.RUNNING
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_output_write_failure_save_as_can_be_cancelled(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+
+    error = OutputWriteError(
+        Path("routes.result.xlsx"),
+        "replace",
+        "locked",
+    )
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with (
+            patch(
+                "app.presentation.main_window.QMessageBox",
+            ) as message_box_type,
+            patch.object(
+                QFileDialog,
+                "getSaveFileName",
+                return_value=("", ""),
+            ),
+        ):
+            configure_output_error_dialog(
+                message_box_type,
+                "save_as",
+            )
+
+            window._on_output_write_failed(error)
+
+        coordinator.retry_with_output.assert_not_called()
+        assert window.execution_state is ExecutionState.IDLE
+        assert window._status_label.text() == "Result save cancelled"
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
+def test_output_write_failure_cancel_keeps_window_idle(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+
+    coordinator = MagicMock()
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+
+    error = OutputWriteError(
+        Path("routes.result.xlsx"),
+        "replace",
+        "locked",
+    )
+
+    try:
+        window._execution_coordinator = coordinator
+
+        with patch(
+            "app.presentation.main_window.QMessageBox",
+        ) as message_box_type:
+            configure_output_error_dialog(
+                message_box_type,
+                "cancel",
+            )
+
+            window._on_output_write_failed(error)
+
+        coordinator.retry_with_output.assert_not_called()
+        assert window.execution_state is ExecutionState.IDLE
+        assert window._status_label.text() == "Result save cancelled"
+    finally:
+        window._execution_coordinator = original_coordinator

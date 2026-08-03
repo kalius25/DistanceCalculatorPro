@@ -19,6 +19,7 @@ class CalculationJob:
     file_path: str
     sheet_name: str
     configuration: WorkspaceConfiguration
+    output_path: str | None = None
 
 
 Row = Sequence[object]

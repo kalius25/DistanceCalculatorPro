@@ -270,3 +270,10 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 
 ### Changed
 - Application finalization now shuts down runtime resources before restoring the exception hook and resetting logging.
+
+## 1.2.0-rc2
+
+- Added atomic output replacement for Excel and CSV writers.
+- Added file-lock/write failure recovery with Retry, Save As and Cancel.
+- Prevented duplicate `.result.result` output names.
+- Added explicit output path support for recovery runs.

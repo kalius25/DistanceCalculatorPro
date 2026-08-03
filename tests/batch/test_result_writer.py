@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import csv
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 from openpyxl import Workbook, load_workbook
 
+from app.batch import OutputWriteError
 from app.batch.autosave_policy import AutoSavePolicy
 from app.batch.models import RouteJob, RouteJobStatus
 from app.batch.output_path_policy import OutputPathPolicy
@@ -295,4 +297,199 @@ def test_writer_records_autosave_metrics(tmp_path: Path) -> None:
     assert metrics.total_save_seconds == pytest.approx(0.4)
     assert metrics.average_save_seconds == pytest.approx(0.4)
     assert metrics.maximum_save_seconds == pytest.approx(0.4)
+    writer.close()
+
+
+def test_factory_accepts_explicit_output_path(tmp_path: Path) -> None:
+    source = tmp_path / "routes.csv"
+    alternate = tmp_path / "alternate.csv"
+    source.write_text("Origin,Destination,Distance\nA,B,\n", encoding="utf-8")
+
+    writer = ResultWriterFactory().create(
+        source,
+        "Routes",
+        output_path=alternate,
+    )
+    assert writer.output_path == alternate
+    writer.close()
+
+
+def test_excel_writer_wraps_save_permission_error(tmp_path: Path) -> None:
+
+    source = tmp_path / "routes.xlsx"
+    output = tmp_path / "routes.result.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Routes"
+    sheet.append(["Origin", "Destination", "Distance"])
+    sheet.append(["A", "B", None])
+    workbook.save(source)
+    workbook.close()
+
+    writer = ExcelResultWriter(source, "Routes", output)
+    writer.write(done_job())
+    with patch.object(writer._workbook, "save", side_effect=PermissionError("locked")):
+        with pytest.raises(OutputWriteError, match="Unable to save"):
+            writer.flush()
+    writer._dirty = False
+    writer.close()
+
+
+def test_csv_writer_wraps_open_error_and_cleans_temp(tmp_path: Path) -> None:
+    from app.batch.file_access import OutputWriteError
+
+    source = tmp_path / "routes.csv"
+    output = tmp_path / "routes.result.csv"
+    source.write_text("Origin,Destination,Distance\nA,B,\n", encoding="utf-8")
+    writer = CsvResultWriter(source, output)
+    writer.write(done_job())
+
+    with patch("pathlib.Path.open", side_effect=PermissionError("locked")):
+        with pytest.raises(OutputWriteError, match="Unable to save"):
+            writer.flush()
+    writer._dirty = False
+    writer.close()
+
+
+def test_excel_writer_reraises_output_write_error(
+    tmp_path: Path,
+) -> None:
+
+    source = tmp_path / "routes.xlsx"
+    output = tmp_path / "routes.result.xlsx"
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Routes"
+    sheet.append(["Origin", "Destination", "Distance"])
+    sheet.append(["A", "B", None])
+    workbook.save(source)
+    workbook.close()
+
+    writer = ExcelResultWriter(source, "Routes", output)
+
+    error = OutputWriteError(
+        output,
+        "replace",
+        "locked",
+    )
+
+    with patch(
+        "app.batch.result_writer.AtomicOutputFile.replace",
+        side_effect=error,
+    ):
+        with pytest.raises(OutputWriteError) as raised:
+            writer._save()
+
+    assert raised.value is error
+    writer.close()
+
+
+def test_excel_writer_cleans_up_and_reraises_unknown_error(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "routes.xlsx"
+    output = tmp_path / "routes.result.xlsx"
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Routes"
+    sheet.append(["Origin", "Destination", "Distance"])
+    workbook.save(source)
+    workbook.close()
+
+    writer = ExcelResultWriter(source, "Routes", output)
+
+    with (
+        patch.object(
+            writer._workbook,
+            "save",
+            side_effect=RuntimeError("unexpected"),
+        ),
+        patch(
+            "app.batch.result_writer.AtomicOutputFile.cleanup",
+        ) as cleanup,
+    ):
+        with pytest.raises(RuntimeError, match="unexpected"):
+            writer._save()
+
+    cleanup.assert_called_once_with()
+    writer.close()
+
+
+def test_csv_writer_reraises_output_write_error(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "routes.csv"
+    source.write_text(
+        "Origin,Destination,Distance\n" "A,B,\n",
+        encoding="utf-8",
+    )
+
+    output = tmp_path / "routes.result.csv"
+    writer = ResultWriterFactory().create(
+        source,
+        "",
+        output_path=output,
+    )
+
+    expected_error = OutputWriteError(
+        output,
+        "replace",
+        "file is locked",
+    )
+
+    temporary = MagicMock()
+    temporary.open.return_value.__enter__.return_value = StringIO()
+
+    with patch(
+        "app.batch.result_writer.AtomicOutputFile",
+    ) as atomic_type:
+        atomic = atomic_type.return_value
+        atomic.create.return_value = temporary
+        atomic.replace.side_effect = expected_error
+
+        with pytest.raises(OutputWriteError) as raised:
+            writer._save()  # type: ignore[attr-defined]
+
+    assert raised.value is expected_error
+    atomic.cleanup.assert_not_called()
+
+    writer.close()
+
+
+def test_csv_writer_cleans_up_and_reraises_unexpected_error(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "routes.csv"
+    source.write_text(
+        "Origin,Destination,Distance\n" "A,B,\n",
+        encoding="utf-8",
+    )
+
+    output = tmp_path / "routes.result.csv"
+    writer = ResultWriterFactory().create(
+        source,
+        "",
+        output_path=output,
+    )
+
+    temporary = MagicMock()
+    temporary.open.side_effect = RuntimeError("unexpected csv failure")
+
+    with patch(
+        "app.batch.result_writer.AtomicOutputFile",
+    ) as atomic_type:
+        atomic = atomic_type.return_value
+        atomic.create.return_value = temporary
+
+        with pytest.raises(
+            RuntimeError,
+            match="unexpected csv failure",
+        ):
+            writer._save()  # type: ignore[attr-defined]
+
+    atomic.cleanup.assert_called_once_with()
+    atomic.replace.assert_not_called()
+
     writer.close()

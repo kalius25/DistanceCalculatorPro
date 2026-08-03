@@ -8,6 +8,7 @@ from threading import Condition
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from app.batch.batch_queue import BatchQueue
+from app.batch.file_access import OutputWriteError
 from app.batch.models import RouteJob
 from app.batch.progress import BatchProgressTracker
 from app.batch.result_writer import ResultWriterFactory
@@ -26,6 +27,7 @@ class CalculationWorker(QObject):
     completed = Signal(object)
     stopped = Signal(object)
     failed = Signal(str)
+    output_write_failed = Signal(object)
     summary = Signal(object)
     failed_queue = Signal(object)
     finished = Signal()
@@ -64,11 +66,20 @@ class CalculationWorker(QObject):
                 initial_skipped=queue.skipped_count,
             )
             self.metrics.emit(self._progress_tracker.snapshot)
-            with self._writer_factory.create(
-                self._job.file_path,
-                self._job.sheet_name,
-                resume_from_output=self._queue_override is not None,
-            ) as writer:
+            if self._job.output_path is None:
+                writer = self._writer_factory.create(
+                    self._job.file_path,
+                    self._job.sheet_name,
+                    resume_from_output=self._queue_override is not None,
+                )
+            else:
+                writer = self._writer_factory.create(
+                    self._job.file_path,
+                    self._job.sheet_name,
+                    resume_from_output=self._queue_override is not None,
+                    output_path=self._job.output_path,
+                )
+            with writer:
                 results = self._batch_service.calculate_queue(
                     queue,
                     progress_callback=self._on_progress,
@@ -91,6 +102,8 @@ class CalculationWorker(QObject):
                 self.completed.emit(results)
             self.summary.emit(summary)
             self.failed_queue.emit(queue.failed_only())
+        except OutputWriteError as error:
+            self.output_write_failed.emit(error)
         except Exception as error:  # presentation boundary
             self.failed.emit(str(error))
         finally:
@@ -144,6 +157,7 @@ class CalculationExecutionCoordinator(QObject):
     completed = Signal(object)
     stopped = Signal(object)
     failed = Signal(str)
+    output_write_failed = Signal(object)
     summary = Signal(object)
 
     def __init__(
@@ -187,6 +201,19 @@ class CalculationExecutionCoordinator(QObject):
             return False
         return self._start_worker(self._last_job, self._failed_queue)
 
+    def retry_with_output(self, output_path: str) -> bool:
+        """Rerun the last job using an alternate result destination."""
+        if self.is_running or self._last_job is None:
+            return False
+        job = CalculationJob(
+            file_path=self._last_job.file_path,
+            sheet_name=self._last_job.sheet_name,
+            configuration=self._last_job.configuration,
+            output_path=output_path,
+        )
+        self._last_job = job
+        return self._start_worker(job, None)
+
     def _start_worker(
         self,
         job: CalculationJob,
@@ -208,6 +235,7 @@ class CalculationExecutionCoordinator(QObject):
         worker.completed.connect(self.completed.emit)
         worker.stopped.connect(self.stopped.emit)
         worker.failed.connect(self.failed.emit)
+        worker.output_write_failed.connect(self.output_write_failed.emit)
         worker.summary.connect(self.summary.emit)
         worker.failed_queue.connect(self._store_failed_queue)
         worker.finished.connect(thread.quit)

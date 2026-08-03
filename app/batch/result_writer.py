@@ -13,6 +13,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from .autosave_metrics import AutosaveMetrics, AutosaveSnapshot
 from .autosave_policy import AutoSavePolicy
+from .file_access import AtomicOutputFile, OutputWriteError, ensure_output_writable
 from .models import RouteJob, RouteJobStatus
 from .output_path_policy import OutputPathPolicy
 
@@ -57,7 +58,7 @@ class BaseResultWriter(ABC):
     def flush(self) -> bool:
         if self._closed or not self._dirty:
             return False
-        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_output_writable(self.output_path)
         dirty_rows = self._autosave_policy.dirty_rows
         started_at = perf_counter()
         self._save()
@@ -130,7 +131,23 @@ class ExcelResultWriter(BaseResultWriter):
         self._worksheet.cell(row=job.row_index, column=column, value=value)
 
     def _save(self) -> None:
-        self._workbook.save(self.output_path)
+        atomic = AtomicOutputFile(self.output_path)
+        temporary = atomic.create(suffix=self.output_path.suffix)
+        try:
+            self._workbook.save(temporary)
+            atomic.replace()
+        except OutputWriteError:
+            raise
+        except (PermissionError, OSError) as error:
+            atomic.cleanup()
+            raise OutputWriteError(
+                self.output_path,
+                "save",
+                str(error),
+            ) from error
+        except Exception:
+            atomic.cleanup()
+            raise
 
     def _close(self) -> None:
         self._workbook.close()
@@ -176,12 +193,28 @@ class CsvResultWriter(BaseResultWriter):
         row[column] = str(value)
 
     def _save(self) -> None:
-        with self.output_path.open(
-            "w",
-            encoding="utf-8-sig",
-            newline="",
-        ) as stream:
-            csv.writer(stream).writerows(self._rows)
+        atomic = AtomicOutputFile(self.output_path)
+        temporary = atomic.create(suffix=self.output_path.suffix)
+        try:
+            with temporary.open(
+                "w",
+                encoding="utf-8-sig",
+                newline="",
+            ) as stream:
+                csv.writer(stream).writerows(self._rows)
+            atomic.replace()
+        except OutputWriteError:
+            raise
+        except (PermissionError, OSError) as error:
+            atomic.cleanup()
+            raise OutputWriteError(
+                self.output_path,
+                "save",
+                str(error),
+            ) from error
+        except Exception:
+            atomic.cleanup()
+            raise
 
 
 class ResultWriterFactory:
@@ -200,9 +233,14 @@ class ResultWriterFactory:
         autosave_policy: AutoSavePolicy | None = None,
         *,
         resume_from_output: bool = False,
+        output_path: str | Path | None = None,
     ) -> BaseResultWriter:
         source = Path(source_path)
-        output = self._output_path_policy.build(source)
+        output = (
+            Path(output_path)
+            if output_path is not None
+            else self._output_path_policy.build(source)
+        )
         input_path = output if resume_from_output and output.exists() else source
         suffix = source.suffix.casefold()
         if suffix in {".xlsx", ".xlsm"}:

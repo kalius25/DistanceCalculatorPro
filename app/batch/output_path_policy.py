@@ -10,4 +10,7 @@ class OutputPathPolicy:
 
     def build(self, source_path: str | Path) -> Path:
         source = Path(source_path)
-        return source.with_name(f"{source.stem}.result{source.suffix}")
+        stem = source.stem
+        if stem.casefold().endswith(".result"):
+            return source
+        return source.with_name(f"{stem}.result{source.suffix}")
