@@ -63,6 +63,7 @@ markers = [
     "gui_smoke: deterministic Qt GUI smoke scenarios",
     "benchmark: deterministic performance benchmark scenarios",
     "stability: deterministic long-running stability tests",
+    "failure_injection: deterministic failure and recovery scenarios",
     "soak: extended soak tests excluded from the default suite",
 ]
 
