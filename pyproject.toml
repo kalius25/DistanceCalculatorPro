@@ -61,6 +61,7 @@ markers = [
     "e2e: headless end-to-end reliability scenarios",
     "smoke: fast release smoke scenarios",
     "gui_smoke: deterministic Qt GUI smoke scenarios",
+    "benchmark: deterministic performance benchmark scenarios",
 ]
 
 addopts = [

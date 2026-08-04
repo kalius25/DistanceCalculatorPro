@@ -1,3 +1,10 @@
+## 1.2.0-rc7
+
+- Added deterministic large-batch benchmark scenarios and workload generation.
+- Added elapsed time, throughput, row-latency, autosave, and peak-memory metrics.
+- Added JSON and Markdown stress benchmark reports.
+- Added the `benchmark` pytest marker and complete unit coverage for new modules.
+
 ## 1.2.0-rc3
 
 - Added reusable batch resource preflight validation.
