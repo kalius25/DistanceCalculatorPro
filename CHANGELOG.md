@@ -291,3 +291,9 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added file-lock/write failure recovery with Retry, Save As and Cancel.
 - Prevented duplicate `.result.result` output names.
 - Added explicit output path support for recovery runs.
+
+## 1.2.0-rc8
+
+- Added Sprint 2.5.2.2-A stability harness and leak snapshots.
+- Added repeated-cycle cleanup, resource-growth policies, and stability reports.
+- Added `stability` and `soak` pytest markers.

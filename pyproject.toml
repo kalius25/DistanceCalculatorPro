@@ -62,6 +62,8 @@ markers = [
     "smoke: fast release smoke scenarios",
     "gui_smoke: deterministic Qt GUI smoke scenarios",
     "benchmark: deterministic performance benchmark scenarios",
+    "stability: deterministic long-running stability tests",
+    "soak: extended soak tests excluded from the default suite",
 ]
 
 addopts = [
