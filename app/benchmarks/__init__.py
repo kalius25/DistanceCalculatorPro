@@ -1,4 +1,7 @@
 from .baseline_store import BenchmarkBaselineStore
+from .gate_models import PerformanceGateExitCode, PerformanceGateResult
+from .gate_report import PerformanceGateReportWriter
+from .gate_runner import PerformanceGateInputError, PerformanceGateRunner
 from .memory_sampler import MemorySampler
 from .models import BatchBenchmarkResult
 from .regression_comparator import BenchmarkRegressionComparator
@@ -28,6 +31,11 @@ __all__ = [
     "RegressionPolicy",
     "RegressionReportWriter",
     "RegressionStatus",
+    "PerformanceGateExitCode",
+    "PerformanceGateInputError",
+    "PerformanceGateReportWriter",
+    "PerformanceGateResult",
+    "PerformanceGateRunner",
     "MemorySampler",
     "RouteWorkloadGenerator",
     "StressBenchmarkReportWriter",
