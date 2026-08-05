@@ -64,6 +64,7 @@ markers = [
     "benchmark: deterministic performance benchmark scenarios",
     "stability: deterministic long-running stability tests",
     "failure_injection: deterministic failure and recovery scenarios",
+    "performance_regression: benchmark baseline and regression comparisons",
     "soak: extended soak tests excluded from the default suite",
 ]
 

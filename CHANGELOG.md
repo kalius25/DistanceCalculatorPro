@@ -1,3 +1,11 @@
+## 1.2.0-rc10
+
+- Added versioned benchmark baseline JSON persistence.
+- Added configurable runtime, memory, throughput, and autosave thresholds.
+- Added deterministic PASS, WARNING, and REGRESSION comparison results.
+- Added JSON and Markdown performance regression reports.
+- Added the `performance_regression` pytest marker and complete tests.
+
 ## 1.2.0-rc7
 
 - Added deterministic large-batch benchmark scenarios and workload generation.
