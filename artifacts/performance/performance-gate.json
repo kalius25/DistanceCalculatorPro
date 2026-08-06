@@ -1,0 +1,20 @@
+{
+  "comparisons": [
+    {
+      "autosave_delta": 0,
+      "memory_change_percent": 0.0,
+      "passed": true,
+      "regressions": [],
+      "runtime_change_percent": 0.0,
+      "scenario": "custom-25000",
+      "status": "PASS",
+      "throughput_change_percent": 0.0,
+      "warnings": []
+    }
+  ],
+  "created_at": "2026-08-06T01:44:02.845412+00:00",
+  "exit_code": 0,
+  "fail_on_warning": false,
+  "passed": true,
+  "status": "PASS"
+}
