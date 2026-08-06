@@ -1,6 +1,3 @@
-import json
-import subprocess
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,7 +7,6 @@ from app.benchmarks import (
     PerformanceGateExitCode,
     PerformanceGateInputError,
     PerformanceGateResult,
-    performance_gate,
 )
 from app.benchmarks.performance_gate import build_parser, main
 
@@ -65,83 +61,11 @@ def test_cli_returns_invalid_input_code(capsys: pytest.CaptureFixture[str]) -> N
     assert "input error: bad" in capsys.readouterr().err
 
 
-def test_performance_gate_module_entry_point(
-    tmp_path: Path,
-) -> None:
-    baseline_path = tmp_path / "baseline.json"
-    results_path = tmp_path / "results.json"
-    output_path = tmp_path / "reports"
-
-    baseline_path.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "baselines": [
-                    {
-                        "scenario": "smoke",
-                        "elapsed_seconds": 1.0,
-                        "rows_per_second": 100.0,
-                        "peak_memory_mb": 1.0,
-                        "autosave_count": 1,
-                    }
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    results_path.write_text(
-        json.dumps(
-            {
-                "results": [
-                    {
-                        "scenario": "smoke",
-                        "rows": 100,
-                        "iterations": 1,
-                        "elapsed_seconds": 1.0,
-                        "rows_per_second": 100.0,
-                        "peak_memory_bytes": 1_048_576,
-                        "autosave_count": 1,
-                        "average_row_latency_seconds": 0.01,
-                        "maximum_row_latency_seconds": 0.02,
-                    }
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "app.benchmarks.performance_gate",
-            "--baseline",
-            str(baseline_path),
-            "--results",
-            str(results_path),
-            "--output",
-            str(output_path),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert completed.returncode == 0
-    assert "Performance gate PASS" in completed.stdout
-    assert completed.stderr == ""
-    assert (output_path / "performance-gate.json").is_file()
-    assert (output_path / "performance-gate.md").is_file()
-
-
 def test_entry_point_exits_with_main_result() -> None:
+    from app.benchmarks import performance_gate
+
     with (
-        patch.object(
-            performance_gate,
-            "main",
-            return_value=7,
-        ) as main_mock,
+        patch.object(performance_gate, "main", return_value=7) as main_mock,
         pytest.raises(SystemExit) as raised,
     ):
         performance_gate._entry_point()

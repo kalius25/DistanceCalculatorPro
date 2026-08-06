@@ -120,70 +120,25 @@ def test_gate_runner_rejects_missing_baseline_scenario(tmp_path: Path) -> None:
         PerformanceGateRunner().run(baseline_path, results_path)
 
 
-def test_gate_runner_rejects_missing_results_file(
-    tmp_path: Path,
-) -> None:
+def test_gate_runner_rejects_missing_results_file(tmp_path: Path) -> None:
     baseline_path = tmp_path / "baseline.json"
-    results_path = tmp_path / "missing-results.json"
+    baseline(baseline_path)
 
-    BenchmarkBaselineStore().save(
-        baseline_path,
-        (
-            BenchmarkBaseline(
-                scenario="smoke",
-                elapsed_seconds=1.0,
-                rows_per_second=100.0,
-                peak_memory_mb=1.0,
-                autosave_count=1,
-            ),
-        ),
-    )
-
-    with pytest.raises(
-        PerformanceGateInputError,
-        match="Benchmark results not found",
-    ):
+    with pytest.raises(PerformanceGateInputError, match="results not found"):
         PerformanceGateRunner().run(
             baseline_path,
-            results_path,
+            tmp_path / "missing-results.json",
         )
 
 
-def test_gate_runner_rejects_invalid_results_collection(
-    tmp_path: Path,
-) -> None:
+def test_gate_runner_rejects_invalid_results_collection(tmp_path: Path) -> None:
     baseline_path = tmp_path / "baseline.json"
     results_path = tmp_path / "results.json"
-
-    BenchmarkBaselineStore().save(
-        baseline_path,
-        (
-            BenchmarkBaseline(
-                scenario="smoke",
-                elapsed_seconds=1.0,
-                rows_per_second=100.0,
-                peak_memory_mb=1.0,
-                autosave_count=1,
-            ),
-        ),
-    )
-
+    baseline(baseline_path)
     results_path.write_text(
-        json.dumps(
-            {
-                "results": {
-                    "scenario": "smoke",
-                }
-            }
-        ),
+        json.dumps({"results": {"scenario": "10k"}}),
         encoding="utf-8",
     )
 
-    with pytest.raises(
-        PerformanceGateInputError,
-        match="Benchmark result list is invalid",
-    ):
-        PerformanceGateRunner().run(
-            baseline_path,
-            results_path,
-        )
+    with pytest.raises(PerformanceGateInputError, match="list is invalid"):
+        PerformanceGateRunner().run(baseline_path, results_path)

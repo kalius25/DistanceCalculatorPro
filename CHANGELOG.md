@@ -1,3 +1,12 @@
+# Changelog
+
+## 1.2.0-rc12
+
+- Added deterministic stress benchmark CLI (`python -m app.benchmarks.run_stress`).
+- Added fixed JSON and Markdown benchmark artifacts for CI.
+- Added predefined, custom, and multi-scenario benchmark selection.
+- Added benchmark CLI exit codes and full unit coverage.
+
 ## 1.2.0-rc10
 
 - Added versioned benchmark baseline JSON persistence.

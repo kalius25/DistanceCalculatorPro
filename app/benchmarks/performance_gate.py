@@ -56,7 +56,4 @@ if __name__ == "__main__":  # pragma: no cover
     _entry_point()
 
 
-__all__ = [
-    "build_parser",
-    "main",
-]
+__all__ = ["build_parser", "main"]

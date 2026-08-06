@@ -1,4 +1,6 @@
 from .baseline_store import BenchmarkBaselineStore
+from .benchmark_cli_models import BenchmarkCliExitCode, BenchmarkCliResult
+from .benchmark_cli_runner import BenchmarkCliRunner
 from .gate_models import PerformanceGateExitCode, PerformanceGateResult
 from .gate_report import PerformanceGateReportWriter
 from .gate_runner import PerformanceGateInputError, PerformanceGateRunner
@@ -22,6 +24,9 @@ from .workload import RouteWorkloadGenerator
 __all__ = [
     "BenchmarkBaseline",
     "BenchmarkBaselineStore",
+    "BenchmarkCliExitCode",
+    "BenchmarkCliResult",
+    "BenchmarkCliRunner",
     "BenchmarkRegressionComparator",
     "BatchBenchmarkResult",
     "BatchBenchmarkRunner",
