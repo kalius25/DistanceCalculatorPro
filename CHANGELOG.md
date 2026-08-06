@@ -314,3 +314,15 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added Sprint 2.5.2.2-A stability harness and leak snapshots.
 - Added repeated-cycle cleanup, resource-growth policies, and stability reports.
 - Added `stability` and `soak` pytest markers.
+
+## 1.2.0-rc13
+
+- Added benchmark baseline creation, merge, replace, filtering, and dry-run CLI.
+- Added baseline update JSON and Markdown reports.
+
+## 1.2.0-rc14
+
+- Improved baseline CLI errors with requested and available scenario lists.
+- Added `--ignore-missing-scenarios` while requiring at least one valid match.
+- Extended baseline update JSON and Markdown reports with selection details.
+- Added GitHub Actions performance benchmark, gate, and artifact workflow.

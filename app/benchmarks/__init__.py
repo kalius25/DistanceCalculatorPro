@@ -1,4 +1,7 @@
 from .baseline_store import BenchmarkBaselineStore
+from .baseline_update_models import BaselineUpdateMode, BaselineUpdateResult
+from .baseline_update_report import BaselineUpdateReportWriter
+from .baseline_update_runner import BaselineUpdateInputError, BaselineUpdateRunner
 from .benchmark_cli_models import BenchmarkCliExitCode, BenchmarkCliResult
 from .benchmark_cli_runner import BenchmarkCliRunner
 from .gate_models import PerformanceGateExitCode, PerformanceGateResult
@@ -22,6 +25,11 @@ from .stress_runner import StressBenchmarkRunner
 from .workload import RouteWorkloadGenerator
 
 __all__ = [
+    "BaselineUpdateInputError",
+    "BaselineUpdateMode",
+    "BaselineUpdateReportWriter",
+    "BaselineUpdateResult",
+    "BaselineUpdateRunner",
     "BenchmarkBaseline",
     "BenchmarkBaselineStore",
     "BenchmarkCliExitCode",

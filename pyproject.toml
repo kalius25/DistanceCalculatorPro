@@ -67,6 +67,7 @@ markers = [
     "performance_regression: benchmark baseline and regression comparisons",
     "ci_gate: CI performance gate scenarios",
     "benchmark_cli: stress benchmark command-line interface scenarios",
+    "baseline_management: benchmark baseline creation and update tests",
     "soak: extended soak tests excluded from the default suite",
 ]
 

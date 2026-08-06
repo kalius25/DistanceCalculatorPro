@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-08-06T15:13:42.338793+00:00",
+  "mode": "merge",
+  "output_path": "benchmark-baseline.json",
+  "dry_run": false,
+  "added": [],
+  "updated": [],
+  "retained": [
+    "custom-25000"
+  ],
+  "removed": [],
+  "requested_scenarios": [
+    "smoke",
+    "custom-25000"
+  ],
+  "selected_scenarios": [
+    "custom-25000"
+  ],
+  "missing_scenarios": [
+    "smoke"
+  ],
+  "ignored_missing_scenarios": true
+}
