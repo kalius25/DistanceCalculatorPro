@@ -138,7 +138,7 @@ QWidget#pageWorkspace {
 }
 QFrame#frmDropZone {
     background: #ffffff;
-    border: 2px dashed #93c5fd;
+    border: 2px dashed #9eb6d8;
     border-radius: 12px;
 }
 QFrame#frmDropZone[dragActive="true"] {

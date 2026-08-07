@@ -69,6 +69,7 @@ class HomePage(QWidget):
         self._provider_valid = False
         self._workspace_ready = False
         self._workspace_locked = False
+        self._theme_name = "light"
         self.setObjectName("pageWorkspace")
         self.setAcceptDrops(True)
         self._create_widgets()
@@ -279,7 +280,9 @@ class HomePage(QWidget):
         self._toggle_source_panels_button = QPushButton("Hide File Panels", self)
         self._toggle_source_panels_button.setObjectName("btnToggleSourcePanels")
         self._toggle_source_panels_button.setCheckable(True)
-        self._toggle_source_panels_button.setIcon(qta.icon("fa5s.chevron-left"))
+        self._toggle_source_panels_button.setIcon(
+            qta.icon("fa5s.chevron-left", color="#111827")
+        )
         self._toggle_source_panels_button.setToolTip(
             "Hide Drag & Drop and Recent Workbooks"
         )
@@ -427,7 +430,7 @@ class HomePage(QWidget):
         self._toggle_config_button = QPushButton("Hide Config", self._inspector_frame)
         self._toggle_config_button.setObjectName("btnToggleConfig")
         self._toggle_config_button.setCheckable(True)
-        self._toggle_config_button.setIcon(qta.icon("fa5s.chevron-up"))
+        self._toggle_config_button.setIcon(qta.icon("fa5s.chevron-up", color="#111827"))
         self._toggle_config_button.setToolTip(
             "Hide Column Mapping and Route Provider configuration"
         )
@@ -847,8 +850,25 @@ class HomePage(QWidget):
 
     def update_theme_icons(self, theme_name: str) -> None:
         """Refresh theme-sensitive workspace icons."""
-        color = "#2563EB" if theme_name == "light" else "#60A5FA"
-        self._set_drop_icon_color(color)
+        self._theme_name = theme_name
+        upload_color = "#2563EB" if theme_name == "light" else "#60A5FA"
+        control_color = "#111827" if theme_name == "light" else "#F9FAFB"
+        self._set_drop_icon_color(upload_color)
+
+        source_icon = (
+            "fa5s.chevron-right"
+            if self._toggle_source_panels_button.isChecked()
+            else "fa5s.chevron-left"
+        )
+        config_icon = (
+            "fa5s.chevron-down"
+            if self._toggle_config_button.isChecked()
+            else "fa5s.chevron-up"
+        )
+        self._toggle_source_panels_button.setIcon(
+            qta.icon(source_icon, color=control_color)
+        )
+        self._toggle_config_button.setIcon(qta.icon(config_icon, color=control_color))
 
     def _set_drop_icon_color(self, color: str) -> None:
         self._drop_icon.setPixmap(qta.icon("fa5s.upload", color=color).pixmap(36, 36))
@@ -894,7 +914,8 @@ class HomePage(QWidget):
             else "Hide Drag & Drop and Recent Workbooks"
         )
         icon_name = "fa5s.chevron-right" if hidden else "fa5s.chevron-left"
-        self._toggle_source_panels_button.setIcon(qta.icon(icon_name))
+        icon_color = "#111827" if self._theme_name == "light" else "#F9FAFB"
+        self._toggle_source_panels_button.setIcon(qta.icon(icon_name, color=icon_color))
         if emit_signal:
             self.source_panels_visibility_changed.emit(not hidden)
 
@@ -919,7 +940,8 @@ class HomePage(QWidget):
             else "Hide Column Mapping and Route Provider configuration"
         )
         icon_name = "fa5s.chevron-down" if hidden else "fa5s.chevron-up"
-        self._toggle_config_button.setIcon(qta.icon(icon_name))
+        icon_color = "#111827" if self._theme_name == "light" else "#F9FAFB"
+        self._toggle_config_button.setIcon(qta.icon(icon_name, color=icon_color))
 
     def _on_workspace_splitter_moved(self, _position: int, _index: int) -> None:
         self.workspace_splitter_state_changed.emit(self._workspace_splitter.saveState())

@@ -1,4 +1,5 @@
 # Changelog
+- Improved Light theme contrast for File Panels and Config toggle chevrons; control icons now match the dark text color while preserving high-contrast Dark theme icons.
 
 ## 1.2.0-rc12
 
