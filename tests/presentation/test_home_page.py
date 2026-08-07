@@ -1232,3 +1232,28 @@ def test_restore_workspace_splitter_state_accepts_binary_state(
     state = bytes(page.workspace_splitter_state())
 
     assert page.restore_workspace_splitter_state(state_factory(state))
+
+
+def test_drop_upload_icon_uses_theme_specific_blue(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ) as icon_factory:
+        page = HomePage()
+        qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+        icon_factory.assert_any_call(
+            "fa5s.upload",
+            color="#2563EB",
+        )
+
+        icon_factory.reset_mock()
+
+        page.update_theme_icons("dark")
+
+        icon_factory.assert_any_call(
+            "fa5s.upload",
+            color="#60A5FA",
+        )

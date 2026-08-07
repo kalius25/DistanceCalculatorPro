@@ -520,6 +520,7 @@ class MainWindow(QMainWindow):
         self._action_light_theme.setChecked(theme_name == "light")
         self._action_dark_theme.setChecked(theme_name == "dark")
         self._update_action_icons(theme_name)
+        self._home_page.update_theme_icons(theme_name)
 
     def _update_action_icons(self, theme_name: str) -> None:
         icon_color = (

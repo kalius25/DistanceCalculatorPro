@@ -298,7 +298,7 @@ class HomePage(QWidget):
         drop_layout.setSpacing(7)
         self._drop_icon = QLabel(self._drop_zone)
         self._drop_icon.setObjectName("lblDropIcon")
-        self._drop_icon.setPixmap(qta.icon("fa5s.upload").pixmap(36, 36))
+        self._set_drop_icon_color("#2563EB")
         self._drop_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._drop_title = QLabel("Drag & drop a workbook here", self._drop_zone)
         self._drop_title.setObjectName("lblDropTitle")
@@ -844,6 +844,14 @@ class HomePage(QWidget):
         self._toggle_source_panels_button.setChecked(hidden)
         self._toggle_source_panels_button.blockSignals(False)
         self._apply_source_panels_state(hidden, emit_signal=False)
+
+    def update_theme_icons(self, theme_name: str) -> None:
+        """Refresh theme-sensitive workspace icons."""
+        color = "#2563EB" if theme_name == "light" else "#60A5FA"
+        self._set_drop_icon_color(color)
+
+    def _set_drop_icon_color(self, color: str) -> None:
+        self._drop_icon.setPixmap(qta.icon("fa5s.upload", color=color).pixmap(36, 36))
 
     @property
     def source_panels_visible(self) -> bool:
