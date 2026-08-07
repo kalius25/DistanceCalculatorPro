@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import qtawesome as qta
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QByteArray, Qt, Signal
 from PySide6.QtGui import (
     QDragEnterEvent,
     QDragLeaveEvent,
@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QPushButton,
     QSizePolicy,
+    QSplitter,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -51,6 +52,8 @@ class HomePage(QWidget):
     workspace_configuration_changed = Signal(object)
     workspace_ready_changed = Signal(bool)
     retry_failed_requested = Signal()
+    source_panels_visibility_changed = Signal(bool)
+    workspace_splitter_state_changed = Signal(object)
 
     SUPPORTED_EXTENSIONS = frozenset({".xlsx", ".xlsm", ".csv"})
     DEFAULT_PREVIEW_ROWS = 20
@@ -140,6 +143,9 @@ class HomePage(QWidget):
         self._selected_file_name.setText(path.name)
         self._selected_file_path.setText(normalized_path)
         self._selected_file_path.setToolTip(normalized_path)
+        self._inspector_file_path_value.setText(normalized_path)
+        self._inspector_file_path_value.setToolTip(normalized_path)
+        self._inspector_file_size_value.setText("Inspecting…")
         self._file_information_frame.setVisible(True)
         self._empty_file_information.setVisible(False)
         self._file_ready_label.setText("Inspecting workbook…")
@@ -150,6 +156,9 @@ class HomePage(QWidget):
         self._selected_file = None
         self._selected_file_name.clear()
         self._selected_file_path.clear()
+        self._inspector_file_path_value.setText("—")
+        self._inspector_file_path_value.setToolTip("")
+        self._inspector_file_size_value.setText("—")
         self._file_information_frame.setVisible(False)
         self._empty_file_information.setVisible(True)
         self._workspace_status.setText("No workbook selected")
@@ -158,10 +167,14 @@ class HomePage(QWidget):
     def set_inspection(self, workbook_info: WorkbookInfo) -> None:
         self._workbook_info = workbook_info
         self._file_type_value.setText(workbook_info.file_type)
-        self._file_size_value.setText(
+        formatted_size = (
             f"{self._format_file_size(workbook_info.file_size_bytes)} "
             f"({workbook_info.file_size_bytes:,} bytes)"
         )
+        self._file_size_value.setText(formatted_size)
+        self._inspector_file_size_value.setText(formatted_size)
+        self._inspector_file_path_value.setText(workbook_info.file_path)
+        self._inspector_file_path_value.setToolTip(workbook_info.file_path)
         self._modified_value.setText(
             workbook_info.modified_at.strftime("%Y-%m-%d %H:%M:%S")
         )
@@ -175,7 +188,13 @@ class HomePage(QWidget):
             [sheet.name for sheet in workbook_info.worksheets]
         )
         self._sheet_selector.blockSignals(False)
-        self._update_workspace_panel_visibility()
+
+        # A successfully inspected workbook becomes the primary workspace view.
+        # Source panels remain one click away through Show File Panels.
+        self._toggle_source_panels_button.blockSignals(True)
+        self._toggle_source_panels_button.setChecked(True)
+        self._toggle_source_panels_button.blockSignals(False)
+        self._apply_source_panels_state(True, emit_signal=False)
 
         if workbook_info.worksheets:
             self._show_worksheet(workbook_info.worksheets[0])
@@ -186,8 +205,6 @@ class HomePage(QWidget):
             self._clear_worksheet_details()
             self._headers_status_value.setText("No")
             self._workspace_status.setText("Workbook contains no worksheets")
-
-        self._toggle_source_panels_button.setChecked(True)
 
     def set_inspection_error(self, message: str) -> None:
         self.clear_inspection()
@@ -208,7 +225,10 @@ class HomePage(QWidget):
         if hasattr(self, "_workspace_readiness_status"):
             self._update_workspace_readiness()
         if hasattr(self, "_source_panels_container"):
-            self._update_workspace_panel_visibility()
+            self._toggle_source_panels_button.blockSignals(True)
+            self._toggle_source_panels_button.setChecked(False)
+            self._toggle_source_panels_button.blockSignals(False)
+            self._apply_source_panels_state(False, emit_signal=False)
 
     def set_recent_files(self, file_paths: list[str]) -> None:
         self._recent_files.clear()
@@ -256,10 +276,14 @@ class HomePage(QWidget):
             self,
         )
         self._description_label.setObjectName("lblPageDescription")
-        self._toggle_source_panels_button = QPushButton("Hide file panels", self)
+        self._toggle_source_panels_button = QPushButton("Hide File Panels", self)
         self._toggle_source_panels_button.setObjectName("btnToggleSourcePanels")
         self._toggle_source_panels_button.setCheckable(True)
-        self._toggle_source_panels_button.setIcon(qta.icon("fa5s.chevron-up"))
+        self._toggle_source_panels_button.setIcon(qta.icon("fa5s.chevron-left"))
+        self._toggle_source_panels_button.setToolTip(
+            "Hide Drag & Drop and Recent Workbooks"
+        )
+        self._toggle_source_panels_button.setEnabled(False)
 
         self._selection_frame = self._create_section_frame("frmSelectionPanel")
         selection_layout = QVBoxLayout(self._selection_frame)
@@ -375,6 +399,9 @@ class HomePage(QWidget):
         detail_grid.setColumnStretch(1, 1)
         file_info_layout.addLayout(detail_grid)
         file_panel_layout.addWidget(self._file_information_frame, 1)
+        # Retained only for backwards-compatible internal state.  File details are
+        # now rendered directly inside Workbook Inspector.
+        self._file_panel.setVisible(False)
 
         self._create_inspector_widgets()
         self._create_summary_widgets()
@@ -384,9 +411,47 @@ class HomePage(QWidget):
     def _create_inspector_widgets(self) -> None:
         self._inspector_frame = self._create_section_frame("frmWorkbookInspector")
         inspector_layout = QVBoxLayout(self._inspector_frame)
-        inspector_layout.setContentsMargins(16, 14, 16, 14)
+        inspector_layout.setContentsMargins(10, 10, 10, 10)
         inspector_layout.setSpacing(10)
-        inspector_layout.addWidget(self._section_title("Workbook Inspector"))
+
+        self._inspector_controls_frame = QFrame(self._inspector_frame)
+        self._inspector_controls_frame.setObjectName("frmWorkbookInspectorControls")
+        controls_layout = QVBoxLayout(self._inspector_controls_frame)
+        controls_layout.setContentsMargins(6, 4, 6, 4)
+        controls_layout.setSpacing(10)
+
+        inspector_header = QHBoxLayout()
+        inspector_header.setSpacing(8)
+        inspector_header.addWidget(self._section_title("Workbook Inspector"))
+        inspector_header.addStretch(1)
+        self._toggle_config_button = QPushButton("Hide Config", self._inspector_frame)
+        self._toggle_config_button.setObjectName("btnToggleConfig")
+        self._toggle_config_button.setCheckable(True)
+        self._toggle_config_button.setIcon(qta.icon("fa5s.chevron-up"))
+        self._toggle_config_button.setToolTip(
+            "Hide Column Mapping and Route Provider configuration"
+        )
+        inspector_header.addWidget(self._toggle_config_button)
+        controls_layout.addLayout(inspector_header)
+
+        file_details_layout = QGridLayout()
+        file_details_layout.setHorizontalSpacing(12)
+        file_details_layout.setVerticalSpacing(6)
+        file_path_caption = QLabel("File Path", self._inspector_frame)
+        file_path_caption.setObjectName("lblInspectorCaption")
+        self._inspector_file_path_value = QLabel("—", self._inspector_frame)
+        self._inspector_file_path_value.setObjectName("lblInspectorValue")
+        self._inspector_file_path_value.setWordWrap(True)
+        file_size_caption = QLabel("File Size", self._inspector_frame)
+        file_size_caption.setObjectName("lblInspectorCaption")
+        self._inspector_file_size_value = QLabel("—", self._inspector_frame)
+        self._inspector_file_size_value.setObjectName("lblInspectorValue")
+        file_details_layout.addWidget(file_path_caption, 0, 0)
+        file_details_layout.addWidget(self._inspector_file_path_value, 0, 1)
+        file_details_layout.addWidget(file_size_caption, 1, 0)
+        file_details_layout.addWidget(self._inspector_file_size_value, 1, 1)
+        file_details_layout.setColumnStretch(1, 1)
+        controls_layout.addLayout(file_details_layout)
 
         summary_layout = QHBoxLayout()
         worksheet_layout = QVBoxLayout()
@@ -417,7 +482,7 @@ class HomePage(QWidget):
             "Detected headers", summary_layout
         )
         summary_layout.addStretch(1)
-        inspector_layout.addLayout(summary_layout)
+        controls_layout.addLayout(summary_layout)
 
         self._mapping_frame = QFrame(self._inspector_frame)
         self._mapping_frame.setObjectName("frmColumnMapping")
@@ -516,20 +581,21 @@ class HomePage(QWidget):
         configuration_row.setSpacing(10)
         configuration_row.addWidget(self._mapping_frame, 1)
         configuration_row.addWidget(self._provider_frame, 1)
-        inspector_layout.addLayout(configuration_row)
+        controls_layout.addLayout(configuration_row)
+        inspector_layout.addWidget(self._inspector_controls_frame, 0)
 
-        preview_frame = QFrame(self._inspector_frame)
-        preview_frame.setObjectName("frmPreviewPanel")
-        preview_layout = QVBoxLayout(preview_frame)
+        self._preview_frame = QFrame(self._inspector_frame)
+        self._preview_frame.setObjectName("frmPreviewPanel")
+        preview_layout = QVBoxLayout(self._preview_frame)
         preview_layout.setContentsMargins(10, 10, 10, 10)
         preview_layout.setSpacing(8)
         self._preview_title = QLabel(
             f"Data Preview (first {self.DEFAULT_PREVIEW_ROWS} rows)",
-            preview_frame,
+            self._preview_frame,
         )
         self._preview_title.setObjectName("lblPreviewTitle")
         preview_layout.addWidget(self._preview_title)
-        self._preview_table = QTableView(preview_frame)
+        self._preview_table = QTableView(self._preview_frame)
         self._preview_table.setObjectName("tblDataPreview")
         self._preview_table.setEditTriggers(
             QAbstractItemView.EditTrigger.NoEditTriggers
@@ -546,7 +612,7 @@ class HomePage(QWidget):
         self._preview_model = QStandardItemModel(self._preview_table)
         self._preview_table.setModel(self._preview_model)
         preview_layout.addWidget(self._preview_table, 1)
-        inspector_layout.addWidget(preview_frame, 1)
+        inspector_layout.addWidget(self._preview_frame, 1)
 
     def _create_summary_widgets(self) -> None:
         self._summary_frame = self._create_section_frame("frmBatchSummary")
@@ -560,7 +626,7 @@ class HomePage(QWidget):
         summary_layout.setSpacing(8)
         self._summary_label = QLabel("No batch summary available", self._summary_frame)
         self._summary_label.setObjectName("lblBatchSummary")
-        self._summary_label.setWordWrap(True)
+        self._summary_label.setWordWrap(False)
         summary_layout.addWidget(self._summary_label, 1)
         self._summary_frame.setVisible(False)
 
@@ -575,17 +641,17 @@ class HomePage(QWidget):
         retried: int,
     ) -> str:
         return (
-            f"{state}: "
+            f"{state} · "
             f"<span style='color:#16A34A;font-weight:600'>"
-            f"{successful:,}/{total:,} successful</span> · "
+            f"{successful:,}/{total:,} Successful</span>&nbsp;&nbsp; "
             f"<span style='color:#DC2626;font-weight:600'>"
-            f"Failed {failed:,}</span> · "
+            f"{failed:,} Failed</span>&nbsp;&nbsp; "
             f"<span style='color:#CA8A04;font-weight:600'>"
-            f"Skipped {skipped:,}</span> · "
+            f"{skipped:,} Skipped</span>&nbsp;&nbsp; "
             f"<span style='color:#EA580C;font-weight:600'>"
-            f"Invalid {invalid:,}</span> · "
+            f"{invalid:,} Invalid</span>&nbsp;&nbsp; "
             f"<span style='color:#2563EB;font-weight:600'>"
-            f"Retried {retried:,}</span>"
+            f"{retried:,} Retried</span>"
         )
 
     def start_batch_summary(self, total: int) -> None:
@@ -668,14 +734,23 @@ class HomePage(QWidget):
             Qt.AlignmentFlag.AlignTop,
         )
         self._source_panels_container = QWidget(self)
-        top_layout = QHBoxLayout(self._source_panels_container)
-        top_layout.setContentsMargins(0, 0, 0, 0)
-        top_layout.setSpacing(12)
-        top_layout.addWidget(self._selection_frame, 1)
-        top_layout.addWidget(self._recent_frame, 1)
-        top_layout.addWidget(self._file_panel, 1)
-        layout.addWidget(self._source_panels_container, 2)
-        layout.addWidget(self._inspector_frame, 5)
+        source_layout = QVBoxLayout(self._source_panels_container)
+        source_layout.setContentsMargins(0, 0, 0, 0)
+        source_layout.setSpacing(10)
+        # Startup workspace: Drag & Drop uses roughly one third of the height,
+        # while Recent Workbooks receives the remaining two thirds.
+        source_layout.addWidget(self._selection_frame, 1)
+        source_layout.addWidget(self._recent_frame, 2)
+
+        self._workspace_splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self._workspace_splitter.setObjectName("splWorkspace")
+        self._workspace_splitter.setChildrenCollapsible(False)
+        self._workspace_splitter.addWidget(self._source_panels_container)
+        self._workspace_splitter.addWidget(self._inspector_frame)
+        self._workspace_splitter.setStretchFactor(0, 2)
+        self._workspace_splitter.setStretchFactor(1, 7)
+        self._workspace_splitter.setSizes([320, 820])
+        layout.addWidget(self._workspace_splitter, 1)
 
     def _connect_signals(self) -> None:
         self._browse_button.clicked.connect(self.browse_requested.emit)
@@ -708,6 +783,10 @@ class HomePage(QWidget):
         )
         self._toggle_source_panels_button.toggled.connect(
             self._set_source_panels_hidden
+        )
+        self._toggle_config_button.toggled.connect(self._set_config_hidden)
+        self._workspace_splitter.splitterMoved.connect(
+            self._on_workspace_splitter_moved
         )
 
     def _apply_initial_state(self) -> None:
@@ -758,19 +837,84 @@ class HomePage(QWidget):
         )
         self._resize_preview_columns()
 
+    def set_source_panels_visible(self, visible: bool) -> None:
+        """Select the source-panels or workbook-inspector workspace view."""
+        hidden = not visible
+        self._toggle_source_panels_button.blockSignals(True)
+        self._toggle_source_panels_button.setChecked(hidden)
+        self._toggle_source_panels_button.blockSignals(False)
+        self._apply_source_panels_state(hidden, emit_signal=False)
+
+    @property
+    def source_panels_visible(self) -> bool:
+        return not self._toggle_source_panels_button.isChecked()
+
+    def workspace_splitter_state(self) -> QByteArray:
+        return self._workspace_splitter.saveState()
+
+    def restore_workspace_splitter_state(self, state: object) -> bool:
+        if isinstance(state, QByteArray):
+            return self._workspace_splitter.restoreState(state)
+        if isinstance(state, (bytes, bytearray, memoryview)):
+            return self._workspace_splitter.restoreState(QByteArray(bytes(state)))
+        return False
+
     def _set_source_panels_hidden(self, hidden: bool) -> None:
+        self._apply_source_panels_state(hidden, emit_signal=True)
+
+    def _apply_source_panels_state(
+        self,
+        hidden: bool,
+        *,
+        emit_signal: bool,
+    ) -> None:
+        workbook_loaded = self._workbook_info is not None
+        # Before a workbook exists there is no inspector view to switch to.
+        if not workbook_loaded:
+            hidden = False
+            self._toggle_source_panels_button.blockSignals(True)
+            self._toggle_source_panels_button.setChecked(False)
+            self._toggle_source_panels_button.blockSignals(False)
+
         self._update_workspace_panel_visibility()
         self._toggle_source_panels_button.setText(
-            "Show file panels" if hidden else "Hide file panels"
+            "Show File Panels" if hidden else "Hide File Panels"
         )
-        icon_name = "fa5s.chevron-down" if hidden else "fa5s.chevron-up"
+        self._toggle_source_panels_button.setToolTip(
+            "Show Drag & Drop and Recent Workbooks"
+            if hidden
+            else "Hide Drag & Drop and Recent Workbooks"
+        )
+        icon_name = "fa5s.chevron-right" if hidden else "fa5s.chevron-left"
         self._toggle_source_panels_button.setIcon(qta.icon(icon_name))
+        if emit_signal:
+            self.source_panels_visibility_changed.emit(not hidden)
 
     def _update_workspace_panel_visibility(self) -> None:
-        source_panels_hidden = self._toggle_source_panels_button.isChecked()
         workbook_loaded = self._workbook_info is not None
+        source_panels_hidden = (
+            workbook_loaded and self._toggle_source_panels_button.isChecked()
+        )
+        self._toggle_source_panels_button.setEnabled(workbook_loaded)
         self._source_panels_container.setVisible(not source_panels_hidden)
-        self._inspector_frame.setVisible(workbook_loaded and source_panels_hidden)
+        self._inspector_frame.setVisible(source_panels_hidden)
+        self._inspector_controls_frame.setVisible(source_panels_hidden)
+        self._preview_frame.setVisible(source_panels_hidden)
+
+    def _set_config_hidden(self, hidden: bool) -> None:
+        self._mapping_frame.setVisible(not hidden)
+        self._provider_frame.setVisible(not hidden)
+        self._toggle_config_button.setText("Show Config" if hidden else "Hide Config")
+        self._toggle_config_button.setToolTip(
+            "Show Column Mapping and Route Provider configuration"
+            if hidden
+            else "Hide Column Mapping and Route Provider configuration"
+        )
+        icon_name = "fa5s.chevron-down" if hidden else "fa5s.chevron-up"
+        self._toggle_config_button.setIcon(qta.icon(icon_name))
+
+    def _on_workspace_splitter_moved(self, _position: int, _index: int) -> None:
+        self.workspace_splitter_state_changed.emit(self._workspace_splitter.saveState())
 
     def _on_preview_row_limit_changed(self, value: str) -> None:
         try:

@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from PySide6.QtCore import QMimeData, QPoint, Qt, QUrl
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import QListWidgetItem
@@ -22,8 +23,10 @@ def test_initial_workspace_state(qtbot: object) -> None:
 
     assert page.acceptDrops()
     assert page.selected_file is None
-    assert not page._file_information_frame.isVisible()
-    assert page._empty_file_information.isVisibleTo(page)
+    assert page._source_panels_container.isVisibleTo(page)
+    assert not page._inspector_frame.isVisible()
+    assert not page._toggle_source_panels_button.isEnabled()
+    assert page._toggle_source_panels_button.text() == "Hide File Panels"
     assert page._workspace_status.text() == "No workbook selected"
     assert page._recent_files.count() == 1
     assert page._recent_files.item(0).text() == "No recent workbooks"
@@ -48,15 +51,16 @@ def test_set_and_clear_selected_file(qtbot: object) -> None:
 
     assert page.selected_file == file_path
     assert page._selected_file_name.text() == "routes.xlsx"
-    assert page._selected_file_path.text() == file_path
-    assert page._selected_file_path.toolTip() == file_path
-    assert not page._empty_file_information.isVisible()
+    assert page._inspector_file_path_value.text() == file_path
+    assert page._inspector_file_path_value.toolTip() == file_path
+    assert page._inspector_file_size_value.text() == "Inspecting…"
     assert page._workspace_status.text() == "Inspecting workbook…"
 
     page.clear_selected_file()
 
     assert page.selected_file is None
-    assert not page._file_information_frame.isVisible()
+    assert page._inspector_file_path_value.text() == "—"
+    assert page._inspector_file_size_value.text() == "—"
     assert page._workspace_status.text() == "No workbook selected"
 
 
@@ -276,17 +280,22 @@ def test_workbook_inspection_is_rendered_and_sheet_can_change(qtbot: object) -> 
     assert page._row_count_value.text() == "5"
 
 
-def test_successful_inspection_automatically_hides_file_panels(
+def test_successful_inspection_keeps_preview_visible_with_file_panels(
     qtbot: object,
 ) -> None:
     from datetime import datetime
 
     from app.workbooks.models import WorkbookInfo, WorksheetInfo
 
-    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
         page = HomePage()
+
     qtbot.addWidget(page)  # type: ignore[attr-defined]
     page.show()
+
     info = WorkbookInfo(
         file_path="routes.xlsx",
         file_name="routes.xlsx",
@@ -307,15 +316,12 @@ def test_successful_inspection_automatically_hides_file_panels(
     page.set_inspection(info)
 
     assert page._toggle_source_panels_button.isChecked()
+    assert page._toggle_source_panels_button.text() == "Show File Panels"
+    assert page._toggle_source_panels_button.isEnabled()
+
     assert not page._source_panels_container.isVisible()
     assert page._inspector_frame.isVisible()
-    assert page._toggle_source_panels_button.text() == "Show file panels"
-
-    page._toggle_source_panels_button.click()
-
-    assert page._source_panels_container.isVisible()
-    assert not page._inspector_frame.isVisible()
-    assert page._toggle_source_panels_button.text() == "Hide file panels"
+    assert page._preview_frame.isVisible()
 
 
 def test_inspection_error_clears_metadata(qtbot: object) -> None:
@@ -374,24 +380,69 @@ def test_preview_row_selector_supports_configured_limits(qtbot: object) -> None:
     assert page._preview_model.item(0, 1).toolTip() == "Value 1"
 
 
-def test_source_panels_can_be_hidden_and_shown(qtbot: object) -> None:
-    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+def test_source_panels_can_be_hidden_and_shown(
+    qtbot: object,
+) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
         page = HomePage()
+
     qtbot.addWidget(page)  # type: ignore[attr-defined]
     page.show()
 
+    # Startup state.
     assert page._source_panels_container.isVisible()
-    assert page._toggle_source_panels_button.text() == "Hide file panels"
+    assert not page._inspector_frame.isVisible()
+    assert page._toggle_source_panels_button.text() == "Hide File Panels"
+    assert not page._toggle_source_panels_button.isEnabled()
 
-    page._toggle_source_panels_button.click()
+    info = WorkbookInfo(
+        file_path="routes.xlsx",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=2048,
+        modified_at=datetime(2026, 7, 31, 10, 30),
+        worksheets=(
+            WorksheetInfo(
+                "Routes",
+                2,
+                3,
+                ("Origin", "Destination", "Distance"),
+                (("A", "B", "8.6"),),
+            ),
+        ),
+    )
 
+    page.set_inspection(info)
+
+    # Workbook loaded -> inspector replaces source panels.
+    assert page._toggle_source_panels_button.isEnabled()
+    assert page._toggle_source_panels_button.isChecked()
+    assert page._toggle_source_panels_button.text() == "Show File Panels"
     assert not page._source_panels_container.isVisible()
-    assert page._toggle_source_panels_button.text() == "Show file panels"
+    assert page._inspector_frame.isVisible()
 
+    # Show file panels -> inspector hidden.
     page._toggle_source_panels_button.click()
 
+    assert not page._toggle_source_panels_button.isChecked()
+    assert page._toggle_source_panels_button.text() == "Hide File Panels"
     assert page._source_panels_container.isVisible()
-    assert page._toggle_source_panels_button.text() == "Hide file panels"
+    assert not page._inspector_frame.isVisible()
+
+    # Hide file panels again -> inspector returns.
+    page._toggle_source_panels_button.click()
+
+    assert page._toggle_source_panels_button.isChecked()
+    assert page._toggle_source_panels_button.text() == "Show File Panels"
+    assert not page._source_panels_container.isVisible()
+    assert page._inspector_frame.isVisible()
 
 
 def test_workspace_guidance_stays_visible_when_source_panels_are_toggled(
@@ -903,8 +954,8 @@ def test_mapping_and_provider_share_configuration_row(qtbot: object) -> None:
         page = HomePage()
     qtbot.addWidget(page)  # type: ignore[attr-defined]
 
-    inspector_layout = page._inspector_frame.layout()
-    configuration_layout = inspector_layout.itemAt(2).layout()
+    controls_layout = page._inspector_controls_frame.layout()
+    configuration_layout = controls_layout.itemAt(3).layout()
 
     assert configuration_layout is not None
     assert configuration_layout.itemAt(0).widget() is page._mapping_frame
@@ -996,12 +1047,12 @@ def test_batch_summary_is_rendered_without_duplicate_retry_button(
     page.set_batch_summary(make_summary(failed=2))
 
     assert page._summary_frame.isVisibleTo(page)
-    assert "8/10 successful" in page._summary_label.text()
-    assert "Failed 2" in page._summary_label.text()
-    assert "Skipped 1" in page._summary_label.text()
+    assert "8/10 Successful" in page._summary_label.text()
+    assert "2 Failed" in page._summary_label.text()
+    assert "1 Skipped" in page._summary_label.text()
 
     page.set_batch_summary(make_summary(stopped=True))
-    assert page._summary_label.text().startswith("Stopped:")
+    assert page._summary_label.text().startswith("Stopped")
 
     page.clear_batch_summary()
     assert not page._summary_frame.isVisible()
@@ -1017,8 +1068,8 @@ def test_batch_summary_starts_and_updates_live(
 
     page.start_batch_summary(20)
     assert page._summary_frame.isVisibleTo(page)
-    assert "Running:" in page._summary_label.text()
-    assert "0/20 successful" in page._summary_label.text()
+    assert "Running ·" in page._summary_label.text()
+    assert "0/20 Successful" in page._summary_label.text()
 
     metrics = ProgressSnapshot(
         total=20,
@@ -1038,13 +1089,146 @@ def test_batch_summary_starts_and_updates_live(
     page.set_live_batch_summary(metrics)
 
     text = page._summary_label.text()
-    assert "6/20 successful" in text
-    assert "Failed 1" in text
-    assert "Skipped 0" in text
-    assert "Invalid 1" in text
-    assert "Retried 2" in text
+    assert "6/20 Successful" in text
+    assert "1 Failed" in text
+    assert "0 Skipped" in text
+    assert "1 Invalid" in text
+    assert "2 Retried" in text
     assert "#16A34A" in text
     assert "#DC2626" in text
     assert "#CA8A04" in text
     assert "#EA580C" in text
     assert "#2563EB" in text
+
+
+def test_workspace_panel_preference_and_splitter_state_helpers(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.resize(1200, 800)
+    page.show()
+
+    visibility_changes: list[bool] = []
+    splitter_changes: list[object] = []
+    page.source_panels_visibility_changed.connect(visibility_changes.append)
+    page.workspace_splitter_state_changed.connect(splitter_changes.append)
+
+    # Before a workbook is loaded there is no inspector view to switch to.
+    page.set_source_panels_visible(False)
+    assert page.source_panels_visible is True
+    assert not page._toggle_source_panels_button.isEnabled()
+    assert page._toggle_source_panels_button.text() == "Hide File Panels"
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="routes.xlsx",
+            file_name="routes.xlsx",
+            file_type="XLSX",
+            file_size_bytes=2_048,
+            modified_at=datetime(2026, 8, 7, 8, 0),
+            worksheets=(
+                WorksheetInfo("Routes", 2, 3, ("Origin", "Destination", "Distance")),
+            ),
+        )
+    )
+    assert page.source_panels_visible is False
+    assert page._toggle_source_panels_button.isEnabled()
+    assert page._toggle_source_panels_button.text() == "Show File Panels"
+    assert not page._source_panels_container.isVisible()
+    assert page._inspector_frame.isVisibleTo(page)
+
+    page.set_source_panels_visible(True)
+    assert page.source_panels_visible is True
+    assert page._toggle_source_panels_button.text() == "Hide File Panels"
+    assert page._source_panels_container.isVisibleTo(page)
+    assert not page._inspector_frame.isVisible()
+    assert visibility_changes == []
+
+    page._toggle_source_panels_button.click()
+    assert page.source_panels_visible is False
+    assert visibility_changes == [False]
+
+    state = page.workspace_splitter_state()
+    assert not state.isEmpty()
+    assert page.restore_workspace_splitter_state(state)
+    assert not page.restore_workspace_splitter_state(object())
+
+    page._on_workspace_splitter_moved(320, 1)
+    assert len(splitter_changes) == 1
+
+
+def test_workbook_inspector_file_metadata_and_config_toggle(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page.show()
+
+    info = WorkbookInfo(
+        file_path="C:/data/routes.xlsx",
+        file_name="routes.xlsx",
+        file_type="XLSX",
+        file_size_bytes=2_048,
+        modified_at=datetime(2026, 8, 7, 8, 0),
+        worksheets=(
+            WorksheetInfo("Routes", 2, 3, ("Origin", "Destination", "Distance")),
+        ),
+    )
+    page.set_selected_file(info.file_path)
+    page.set_inspection(info)
+
+    assert page._inspector_file_path_value.text() == info.file_path
+    assert page._inspector_file_size_value.text() == "2.0 KB (2,048 bytes)"
+    assert page._toggle_config_button.text() == "Hide Config"
+    assert page._mapping_frame.isVisibleTo(page)
+    assert page._provider_frame.isVisibleTo(page)
+
+    page._toggle_config_button.click()
+    assert page._toggle_config_button.text() == "Show Config"
+    assert not page._mapping_frame.isVisible()
+    assert not page._provider_frame.isVisible()
+
+    page._toggle_config_button.click()
+    assert page._toggle_config_button.text() == "Hide Config"
+    assert page._mapping_frame.isVisibleTo(page)
+    assert page._provider_frame.isVisibleTo(page)
+
+
+def test_restore_workspace_splitter_state_accepts_bytes(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    state = bytes(page.workspace_splitter_state())
+
+    assert page.restore_workspace_splitter_state(state)
+
+
+@pytest.mark.parametrize(
+    "state_factory",
+    [
+        bytes,
+        bytearray,
+        memoryview,
+    ],
+)
+def test_restore_workspace_splitter_state_accepts_binary_state(
+    qtbot: object,
+    state_factory,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    state = bytes(page.workspace_splitter_state())
+
+    assert page.restore_workspace_splitter_state(state_factory(state))

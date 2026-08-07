@@ -333,3 +333,14 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added live Batch Summary from Start through Completed or Stopped.
 - Added separate invalid and retried counters to runtime progress snapshots.
 - Preserved live counters when resuming existing batch output.
+
+## 1.2.0-rc16 — Sprint 2.6.2-A/B/C
+
+- Added the revised File Panels / Workbook Inspector workspace flow.
+- Startup now shows Drag & Drop and Recent Workbooks in a 1:2 vertical ratio.
+- Removed File Information from the visible workspace and moved File Path / File Size into Workbook Inspector.
+- Automatically switches to Workbook Inspector after a workbook is loaded.
+- Added Show/Hide File Panels switching between source panels and Workbook Inspector.
+- Added Show/Hide Config to collapse Column Mapping and Route Provider for a taller Data Preview.
+- Hardened splitter-state restore against invalid settings values.
+- Compacted the live Batch Summary into a single horizontal status line with semantic colors.

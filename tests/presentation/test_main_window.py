@@ -15,6 +15,7 @@ from app.logging import LoggingManager
 from app.presentation.app_metadata import AppMetadata
 from app.presentation.main_window import MainWindow
 from app.presentation.models.execution_state import ExecutionState
+from app.presentation.pages.home_page import HomePage
 from app.workbooks.models import WorkbookInfo, WorksheetInfo
 
 
@@ -30,6 +31,8 @@ def settings_manager() -> MagicMock:
     manager.recent_files.return_value = []
     manager.window_geometry.return_value = None
     manager.window_state.return_value = None
+    manager.workspace_panels_visible.return_value = True
+    manager.workspace_splitter_state.return_value = None
     manager.debug_enabled.return_value = False
     manager.trace_browser.return_value = False
     manager.parser_diagnostics.return_value = False
@@ -142,6 +145,37 @@ def test_initial_state_restores_saved_geometry_and_window_state(
 
     restore_geometry.assert_called_once_with(geometry)
     restore_state.assert_called_once_with(state)
+
+
+def test_initial_state_restores_workspace_preferences(
+    qtbot: object,
+    qapp: QApplication,
+    metadata: AppMetadata,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+) -> None:
+    splitter_state = QByteArray(b"splitter")
+    settings_manager.workspace_panels_visible.return_value = False
+    settings_manager.workspace_splitter_state.return_value = splitter_state
+
+    with (
+        patch("app.presentation.main_window.qta.icon", return_value=QIcon()),
+        patch.object(
+            HomePage,
+            "restore_workspace_splitter_state",
+            return_value=True,
+        ) as restore_splitter,
+    ):
+        result = MainWindow(
+            application=qapp,
+            metadata=metadata,
+            theme_manager=theme_manager,
+            settings_manager=settings_manager,
+        )
+    qtbot.addWidget(result)  # type: ignore[attr-defined]
+
+    assert result._home_page.source_panels_visible is True
+    restore_splitter.assert_called_once_with(splitter_state)
 
 
 def test_navigation_panel_and_navigation_actions_change_pages(
@@ -832,7 +866,7 @@ def test_calculation_summary_updates_home_status_and_retry_action(
     assert window._last_summary is summary
     assert "Completed 4/5" in window._status_label.text()
     assert window._action_retry_failed.isEnabled()
-    assert "Failed 1" in window._home_page._summary_label.text()
+    assert "1 Failed" in window._home_page._summary_label.text()
 
     window._on_calculation_summary(make_batch_summary())
     assert not window._action_retry_failed.isEnabled()

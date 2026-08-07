@@ -145,3 +145,28 @@ def test_debug_preferences_use_defaults_and_persist(
     assert manager.save_html() is True
     assert manager.save_screenshot() is True
     assert manager.save_json() is True
+
+
+def test_workspace_panel_visibility_uses_default_and_persists_value(
+    manager: SettingsManager,
+) -> None:
+    assert manager.workspace_panels_visible() is True
+    assert manager.workspace_panels_visible(default=False) is False
+
+    manager.set_workspace_panels_visible(False)
+
+    assert manager.workspace_panels_visible() is False
+
+
+def test_workspace_splitter_state_returns_only_qbytearray(
+    manager: SettingsManager,
+    qt_settings: QSettings,
+) -> None:
+    assert manager.workspace_splitter_state() is None
+
+    state = QByteArray(b"splitter")
+    manager.set_workspace_splitter_state(state)
+    assert manager.workspace_splitter_state() == state
+
+    qt_settings.setValue(SettingsManager.WORKSPACE_SPLITTER_STATE_KEY, "invalid")
+    assert manager.workspace_splitter_state() is None

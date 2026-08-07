@@ -350,6 +350,12 @@ class MainWindow(QMainWindow):
         self._action_history.triggered.connect(self._show_action_page)
         self._action_settings_page.triggered.connect(self._show_action_page)
         self._action_about_page.triggered.connect(self._show_action_page)
+        self._home_page.source_panels_visibility_changed.connect(
+            self._settings_manager.set_workspace_panels_visible
+        )
+        self._home_page.workspace_splitter_state_changed.connect(
+            self._settings_manager.set_workspace_splitter_state
+        )
         self._toolbar.visibilityChanged.connect(
             self._settings_manager.set_toolbar_visible
         )
@@ -362,6 +368,12 @@ class MainWindow(QMainWindow):
         self._toolbar.setVisible(self._settings_manager.toolbar_visible())
         self._update_recent_files_menu()
         self._home_page.set_recent_files(self._settings_manager.recent_files())
+        # Always start on the file-selection workspace.  Once a workbook is
+        # inspected, HomePage automatically switches to Workbook Inspector.
+        self._home_page.set_source_panels_visible(True)
+        splitter_state = self._settings_manager.workspace_splitter_state()
+        if splitter_state is not None:
+            self._home_page.restore_workspace_splitter_state(splitter_state)
         self._update_theme_state(self._theme_manager.current_theme)
         self._on_current_page_changed(self._content_stack.currentIndex())
         self._load_diagnostics_state()
@@ -1042,4 +1054,10 @@ class MainWindow(QMainWindow):
         self._settings_manager.set_window_geometry(self.saveGeometry())
         self._settings_manager.set_window_state(self.saveState())
         self._settings_manager.set_toolbar_visible(self._toolbar.isVisible())
+        self._settings_manager.set_workspace_panels_visible(
+            self._home_page.source_panels_visible
+        )
+        self._settings_manager.set_workspace_splitter_state(
+            self._home_page.workspace_splitter_state()
+        )
         event.accept()

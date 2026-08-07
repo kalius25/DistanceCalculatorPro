@@ -31,6 +31,8 @@ def smoke_window(
     settings.recent_files.return_value = []
     settings.window_geometry.return_value = None
     settings.window_state.return_value = None
+    settings.workspace_panels_visible.return_value = True
+    settings.workspace_splitter_state.return_value = None
     settings.debug_enabled.return_value = False
     settings.trace_browser.return_value = False
     settings.parser_diagnostics.return_value = False

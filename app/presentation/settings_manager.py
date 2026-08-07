@@ -8,6 +8,8 @@ class SettingsManager:
     WINDOW_GEOMETRY_KEY = "window/geometry"
     WINDOW_STATE_KEY = "window/state"
     TOOLBAR_VISIBLE_KEY = "window/toolbar_visible"
+    WORKSPACE_PANELS_VISIBLE_KEY = "workspace/file_panels_visible"
+    WORKSPACE_SPLITTER_STATE_KEY = "workspace/splitter_state"
     RECENT_FILES_KEY = "files/recent"
     MAX_RECENT_FILES = 10
     DEBUG_ENABLED_KEY = "debug/enabled"
@@ -51,6 +53,19 @@ class SettingsManager:
 
     def set_toolbar_visible(self, visible: bool) -> None:
         self._settings.setValue(self.TOOLBAR_VISIBLE_KEY, visible)
+
+    def workspace_panels_visible(self, default: bool = True) -> bool:
+        return self._bool_value(self.WORKSPACE_PANELS_VISIBLE_KEY, default)
+
+    def set_workspace_panels_visible(self, visible: bool) -> None:
+        self._settings.setValue(self.WORKSPACE_PANELS_VISIBLE_KEY, visible)
+
+    def workspace_splitter_state(self) -> QByteArray | None:
+        value = self._settings.value(self.WORKSPACE_SPLITTER_STATE_KEY)
+        return value if isinstance(value, QByteArray) else None
+
+    def set_workspace_splitter_state(self, state: QByteArray) -> None:
+        self._settings.setValue(self.WORKSPACE_SPLITTER_STATE_KEY, state)
 
     def recent_files(self) -> list[str]:
         value = self._settings.value(self.RECENT_FILES_KEY, defaultValue=[])
