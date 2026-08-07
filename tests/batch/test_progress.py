@@ -153,3 +153,33 @@ def test_progress_tracker_rejects_invalid_initial_counts() -> None:
             initial_failed=1,
             initial_skipped=1,
         )
+
+
+def test_progress_tracker_counts_invalid_and_retried_separately() -> None:
+    invalid = make_job(2, RouteJobStatus.INVALID)
+    invalid.retry_count = 2
+    tracker = BatchProgressTracker(total=1)
+
+    snapshot = tracker.record(invalid)
+
+    assert snapshot.completed == 1
+    assert snapshot.failed == 0
+    assert snapshot.invalid == 1
+    assert snapshot.retried == 2
+
+
+def test_progress_tracker_accepts_initial_invalid_and_retried_counts() -> None:
+    tracker = BatchProgressTracker(
+        total=5,
+        initial_completed=3,
+        initial_successful=1,
+        initial_failed=0,
+        initial_skipped=1,
+        initial_invalid=1,
+        initial_retried=4,
+    )
+
+    snapshot = tracker.snapshot
+
+    assert snapshot.invalid == 1
+    assert snapshot.retried == 4

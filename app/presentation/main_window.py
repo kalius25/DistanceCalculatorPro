@@ -620,6 +620,10 @@ class MainWindow(QMainWindow):
         if self._execution_state is not ExecutionState.IDLE or configuration is None:
             return
 
+        estimated_jobs = 0
+        if sheet_name is not None:
+            estimated_jobs, _source_size = self._preflight_inputs(sheet_name)
+
         if self._execution_coordinator is not None:
             if file_path is None or sheet_name is None:
                 return
@@ -635,7 +639,7 @@ class MainWindow(QMainWindow):
             if not self._execution_coordinator.start(job):
                 return
 
-        self._home_page.clear_batch_summary()
+        self._home_page.start_batch_summary(estimated_jobs)
         self._last_summary = None
         self._set_execution_state(ExecutionState.RUNNING)
         self.calculation_requested.emit(configuration)
@@ -868,6 +872,7 @@ class MainWindow(QMainWindow):
             f"{metrics.items_per_minute:.1f} jobs/min · "
             f"Elapsed {elapsed} · ETA {eta}"
         )
+        self._home_page.set_live_batch_summary(metrics)
         self.calculation_metrics.emit(metrics)
 
     @staticmethod

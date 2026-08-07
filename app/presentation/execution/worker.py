@@ -62,8 +62,10 @@ class CalculationWorker(QObject):
                 len(queue),
                 initial_completed=queue.terminal_count,
                 initial_successful=queue.done_count,
-                initial_failed=queue.failed_count + queue.invalid_count,
+                initial_failed=queue.failed_count,
                 initial_skipped=queue.skipped_count,
+                initial_invalid=queue.invalid_count,
+                initial_retried=sum(job.retry_count for job in queue),
             )
             self.metrics.emit(self._progress_tracker.snapshot)
             if self._job.output_path is None:

@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
 from app.enums.provider_type import ProviderType
 from app.enums.travel_mode import TravelMode
@@ -174,7 +175,7 @@ class HomePage(QWidget):
             [sheet.name for sheet in workbook_info.worksheets]
         )
         self._sheet_selector.blockSignals(False)
-        self._inspector_frame.setVisible(True)
+        self._update_workspace_panel_visibility()
 
         if workbook_info.worksheets:
             self._show_worksheet(workbook_info.worksheets[0])
@@ -206,6 +207,8 @@ class HomePage(QWidget):
             self._populate_column_mapping(())
         if hasattr(self, "_workspace_readiness_status"):
             self._update_workspace_readiness()
+        if hasattr(self, "_source_panels_container"):
+            self._update_workspace_panel_visibility()
 
     def set_recent_files(self, file_paths: list[str]) -> None:
         self._recent_files.clear()
@@ -547,35 +550,83 @@ class HomePage(QWidget):
 
     def _create_summary_widgets(self) -> None:
         self._summary_frame = self._create_section_frame("frmBatchSummary")
+        self._summary_frame.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
+        self._summary_frame.setMinimumWidth(300)
         summary_layout = QHBoxLayout(self._summary_frame)
-        summary_layout.setContentsMargins(16, 10, 16, 10)
-        summary_layout.setSpacing(12)
+        summary_layout.setContentsMargins(14, 8, 14, 8)
+        summary_layout.setSpacing(8)
         self._summary_label = QLabel("No batch summary available", self._summary_frame)
         self._summary_label.setObjectName("lblBatchSummary")
         self._summary_label.setWordWrap(True)
-        self._retry_failed_button = QPushButton("Retry Failed", self._summary_frame)
-        self._retry_failed_button.setObjectName("btnRetryFailed")
-        self._retry_failed_button.setIcon(qta.icon("fa5s.redo"))
-        self._retry_failed_button.setEnabled(False)
         summary_layout.addWidget(self._summary_label, 1)
-        summary_layout.addWidget(self._retry_failed_button)
         self._summary_frame.setVisible(False)
 
+    @staticmethod
+    def _summary_html(
+        state: str,
+        total: int,
+        successful: int,
+        failed: int,
+        skipped: int,
+        invalid: int,
+        retried: int,
+    ) -> str:
+        return (
+            f"{state}: "
+            f"<span style='color:#16A34A;font-weight:600'>"
+            f"{successful:,}/{total:,} successful</span> · "
+            f"<span style='color:#DC2626;font-weight:600'>"
+            f"Failed {failed:,}</span> · "
+            f"<span style='color:#CA8A04;font-weight:600'>"
+            f"Skipped {skipped:,}</span> · "
+            f"<span style='color:#EA580C;font-weight:600'>"
+            f"Invalid {invalid:,}</span> · "
+            f"<span style='color:#2563EB;font-weight:600'>"
+            f"Retried {retried:,}</span>"
+        )
+
+    def start_batch_summary(self, total: int) -> None:
+        """Show zeroed counters immediately when batch execution starts."""
+        self._summary_label.setText(self._summary_html("Running", total, 0, 0, 0, 0, 0))
+        self._summary_frame.setVisible(True)
+
+    def set_live_batch_summary(self, metrics: ProgressSnapshot) -> None:
+        """Update summary counters from a live progress snapshot."""
+        self._summary_label.setText(
+            self._summary_html(
+                "Running",
+                metrics.total,
+                metrics.successful,
+                metrics.failed,
+                metrics.skipped,
+                metrics.invalid,
+                metrics.retried,
+            )
+        )
+        self._summary_frame.setVisible(True)
+
     def set_batch_summary(self, summary: BatchSummary) -> None:
-        """Render the latest batch summary and expose retry when useful."""
+        """Render the latest final batch summary."""
         state = "Stopped" if summary.stopped else "Completed"
         self._summary_label.setText(
-            f"{state}: {summary.successful:,}/{summary.total:,} successful · "
-            f"Failed {summary.failed:,} · Skipped {summary.skipped:,} · "
-            f"Invalid {summary.invalid:,} · Retried {summary.retry_count:,}"
+            self._summary_html(
+                state,
+                summary.total,
+                summary.successful,
+                summary.failed,
+                summary.skipped,
+                summary.invalid,
+                summary.retry_count,
+            )
         )
-        self._retry_failed_button.setEnabled(summary.failed > 0)
         self._summary_frame.setVisible(True)
 
     def clear_batch_summary(self) -> None:
-        """Clear the visible batch summary and disable retry."""
+        """Clear the visible batch summary."""
         self._summary_label.setText("No batch summary available")
-        self._retry_failed_button.setEnabled(False)
         self._summary_frame.setVisible(False)
 
     def _create_layout(self) -> None:
@@ -598,6 +649,7 @@ class HomePage(QWidget):
         heading_layout = QHBoxLayout()
         heading_layout.addWidget(self._title_label)
         heading_layout.addStretch(1)
+        heading_layout.addWidget(self._summary_frame, 2)
         heading_layout.addWidget(self._toggle_source_panels_button)
         header_layout.addLayout(heading_layout)
         self._description_label.setSizePolicy(
@@ -615,8 +667,6 @@ class HomePage(QWidget):
             0,
             Qt.AlignmentFlag.AlignTop,
         )
-        layout.addWidget(self._summary_frame)
-
         self._source_panels_container = QWidget(self)
         top_layout = QHBoxLayout(self._source_panels_container)
         top_layout.setContentsMargins(0, 0, 0, 0)
@@ -659,7 +709,6 @@ class HomePage(QWidget):
         self._toggle_source_panels_button.toggled.connect(
             self._set_source_panels_hidden
         )
-        self._retry_failed_button.clicked.connect(self.retry_failed_requested.emit)
 
     def _apply_initial_state(self) -> None:
         self.clear_selected_file()
@@ -710,12 +759,18 @@ class HomePage(QWidget):
         self._resize_preview_columns()
 
     def _set_source_panels_hidden(self, hidden: bool) -> None:
-        self._source_panels_container.setVisible(not hidden)
+        self._update_workspace_panel_visibility()
         self._toggle_source_panels_button.setText(
             "Show file panels" if hidden else "Hide file panels"
         )
         icon_name = "fa5s.chevron-down" if hidden else "fa5s.chevron-up"
         self._toggle_source_panels_button.setIcon(qta.icon(icon_name))
+
+    def _update_workspace_panel_visibility(self) -> None:
+        source_panels_hidden = self._toggle_source_panels_button.isChecked()
+        workbook_loaded = self._workbook_info is not None
+        self._source_panels_container.setVisible(not source_panels_hidden)
+        self._inspector_frame.setVisible(workbook_loaded and source_panels_hidden)
 
     def _on_preview_row_limit_changed(self, value: str) -> None:
         try:

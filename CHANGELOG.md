@@ -326,3 +326,10 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added `--ignore-missing-scenarios` while requiring at least one valid match.
 - Extended baseline update JSON and Markdown reports with selection details.
 - Added GitHub Actions performance benchmark, gate, and artifact workflow.
+
+## 1.2.0-rc15 — Sprint 2.6.1-C/D
+
+- Added semantic colors to Batch Summary counters.
+- Added live Batch Summary from Start through Completed or Stopped.
+- Added separate invalid and retried counters to runtime progress snapshots.
+- Preserved live counters when resuming existing batch output.

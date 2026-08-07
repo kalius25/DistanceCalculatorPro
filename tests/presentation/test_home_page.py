@@ -6,6 +6,7 @@ from PySide6.QtCore import QMimeData, QPoint, Qt, QUrl
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import QListWidgetItem
 
+from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
 from app.presentation.pages.home_page import HomePage
 from app.workbooks.models import (
@@ -307,11 +308,13 @@ def test_successful_inspection_automatically_hides_file_panels(
 
     assert page._toggle_source_panels_button.isChecked()
     assert not page._source_panels_container.isVisible()
+    assert page._inspector_frame.isVisible()
     assert page._toggle_source_panels_button.text() == "Show file panels"
 
     page._toggle_source_panels_button.click()
 
     assert page._source_panels_container.isVisible()
+    assert not page._inspector_frame.isVisible()
     assert page._toggle_source_panels_button.text() == "Hide file panels"
 
 
@@ -980,7 +983,7 @@ def make_summary(*, failed: int = 0, stopped: bool = False) -> BatchSummary:
     )
 
 
-def test_batch_summary_is_rendered_and_retry_is_emitted(
+def test_batch_summary_is_rendered_without_duplicate_retry_button(
     qtbot: object,
 ) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
@@ -988,7 +991,7 @@ def test_batch_summary_is_rendered_and_retry_is_emitted(
     qtbot.addWidget(page)  # type: ignore[attr-defined]
 
     assert not page._summary_frame.isVisible()
-    assert not page._retry_failed_button.isEnabled()
+    assert not hasattr(page, "_retry_failed_button")
 
     page.set_batch_summary(make_summary(failed=2))
 
@@ -996,15 +999,52 @@ def test_batch_summary_is_rendered_and_retry_is_emitted(
     assert "8/10 successful" in page._summary_label.text()
     assert "Failed 2" in page._summary_label.text()
     assert "Skipped 1" in page._summary_label.text()
-    assert page._retry_failed_button.isEnabled()
-
-    with qtbot.waitSignal(page.retry_failed_requested):  # type: ignore[attr-defined]
-        page._retry_failed_button.click()
 
     page.set_batch_summary(make_summary(stopped=True))
     assert page._summary_label.text().startswith("Stopped:")
-    assert not page._retry_failed_button.isEnabled()
 
     page.clear_batch_summary()
     assert not page._summary_frame.isVisible()
     assert page._summary_label.text() == "No batch summary available"
+
+
+def test_batch_summary_starts_and_updates_live(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.start_batch_summary(20)
+    assert page._summary_frame.isVisibleTo(page)
+    assert "Running:" in page._summary_label.text()
+    assert "0/20 successful" in page._summary_label.text()
+
+    metrics = ProgressSnapshot(
+        total=20,
+        completed=8,
+        successful=6,
+        failed=1,
+        skipped=0,
+        remaining=12,
+        elapsed_seconds=10.0,
+        average_seconds_per_item=1.25,
+        items_per_minute=48.0,
+        eta_seconds=15.0,
+        percent_complete=40.0,
+        invalid=1,
+        retried=2,
+    )
+    page.set_live_batch_summary(metrics)
+
+    text = page._summary_label.text()
+    assert "6/20 successful" in text
+    assert "Failed 1" in text
+    assert "Skipped 0" in text
+    assert "Invalid 1" in text
+    assert "Retried 2" in text
+    assert "#16A34A" in text
+    assert "#DC2626" in text
+    assert "#CA8A04" in text
+    assert "#EA580C" in text
+    assert "#2563EB" in text

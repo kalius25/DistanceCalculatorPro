@@ -26,6 +26,8 @@ class ProgressSnapshot:
     items_per_minute: float
     eta_seconds: float
     percent_complete: float
+    invalid: int = 0
+    retried: int = 0
 
 
 class BatchProgressTracker:
@@ -39,14 +41,28 @@ class BatchProgressTracker:
         initial_successful: int = 0,
         initial_failed: int = 0,
         initial_skipped: int = 0,
+        initial_invalid: int = 0,
+        initial_retried: int = 0,
     ) -> None:
         if total < 0:
             raise ValueError("Total jobs cannot be negative.")
         if not 0 <= initial_completed <= total:
             raise ValueError("Initial completed jobs must be within total.")
-        if initial_successful < 0 or initial_failed < 0 or initial_skipped < 0:
+        if any(
+            value < 0
+            for value in (
+                initial_successful,
+                initial_failed,
+                initial_skipped,
+                initial_invalid,
+                initial_retried,
+            )
+        ):
             raise ValueError("Initial result counts cannot be negative.")
-        if initial_successful + initial_failed + initial_skipped > initial_completed:
+        if (
+            initial_successful + initial_failed + initial_skipped + initial_invalid
+            > initial_completed
+        ):
             raise ValueError("Initial result counts exceed completed jobs.")
         self._total = total
         self._clock = clock
@@ -57,6 +73,8 @@ class BatchProgressTracker:
         self._successful = initial_successful
         self._failed = initial_failed
         self._skipped = initial_skipped
+        self._invalid = initial_invalid
+        self._retried = initial_retried
 
     @property
     def snapshot(self) -> ProgressSnapshot:
@@ -80,6 +98,8 @@ class BatchProgressTracker:
             items_per_minute=rate,
             eta_seconds=eta,
             percent_complete=percent,
+            invalid=self._invalid,
+            retried=self._retried,
         )
 
     def record(self, job: RouteJob) -> ProgressSnapshot:
@@ -89,8 +109,11 @@ class BatchProgressTracker:
             self._successful += 1
         elif job.status is RouteJobStatus.SKIPPED:
             self._skipped += 1
+        elif job.status is RouteJobStatus.INVALID:
+            self._invalid += 1
         else:
             self._failed += 1
+        self._retried += job.retry_count
         return self.snapshot
 
     def pause(self) -> None:

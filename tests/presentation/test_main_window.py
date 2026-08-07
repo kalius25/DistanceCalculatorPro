@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, PropertyMock, call, patch
 
 import pytest
 from PySide6.QtCore import QByteArray, QObject, Signal
@@ -2134,3 +2134,32 @@ def test_export_support_bundle_failure_keeps_window_open(
         "locked",
     )
     assert window._status_label.text() == "Support bundle export failed"
+
+
+def test_start_calculation_without_selected_sheet_skips_estimation(
+    window: MainWindow,
+) -> None:
+    _make_workspace_ready(window)
+
+    original_coordinator = window._execution_coordinator
+    window._execution_coordinator = None
+
+    try:
+        with (
+            patch.object(
+                type(window._home_page),
+                "selected_sheet_name",
+                new_callable=PropertyMock,
+                return_value=None,
+            ),
+            patch.object(
+                window,
+                "_preflight_inputs",
+            ) as preflight_inputs,
+        ):
+            window._start_calculation()
+
+        preflight_inputs.assert_not_called()
+        assert window.execution_state is ExecutionState.RUNNING
+    finally:
+        window._execution_coordinator = original_coordinator

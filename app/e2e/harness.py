@@ -75,8 +75,10 @@ class HeadlessE2EHarness:
             len(queue),
             initial_completed=initial_completed,
             initial_successful=queue.done_count,
-            initial_failed=queue.failed_count + queue.invalid_count,
+            initial_failed=queue.failed_count,
             initial_skipped=queue.skipped_count,
+            initial_invalid=queue.invalid_count,
+            initial_retried=sum(job.retry_count for job in queue),
         )
         processed = 0
 
