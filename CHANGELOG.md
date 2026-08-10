@@ -1,3 +1,9 @@
+## 1.2.0-rc22
+
+- Finalized realtime batch summary state synchronization.
+- Added compact current-row processing activity to Data Preview.
+- Preserved counters across pause, resume and stop transitions.
+
 
 ## 1.2.0-rc20 — Sprint 2.6.4-B2
 

@@ -2264,6 +2264,60 @@ def test_row_event_updates_exact_preview_row_status(
     set_status.assert_called_once_with(5, preview_status)
 
 
+def test_row_event_updates_preview_activity(window: MainWindow) -> None:
+    running = RouteJobEvent(
+        row_index=7,
+        preview_row_index=5,
+        status=RouteJobStatus.RUNNING,
+        attempt_count=2,
+        retry_count=0,
+    )
+    retry = RouteJobEvent(
+        row_index=7,
+        preview_row_index=5,
+        status=RouteJobStatus.RETRY,
+        attempt_count=2,
+        retry_count=1,
+    )
+
+    window._home_page._preview_model.set_data(
+        ["Origin", "Destination"],
+        [
+            ["A0", "B0"],
+            ["A1", "B1"],
+            ["A2", "B2"],
+            ["A3", "B3"],
+            ["A4", "B4"],
+            ["A5", "B5"],
+        ],
+    )
+
+    with patch.object(window._home_page, "set_preview_activity") as activity:
+        window._on_row_event(running)
+        activity.assert_called_with("Row 6 · Running · Attempt 2")
+        window._on_row_event(retry)
+        activity.assert_called_with("Row 6 · Retrying · Retry 1")
+
+
+def test_pause_resume_and_stop_update_live_summary_state(window: MainWindow) -> None:
+    window._execution_state = ExecutionState.RUNNING
+    with (
+        patch.object(window._home_page, "set_batch_summary_state") as summary_state,
+        patch.object(window._home_page, "set_preview_activity") as activity,
+    ):
+        window._toggle_pause()
+        summary_state.assert_called_with("Paused")
+        activity.assert_called_with("Paused")
+
+        window._toggle_pause()
+        summary_state.assert_called_with("Running")
+        activity.assert_called_with("Resuming")
+
+        window._stop_calculation()
+        summary_state.assert_called_with("Stopping")
+        activity.assert_called_with("Stopping")
+
+
 def test_row_event_ignores_unknown_payload(window: MainWindow) -> None:
     with patch.object(
         window._home_page,

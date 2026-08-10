@@ -590,9 +590,21 @@ class HomePage(QWidget):
         preview_layout = QVBoxLayout(self._preview_frame)
         preview_layout.setContentsMargins(10, 10, 10, 10)
         preview_layout.setSpacing(8)
+        preview_header_layout = QHBoxLayout()
+        preview_header_layout.setContentsMargins(0, 0, 0, 0)
         self._preview_title = QLabel("Data Preview", self._preview_frame)
         self._preview_title.setObjectName("lblPreviewTitle")
-        preview_layout.addWidget(self._preview_title)
+        preview_header_layout.addWidget(self._preview_title, 1)
+        self._preview_activity_label = QLabel("Idle", self._preview_frame)
+        self._preview_activity_label.setObjectName("lblPreviewActivity")
+        preview_header_layout.addWidget(self._preview_activity_label, 0)
+        self._preview_auto_scroll_checkbox = QCheckBox(
+            "Auto-scroll", self._preview_frame
+        )
+        self._preview_auto_scroll_checkbox.setObjectName("chkPreviewAutoScroll")
+        self._preview_auto_scroll_checkbox.setChecked(True)
+        preview_header_layout.addWidget(self._preview_auto_scroll_checkbox, 0)
+        preview_layout.addLayout(preview_header_layout)
         self._preview_table = QTableView(self._preview_frame)
         self._preview_table.setObjectName("tblDataPreview")
         self._preview_table.setEditTriggers(
@@ -626,6 +638,7 @@ class HomePage(QWidget):
         self._summary_label.setObjectName("lblBatchSummary")
         self._summary_label.setWordWrap(False)
         summary_layout.addWidget(self._summary_label, 1)
+        self._summary_values: tuple[int, int, int, int, int, int] | None = None
         self._summary_frame.setVisible(False)
 
     @staticmethod
@@ -652,10 +665,32 @@ class HomePage(QWidget):
             f"{retried:,} Retried</span>"
         )
 
+    def _render_batch_summary_state(self, state: str) -> None:
+        if self._summary_values is None:
+            return
+        total, successful, failed, skipped, invalid, retried = self._summary_values
+        self._summary_label.setText(
+            self._summary_html(
+                state,
+                total,
+                successful,
+                failed,
+                skipped,
+                invalid,
+                retried,
+            )
+        )
+        self._summary_frame.setVisible(True)
+
     def start_batch_summary(self, total: int) -> None:
         """Show zeroed counters immediately when batch execution starts."""
-        self._summary_label.setText(self._summary_html("Running", total, 0, 0, 0, 0, 0))
-        self._summary_frame.setVisible(True)
+        self._summary_values = (total, 0, 0, 0, 0, 0)
+        self._render_batch_summary_state("Running")
+        self.set_preview_activity("Waiting for first row")
+
+    def set_batch_summary_state(self, state: str) -> None:
+        """Change only the live execution state while preserving counters."""
+        self._render_batch_summary_state(state)
 
     def set_preview_row_status(
         self,
@@ -668,42 +703,59 @@ class HomePage(QWidget):
     def reset_preview_row_statuses(self) -> None:
         """Reset visible processing state without reloading worksheet data."""
         self._preview_model.reset_row_statuses()
+        self.set_preview_activity("Idle")
+
+    @property
+    def preview_auto_scroll_enabled(self) -> bool:
+        """Return whether live processing should follow the running row."""
+        return self._preview_auto_scroll_checkbox.isChecked()
+
+    def focus_preview_row(self, row: int) -> None:
+        """Highlight a processing row and optionally bring it into view."""
+        if row < 0 or row >= self._preview_model.rowCount():
+            return
+        self._preview_table.selectRow(row)
+        if self.preview_auto_scroll_enabled:
+            self._preview_table.scrollTo(
+                self._preview_model.index(row, 0),
+                QAbstractItemView.ScrollHint.PositionAtCenter,
+            )
+
+    def set_preview_activity(self, text: str) -> None:
+        """Show compact live processing activity beside the preview title."""
+        self._preview_activity_label.setText(text or "Idle")
 
     def set_live_batch_summary(self, metrics: ProgressSnapshot) -> None:
         """Update summary counters from a live progress snapshot."""
-        self._summary_label.setText(
-            self._summary_html(
-                "Running",
-                metrics.total,
-                metrics.successful,
-                metrics.failed,
-                metrics.skipped,
-                metrics.invalid,
-                metrics.retried,
-            )
+        self._summary_values = (
+            metrics.total,
+            metrics.successful,
+            metrics.failed,
+            metrics.skipped,
+            metrics.invalid,
+            metrics.retried,
         )
-        self._summary_frame.setVisible(True)
+        self._render_batch_summary_state("Running")
 
     def set_batch_summary(self, summary: BatchSummary) -> None:
         """Render the latest final batch summary."""
-        state = "Stopped" if summary.stopped else "Completed"
-        self._summary_label.setText(
-            self._summary_html(
-                state,
-                summary.total,
-                summary.successful,
-                summary.failed,
-                summary.skipped,
-                summary.invalid,
-                summary.retry_count,
-            )
+        self._summary_values = (
+            summary.total,
+            summary.successful,
+            summary.failed,
+            summary.skipped,
+            summary.invalid,
+            summary.retry_count,
         )
-        self._summary_frame.setVisible(True)
+        state = "Stopped" if summary.stopped else "Completed"
+        self._render_batch_summary_state(state)
 
     def clear_batch_summary(self) -> None:
         """Clear the visible batch summary."""
+        self._summary_values = None
         self._summary_label.setText("No batch summary available")
         self._summary_frame.setVisible(False)
+        self.set_preview_activity("Idle")
 
     def _create_layout(self) -> None:
         layout = QVBoxLayout(self)

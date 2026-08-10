@@ -855,11 +855,15 @@ class MainWindow(QMainWindow):
             if self._execution_coordinator is not None:
                 self._execution_coordinator.pause()
             self._set_execution_state(ExecutionState.PAUSED)
+            self._home_page.set_batch_summary_state("Paused")
+            self._home_page.set_preview_activity("Paused")
             self.calculation_pause_requested.emit()
         elif self._execution_state is ExecutionState.PAUSED:
             if self._execution_coordinator is not None:
                 self._execution_coordinator.resume()
             self._set_execution_state(ExecutionState.RUNNING)
+            self._home_page.set_batch_summary_state("Running")
+            self._home_page.set_preview_activity("Resuming")
             self.calculation_resume_requested.emit()
 
     def _stop_calculation(self) -> None:
@@ -867,6 +871,8 @@ class MainWindow(QMainWindow):
             return
         if self._execution_coordinator is not None:
             self._execution_coordinator.stop()
+        self._home_page.set_batch_summary_state("Stopping")
+        self._home_page.set_preview_activity("Stopping")
         self._set_execution_state(ExecutionState.IDLE)
         self.calculation_stop_requested.emit()
 
@@ -900,6 +906,15 @@ class MainWindow(QMainWindow):
             RouteJobStatus.INVALID: PreviewRowStatus.INVALID,
         }[event.status]
         self._home_page.set_preview_row_status(event.preview_row_index, status)
+        row_number = event.preview_row_index + 1
+        if event.status is RouteJobStatus.RUNNING:
+            activity = f"Row {row_number:,} · Running · Attempt {event.attempt_count:,}"
+            self._home_page.focus_preview_row(event.preview_row_index)
+        elif event.status is RouteJobStatus.RETRY:
+            activity = f"Row {row_number:,} · Retrying · Retry {event.retry_count:,}"
+        else:
+            activity = f"Row {row_number:,} · {status.value.title()}"
+        self._home_page.set_preview_activity(activity)
 
     def _on_calculation_metrics(self, metrics: object) -> None:
         if not isinstance(metrics, ProgressSnapshot):
@@ -940,6 +955,7 @@ class MainWindow(QMainWindow):
         result_count = len(results) if isinstance(results, list) else 0
         self._set_execution_state(ExecutionState.IDLE)
         self._status_label.setText(f"Calculation completed · {result_count:,} results")
+        self._home_page.set_preview_activity("Completed")
         self.calculation_completed.emit(results)
 
     def _on_calculation_stopped(self, results: object) -> None:
@@ -948,6 +964,7 @@ class MainWindow(QMainWindow):
         self._status_label.setText(
             f"Calculation stopped · {result_count:,} results retained"
         )
+        self._home_page.set_preview_activity("Stopped")
         self.calculation_stopped.emit(results)
 
     def _on_output_write_failed(self, error: object) -> None:
@@ -1005,6 +1022,8 @@ class MainWindow(QMainWindow):
 
     def _on_calculation_failed(self, message: str) -> None:
         self._set_execution_state(ExecutionState.IDLE)
+        self._home_page.set_batch_summary_state("Failed")
+        self._home_page.set_preview_activity("Failed")
         self._status_label.setText("Calculation failed")
         self.calculation_failed.emit(message)
         QMessageBox.critical(

@@ -1119,6 +1119,43 @@ def test_batch_summary_starts_and_updates_live(
     assert "#2563EB" in text
 
 
+def test_live_summary_state_preserves_current_counters(qtbot: object) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.start_batch_summary(20)
+    metrics = ProgressSnapshot(
+        total=20,
+        completed=8,
+        successful=6,
+        failed=1,
+        skipped=0,
+        remaining=12,
+        elapsed_seconds=10.0,
+        average_seconds_per_item=1.25,
+        items_per_minute=48.0,
+        eta_seconds=15.0,
+        percent_complete=40.0,
+        invalid=1,
+        retried=2,
+    )
+    page.set_live_batch_summary(metrics)
+    page.set_batch_summary_state("Paused")
+
+    text = page._summary_label.text()
+    assert text.startswith("Paused")
+    assert "6/20 Successful" in text
+    assert "1 Failed" in text
+    assert "1 Invalid" in text
+    assert "2 Retried" in text
+
+    page.set_preview_activity("Row 8 · Running")
+    assert page._preview_activity_label.text() == "Row 8 · Running"
+    page.set_preview_activity("")
+    assert page._preview_activity_label.text() == "Idle"
+
+
 def test_workspace_panel_preference_and_splitter_state_helpers(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
