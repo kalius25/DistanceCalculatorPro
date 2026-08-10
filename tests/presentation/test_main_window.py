@@ -9,9 +9,15 @@ from PySide6.QtCore import QByteArray, QObject, Signal
 from PySide6.QtGui import QCloseEvent, QIcon
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
-from app.batch import BatchSummary, OutputWriteError
+from app.batch import (
+    BatchSummary,
+    OutputWriteError,
+    RouteJobEvent,
+    RouteJobStatus,
+)
 from app.batch.progress import ProgressSnapshot
 from app.logging import LoggingManager
+from app.models.preview_row_status import PreviewRowStatus
 from app.presentation.app_metadata import AppMetadata
 from app.presentation.main_window import MainWindow
 from app.presentation.models.execution_state import ExecutionState
@@ -644,6 +650,7 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
         completed = Signal(object)
         stopped = Signal(object)
         failed = Signal(str)
+        row_event = Signal(object)
 
         def __init__(self) -> None:
             super().__init__()
@@ -2221,3 +2228,47 @@ def test_start_calculation_without_selected_sheet_skips_estimation(
         assert window.execution_state is ExecutionState.RUNNING
     finally:
         window._execution_coordinator = original_coordinator
+
+
+@pytest.mark.parametrize(
+    ("job_status", "preview_status"),
+    [
+        (RouteJobStatus.PENDING, PreviewRowStatus.PENDING),
+        (RouteJobStatus.RUNNING, PreviewRowStatus.RUNNING),
+        (RouteJobStatus.DONE, PreviewRowStatus.SUCCESS),
+        (RouteJobStatus.FAILED, PreviewRowStatus.FAILED),
+        (RouteJobStatus.SKIPPED, PreviewRowStatus.SKIPPED),
+        (RouteJobStatus.RETRY, PreviewRowStatus.RETRIED),
+        (RouteJobStatus.INVALID, PreviewRowStatus.INVALID),
+    ],
+)
+def test_row_event_updates_exact_preview_row_status(
+    window: MainWindow,
+    job_status: RouteJobStatus,
+    preview_status: PreviewRowStatus,
+) -> None:
+    event = RouteJobEvent(
+        row_index=7,
+        preview_row_index=5,
+        status=job_status,
+        attempt_count=2,
+        retry_count=1,
+    )
+
+    with patch.object(
+        window._home_page,
+        "set_preview_row_status",
+    ) as set_status:
+        window._on_row_event(event)
+
+    set_status.assert_called_once_with(5, preview_status)
+
+
+def test_row_event_ignores_unknown_payload(window: MainWindow) -> None:
+    with patch.object(
+        window._home_page,
+        "set_preview_row_status",
+    ) as set_status:
+        window._on_row_event(object())
+
+    set_status.assert_not_called()

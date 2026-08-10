@@ -1,4 +1,12 @@
 
+## 1.2.0-rc20 — Sprint 2.6.4-B2
+
+- Connected coordinator row events to the Data Preview Status column.
+- Added live job-to-preview status mapping for Pending, Running, Success, Failed, Skipped, Invalid, and Retried.
+- Reset preview row statuses before execution starts to avoid overwriting early worker events.
+- Preserved compatibility with coordinators that do not expose the optional row-event signal.
+- Kept updates incremental through the existing single-cell `dataChanged` path.
+
 ## Sprint 2.6.4-B1
 
 - Added immutable `RouteJobEvent` row-state snapshots.

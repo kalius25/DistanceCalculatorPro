@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.batch import OutputPathPolicy
+from app.batch import OutputPathPolicy, RouteJobEvent, RouteJobStatus
 from app.batch.file_access import OutputWriteError
 from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
@@ -28,6 +28,7 @@ from app.diagnostics import (
     SupportBundleError,
 )
 from app.logging import LoggingManager
+from app.models.preview_row_status import PreviewRowStatus
 from app.workbooks import (
     CsvWorkbookReader,
     OpenPyXLWorkbookReader,
@@ -326,6 +327,13 @@ class MainWindow(QMainWindow):
             )
             self._execution_coordinator.stopped.connect(self._on_calculation_stopped)
             self._execution_coordinator.failed.connect(self._on_calculation_failed)
+            row_event_signal = getattr(
+                self._execution_coordinator,
+                "row_event",
+                None,
+            )
+            if row_event_signal is not None:
+                row_event_signal.connect(self._on_row_event)
             output_write_failed = getattr(
                 self._execution_coordinator,
                 "output_write_failed",
@@ -649,8 +657,11 @@ class MainWindow(QMainWindow):
                 configuration,
                 output_path=output_path,
             )
+            self._home_page.reset_preview_row_statuses()
             if not self._execution_coordinator.start(job):
                 return
+        else:
+            self._home_page.reset_preview_row_statuses()
 
         self._home_page.start_batch_summary(estimated_jobs)
         self._last_summary = None
@@ -873,6 +884,22 @@ class MainWindow(QMainWindow):
             _request,
             _result,
         )
+
+    def _on_row_event(self, event: object) -> None:
+        """Apply one execution-row state transition to Data Preview."""
+        if not isinstance(event, RouteJobEvent):
+            return
+
+        status = {
+            RouteJobStatus.PENDING: PreviewRowStatus.PENDING,
+            RouteJobStatus.RUNNING: PreviewRowStatus.RUNNING,
+            RouteJobStatus.DONE: PreviewRowStatus.SUCCESS,
+            RouteJobStatus.FAILED: PreviewRowStatus.FAILED,
+            RouteJobStatus.SKIPPED: PreviewRowStatus.SKIPPED,
+            RouteJobStatus.RETRY: PreviewRowStatus.RETRIED,
+            RouteJobStatus.INVALID: PreviewRowStatus.INVALID,
+        }[event.status]
+        self._home_page.set_preview_row_status(event.preview_row_index, status)
 
     def _on_calculation_metrics(self, metrics: object) -> None:
         if not isinstance(metrics, ProgressSnapshot):
