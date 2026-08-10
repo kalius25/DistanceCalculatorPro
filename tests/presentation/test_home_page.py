@@ -1637,3 +1637,137 @@ def test_preview_processing_status_column_updates_one_row(qtbot: object) -> None
 
     page.reset_preview_row_statuses()
     assert page._preview_model.data(page._preview_model.index(0, 0)) == "○ Pending"
+
+
+def test_preview_status_filter_bar_filters_live_statuses(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.models.preview_row_status import PreviewRowStatus
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="filter.xlsx",
+            file_name="filter.xlsx",
+            file_type="XLSX",
+            file_size_bytes=128,
+            modified_at=datetime(2026, 8, 10, 10, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    4,
+                    2,
+                    ("Origin", "Destination"),
+                    (("A", "B"), ("C", "D"), ("E", "F")),
+                ),
+            ),
+        )
+    )
+
+    assert page._preview_status_filter.currentText() == "All statuses"
+    assert page.preview_status_filter is None
+    assert page._preview_filter_model.rowCount() == 3
+
+    page.set_preview_row_status(0, PreviewRowStatus.SUCCESS)
+    page.set_preview_row_status(1, PreviewRowStatus.FAILED)
+    page.set_preview_row_status(2, PreviewRowStatus.RETRIED)
+
+    page._preview_status_filter.setCurrentText("Failed")
+    assert page.preview_status_filter == frozenset({PreviewRowStatus.FAILED})
+    assert page._preview_filter_model.rowCount() == 1
+    assert (
+        page._preview_filter_model.data(page._preview_filter_model.index(0, 1)) == "C"
+    )
+
+    page._preview_status_filter.setCurrentText("Active")
+    assert page.preview_status_filter == frozenset(
+        {PreviewRowStatus.RUNNING, PreviewRowStatus.RETRIED}
+    )
+    assert page._preview_filter_model.rowCount() == 1
+
+    page._preview_status_filter.setCurrentText("All statuses")
+    assert page.preview_status_filter is None
+    assert page._preview_filter_model.rowCount() == 3
+
+
+def test_preview_status_filter_reacts_to_incremental_row_update(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.models.preview_row_status import PreviewRowStatus
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="filter-live.xlsx",
+            file_name="filter-live.xlsx",
+            file_type="XLSX",
+            file_size_bytes=128,
+            modified_at=datetime(2026, 8, 10, 10, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    3,
+                    1,
+                    ("Origin",),
+                    (("A",), ("B",)),
+                ),
+            ),
+        )
+    )
+
+    page._preview_status_filter.setCurrentText("Failed")
+    assert page._preview_filter_model.rowCount() == 0
+
+    page.set_preview_row_status(1, PreviewRowStatus.FAILED)
+    assert page._preview_filter_model.rowCount() == 1
+
+    page.reset_preview_row_statuses()
+    assert page._preview_filter_model.rowCount() == 0
+
+
+def test_focus_preview_row_respects_active_status_filter(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.models.preview_row_status import PreviewRowStatus
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="focus-filter.xlsx",
+            file_name="focus-filter.xlsx",
+            file_type="XLSX",
+            file_size_bytes=128,
+            modified_at=datetime(2026, 8, 10, 10, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    3,
+                    1,
+                    ("Origin",),
+                    (("A",), ("B",)),
+                ),
+            ),
+        )
+    )
+
+    page.set_preview_row_status(0, PreviewRowStatus.FAILED)
+    page.set_preview_status_filter({PreviewRowStatus.FAILED})
+
+    page.focus_preview_row(1)
+    assert not page._preview_table.selectionModel().hasSelection()
+
+    page._preview_auto_scroll_checkbox.setChecked(False)
+    page.focus_preview_row(0)
+    assert page._preview_table.selectionModel().hasSelection()

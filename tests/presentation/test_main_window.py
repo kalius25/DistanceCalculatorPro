@@ -2265,6 +2265,18 @@ def test_row_event_updates_exact_preview_row_status(
 
 
 def test_row_event_updates_preview_activity(window: MainWindow) -> None:
+    window._home_page._preview_model.set_data(
+        ["Origin", "Destination"],
+        [
+            ["A0", "B0"],
+            ["A1", "B1"],
+            ["A2", "B2"],
+            ["A3", "B3"],
+            ["A4", "B4"],
+            ["A5", "B5"],
+        ],
+    )
+
     running = RouteJobEvent(
         row_index=7,
         preview_row_index=5,
@@ -2278,18 +2290,6 @@ def test_row_event_updates_preview_activity(window: MainWindow) -> None:
         status=RouteJobStatus.RETRY,
         attempt_count=2,
         retry_count=1,
-    )
-
-    window._home_page._preview_model.set_data(
-        ["Origin", "Destination"],
-        [
-            ["A0", "B0"],
-            ["A1", "B1"],
-            ["A2", "B2"],
-            ["A3", "B3"],
-            ["A4", "B4"],
-            ["A5", "B5"],
-        ],
     )
 
     with patch.object(window._home_page, "set_preview_activity") as activity:

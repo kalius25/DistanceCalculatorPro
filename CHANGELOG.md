@@ -1,3 +1,10 @@
+## 1.2.0-rc23
+
+- Added a compact Data Preview status filter with All, Active, Success, Failed, Skipped, Invalid, Retried, and Pending views.
+- Filtering uses a proxy model, so virtual worksheet data and sparse row-status storage remain unchanged.
+- Live row-status changes immediately re-evaluate the active filter.
+- Current-row focus maps safely through the filter proxy and does nothing when the running row is intentionally filtered out.
+
 ## 1.2.0-rc22
 
 - Finalized realtime batch summary state synchronization.

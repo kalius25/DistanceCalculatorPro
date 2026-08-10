@@ -33,6 +33,7 @@ from app.enums.provider_type import ProviderType
 from app.enums.travel_mode import TravelMode
 from app.models.excel_table_model import ExcelTableModel
 from app.models.preview_row_status import PreviewRowStatus
+from app.models.preview_status_filter_proxy import PreviewStatusFilterProxyModel
 from app.presentation.workspace_configuration import (
     ColumnMapping,
     ProviderConfiguration,
@@ -604,6 +605,20 @@ class HomePage(QWidget):
         self._preview_auto_scroll_checkbox.setObjectName("chkPreviewAutoScroll")
         self._preview_auto_scroll_checkbox.setChecked(True)
         preview_header_layout.addWidget(self._preview_auto_scroll_checkbox, 0)
+        self._preview_status_filter = QComboBox(self._preview_frame)
+        self._preview_status_filter.setObjectName("cmbPreviewStatusFilter")
+        self._preview_status_filter.setToolTip(
+            "Filter Data Preview by processing status"
+        )
+        self._preview_status_filter.addItem("All statuses", None)
+        self._preview_status_filter.addItem("Active", "active")
+        self._preview_status_filter.addItem("Success", PreviewRowStatus.SUCCESS)
+        self._preview_status_filter.addItem("Failed", PreviewRowStatus.FAILED)
+        self._preview_status_filter.addItem("Skipped", PreviewRowStatus.SKIPPED)
+        self._preview_status_filter.addItem("Invalid", PreviewRowStatus.INVALID)
+        self._preview_status_filter.addItem("Retried", PreviewRowStatus.RETRIED)
+        self._preview_status_filter.addItem("Pending", PreviewRowStatus.PENDING)
+        preview_header_layout.addWidget(self._preview_status_filter, 0)
         preview_layout.addLayout(preview_header_layout)
         self._preview_table = QTableView(self._preview_frame)
         self._preview_table.setObjectName("tblDataPreview")
@@ -620,7 +635,9 @@ class HomePage(QWidget):
         )
         self._preview_table.horizontalHeader().setStretchLastSection(True)
         self._preview_model = ExcelTableModel(show_status_column=True)
-        self._preview_table.setModel(self._preview_model)
+        self._preview_filter_model = PreviewStatusFilterProxyModel()
+        self._preview_filter_model.setSourceModel(self._preview_model)
+        self._preview_table.setModel(self._preview_filter_model)
         preview_layout.addWidget(self._preview_table, 1)
         inspector_layout.addWidget(self._preview_frame, 1)
 
@@ -699,11 +716,38 @@ class HomePage(QWidget):
     ) -> None:
         """Update one zero-based Data Preview row processing status."""
         self._preview_model.set_row_status(row, status)
+        self._preview_filter_model.refresh_filter()
 
     def reset_preview_row_statuses(self) -> None:
         """Reset visible processing state without reloading worksheet data."""
         self._preview_model.reset_row_statuses()
+        self._preview_filter_model.refresh_filter()
         self.set_preview_activity("Idle")
+
+    @property
+    def preview_status_filter(self) -> frozenset[PreviewRowStatus] | None:
+        """Return the active Data Preview status filter."""
+        return self._preview_filter_model.statuses
+
+    def set_preview_status_filter(
+        self,
+        statuses: set[PreviewRowStatus] | frozenset[PreviewRowStatus] | None,
+    ) -> None:
+        """Filter Data Preview rows without changing worksheet data."""
+        self._preview_filter_model.set_statuses(statuses)
+        self._preview_table.clearSelection()
+        self._preview_table.setCurrentIndex(QModelIndex())
+        self._preview_table.scrollToTop()
+
+    def _on_preview_status_filter_changed(self, _index: int) -> None:
+        value = self._preview_status_filter.currentData()
+        if value == "active":
+            statuses = {PreviewRowStatus.RUNNING, PreviewRowStatus.RETRIED}
+        elif isinstance(value, PreviewRowStatus):
+            statuses = {value}
+        else:
+            statuses = None
+        self.set_preview_status_filter(statuses)
 
     @property
     def preview_auto_scroll_enabled(self) -> bool:
@@ -714,10 +758,14 @@ class HomePage(QWidget):
         """Highlight a processing row and optionally bring it into view."""
         if row < 0 or row >= self._preview_model.rowCount():
             return
-        self._preview_table.selectRow(row)
+        source_index = self._preview_model.index(row, 0)
+        proxy_index = self._preview_filter_model.mapFromSource(source_index)
+        if not proxy_index.isValid():
+            return
+        self._preview_table.selectRow(proxy_index.row())
         if self.preview_auto_scroll_enabled:
             self._preview_table.scrollTo(
-                self._preview_model.index(row, 0),
+                proxy_index,
                 QAbstractItemView.ScrollHint.PositionAtCenter,
             )
 
@@ -844,6 +892,9 @@ class HomePage(QWidget):
             self._set_source_panels_hidden
         )
         self._toggle_config_button.toggled.connect(self._set_config_hidden)
+        self._preview_status_filter.currentIndexChanged.connect(
+            self._on_preview_status_filter_changed
+        )
         self._workspace_splitter.splitterMoved.connect(
             self._on_workspace_splitter_moved
         )
