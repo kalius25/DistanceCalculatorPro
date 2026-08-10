@@ -1,4 +1,32 @@
+
+## Sprint 2.6.4-B1
+
+- Added immutable `RouteJobEvent` row-state snapshots.
+- Added row lifecycle callback support to batch queue execution.
+- Added CalculationWorker and CalculationExecutionCoordinator row-event signals.
+- Added zero-based Data Preview row normalization for workbook row events.
+
 # Changelog
+
+## 1.2.0-rc19 — Sprint 2.6.4-A
+
+- Added a lightweight Status column to Data Preview.
+- Added Pending, Running, Success, Failed, Skipped, Invalid, and Retried visual states.
+- Added sparse row-status tracking with single-cell update signals.
+- Preserved virtual worksheet lazy-loading and legacy model compatibility.
+
+## 1.2.0-rc18
+
+- Release virtual preview resources when inspection is cleared, a workbook is replaced, or the window closes.
+- Added `HomePage.release_resources()` as the single UI cleanup entry point for preview sources.
+- Main-window close now releases workbook file handles only after shutdown has succeeded.
+- Added lifecycle coverage for workbook replacement, clear-inspection, and page/window close paths.
+
+- Reset Data Preview selection, current index, and scroll position when worksheet data changes.
+- Centralized virtual-source replacement and cache cleanup in `ExcelTableModel`.
+- Standardized Data Preview titles for virtual, cached, and empty worksheet data.
+- Refresh worksheet headers using lightweight header-based column sizing.
+
 - Improved Light theme contrast for File Panels and Config toggle chevrons; control icons now match the dark text color while preserving high-contrast Dark theme icons.
 
 ## 1.2.0-rc12
@@ -345,3 +373,13 @@ All notable changes to DistanceCalculatorPro are documented in this file.
 - Added Show/Hide Config to collapse Column Mapping and Route Provider for a taller Data Preview.
 - Hardened splitter-state restore against invalid settings values.
 - Compacted the live Batch Summary into a single horizontal status line with semantic colors.
+
+## 1.2.0-rc17 — Sprint 2.6.3-A1/A2/A3
+
+- Added virtual worksheet data sources for XLSX/XLSM and CSV files.
+- Added LRU block caching and lazy row access to `ExcelTableModel`.
+- Removed the Preview Rows 20/50/100/200/500 selector from Workbook Inspector.
+- Connected Data Preview to the virtual worksheet source for real workbook files.
+- Data Preview now exposes all worksheet data rows while reading only bounded blocks on demand.
+- Worksheet changes and workspace clearing close the previous virtual data source and reset its cache.
+- Retained the bounded metadata preview as a compatibility fallback when no real source file is available.

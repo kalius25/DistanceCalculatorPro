@@ -1,13 +1,12 @@
 from pathlib import Path
 
 import qtawesome as qta
-from PySide6.QtCore import QByteArray, Qt, Signal
+from PySide6.QtCore import QByteArray, QModelIndex, Qt, Signal
 from PySide6.QtGui import (
+    QCloseEvent,
     QDragEnterEvent,
     QDragLeaveEvent,
     QDropEvent,
-    QStandardItem,
-    QStandardItemModel,
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -32,12 +31,17 @@ from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
 from app.enums.provider_type import ProviderType
 from app.enums.travel_mode import TravelMode
+from app.models.excel_table_model import ExcelTableModel
+from app.models.preview_row_status import PreviewRowStatus
 from app.presentation.workspace_configuration import (
     ColumnMapping,
     ProviderConfiguration,
     WorkspaceConfiguration,
 )
 from app.workbooks.models import WorkbookInfo, WorksheetInfo
+from app.workbooks.virtual_reader import (
+    VirtualWorksheetDataSourceFactory,
+)
 
 
 class HomePage(QWidget):
@@ -56,20 +60,18 @@ class HomePage(QWidget):
     workspace_splitter_state_changed = Signal(object)
 
     SUPPORTED_EXTENSIONS = frozenset({".xlsx", ".xlsm", ".csv"})
-    DEFAULT_PREVIEW_ROWS = 20
-    PREVIEW_ROW_OPTIONS = (20, 50, 100, 200, 500)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._selected_file: str | None = None
         self._workbook_info: WorkbookInfo | None = None
         self._current_worksheet: WorksheetInfo | None = None
-        self._preview_row_limit = self.DEFAULT_PREVIEW_ROWS
         self._mapping_valid = False
         self._provider_valid = False
         self._workspace_ready = False
         self._workspace_locked = False
         self._theme_name = "light"
+        self._virtual_source_factory = VirtualWorksheetDataSourceFactory()
         self.setObjectName("pageWorkspace")
         self.setAcceptDrops(True)
         self._create_widgets()
@@ -220,7 +222,7 @@ class HomePage(QWidget):
         if hasattr(self, "_inspector_frame"):
             self._inspector_frame.setVisible(False)
             self._sheet_selector.clear()
-            self._preview_model.clear()
+            self.release_resources()
         if hasattr(self, "_origin_column_selector"):
             self._populate_column_mapping(())
         if hasattr(self, "_workspace_readiness_status"):
@@ -230,6 +232,15 @@ class HomePage(QWidget):
             self._toggle_source_panels_button.setChecked(False)
             self._toggle_source_panels_button.blockSignals(False)
             self._apply_source_panels_state(False, emit_signal=False)
+
+    def release_resources(self) -> None:
+        """Release preview data sources and cached worksheet blocks."""
+        if hasattr(self, "_preview_model"):
+            self._preview_model.clear_source()
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self.release_resources()
+        super().closeEvent(event)
 
     def set_recent_files(self, file_paths: list[str]) -> None:
         self._recent_files.clear()
@@ -466,19 +477,6 @@ class HomePage(QWidget):
         worksheet_layout.addWidget(self._sheet_selector)
         summary_layout.addLayout(worksheet_layout, 3)
 
-        preview_rows_layout = QVBoxLayout()
-        preview_rows_caption = QLabel("Preview rows", self._inspector_frame)
-        preview_rows_caption.setObjectName("lblInspectorCaption")
-        self._preview_rows_selector = QComboBox(self._inspector_frame)
-        self._preview_rows_selector.setObjectName("cmbPreviewRows")
-        self._preview_rows_selector.addItems(
-            tuple(str(value) for value in self.PREVIEW_ROW_OPTIONS)
-        )
-        self._preview_rows_selector.setCurrentText(str(self.DEFAULT_PREVIEW_ROWS))
-        preview_rows_layout.addWidget(preview_rows_caption)
-        preview_rows_layout.addWidget(self._preview_rows_selector)
-        summary_layout.addLayout(preview_rows_layout, 1)
-
         self._row_count_value = self._summary_value("Rows", summary_layout)
         self._column_count_value = self._summary_value("Columns", summary_layout)
         self._headers_status_value = self._summary_value(
@@ -592,10 +590,7 @@ class HomePage(QWidget):
         preview_layout = QVBoxLayout(self._preview_frame)
         preview_layout.setContentsMargins(10, 10, 10, 10)
         preview_layout.setSpacing(8)
-        self._preview_title = QLabel(
-            f"Data Preview (first {self.DEFAULT_PREVIEW_ROWS} rows)",
-            self._preview_frame,
-        )
+        self._preview_title = QLabel("Data Preview", self._preview_frame)
         self._preview_title.setObjectName("lblPreviewTitle")
         preview_layout.addWidget(self._preview_title)
         self._preview_table = QTableView(self._preview_frame)
@@ -612,7 +607,7 @@ class HomePage(QWidget):
             QHeaderView.ResizeMode.Interactive
         )
         self._preview_table.horizontalHeader().setStretchLastSection(True)
-        self._preview_model = QStandardItemModel(self._preview_table)
+        self._preview_model = ExcelTableModel(show_status_column=True)
         self._preview_table.setModel(self._preview_model)
         preview_layout.addWidget(self._preview_table, 1)
         inspector_layout.addWidget(self._preview_frame, 1)
@@ -661,6 +656,18 @@ class HomePage(QWidget):
         """Show zeroed counters immediately when batch execution starts."""
         self._summary_label.setText(self._summary_html("Running", total, 0, 0, 0, 0, 0))
         self._summary_frame.setVisible(True)
+
+    def set_preview_row_status(
+        self,
+        row: int,
+        status: PreviewRowStatus,
+    ) -> None:
+        """Update one zero-based Data Preview row processing status."""
+        self._preview_model.set_row_status(row, status)
+
+    def reset_preview_row_statuses(self) -> None:
+        """Reset visible processing state without reloading worksheet data."""
+        self._preview_model.reset_row_statuses()
 
     def set_live_batch_summary(self, metrics: ProgressSnapshot) -> None:
         """Update summary counters from a live progress snapshot."""
@@ -760,9 +767,6 @@ class HomePage(QWidget):
         self._clear_recent_button.clicked.connect(self.clear_recent_requested.emit)
         self._recent_files.itemActivated.connect(self._on_recent_file_activated)
         self._sheet_selector.currentTextChanged.connect(self._on_sheet_changed)
-        self._preview_rows_selector.currentTextChanged.connect(
-            self._on_preview_row_limit_changed
-        )
         for selector in (
             self._origin_column_selector,
             self._destination_column_selector,
@@ -810,7 +814,28 @@ class HomePage(QWidget):
         self._render_preview(worksheet)
 
     def _render_preview(self, worksheet: WorksheetInfo) -> None:
-        self._preview_model.clear()
+        workbook_info = self._workbook_info
+        if workbook_info is not None and Path(workbook_info.file_path).is_file():
+            try:
+                source = self._virtual_source_factory.create(
+                    workbook_info.file_path,
+                    worksheet.name,
+                )
+            except Exception:
+                self._render_legacy_preview(worksheet)
+                return
+
+            self._preview_model.set_source(source)
+            self._update_preview_title(
+                row_count=self._preview_model.rowCount(),
+                virtual=True,
+            )
+            self._refresh_preview_view()
+            return
+
+        self._render_legacy_preview(worksheet)
+
+    def _render_legacy_preview(self, worksheet: WorksheetInfo) -> None:
         headers = list(worksheet.headers)
         column_count = max(
             worksheet.column_count,
@@ -823,21 +848,35 @@ class HomePage(QWidget):
             headers.extend(
                 f"Column {index}" for index in range(len(headers) + 1, column_count + 1)
             )
-        self._preview_model.setHorizontalHeaderLabels(headers)
-        for row in worksheet.preview_rows[: self._preview_row_limit]:
-            values = list(row) + [""] * (column_count - len(row))
-            items: list[QStandardItem] = []
-            for value in values:
-                item = QStandardItem(value)
-                item.setToolTip(value)
-                items.append(item)
-            self._preview_model.appendRow(items)
-        preview_count = min(len(worksheet.preview_rows), self._preview_row_limit)
-        self._preview_title.setText(
-            f"Data Preview (first {preview_count} rows)"
-            if preview_count
-            else "Data Preview (no data rows)"
+        rows = [
+            list(row) + [""] * (column_count - len(row))
+            for row in worksheet.preview_rows
+        ]
+        self._preview_model.set_data(headers, rows)
+        self._update_preview_title(
+            row_count=self._preview_model.rowCount(),
+            virtual=False,
         )
+        self._refresh_preview_view()
+
+    def _update_preview_title(
+        self,
+        *,
+        row_count: int,
+        virtual: bool,
+    ) -> None:
+        if row_count == 0:
+            self._preview_title.setText("Data Preview (no data rows)")
+            return
+
+        suffix = "data rows" if virtual else "cached rows"
+        self._preview_title.setText(f"Data Preview ({row_count:,} {suffix})")
+
+    def _refresh_preview_view(self) -> None:
+        """Reset selection and viewport after the preview model changes."""
+        self._preview_table.selectionModel().clearSelection()
+        self._preview_table.setCurrentIndex(QModelIndex())
+        self._preview_table.scrollToTop()
         self._resize_preview_columns()
 
     def set_source_panels_visible(self, visible: bool) -> None:
@@ -946,22 +985,13 @@ class HomePage(QWidget):
     def _on_workspace_splitter_moved(self, _position: int, _index: int) -> None:
         self.workspace_splitter_state_changed.emit(self._workspace_splitter.saveState())
 
-    def _on_preview_row_limit_changed(self, value: str) -> None:
-        try:
-            preview_row_limit = int(value)
-        except ValueError:
-            return
-        if preview_row_limit not in self.PREVIEW_ROW_OPTIONS:
-            return
-        self._preview_row_limit = preview_row_limit
-        if self._current_worksheet is not None:
-            self._render_preview(self._current_worksheet)
-
     def _resize_preview_columns(self) -> None:
-        self._preview_table.resizeColumnsToContents()
         header = self._preview_table.horizontalHeader()
         for column in range(self._preview_model.columnCount()):
-            width = min(max(header.sectionSize(column), 120), 360)
+            label = str(
+                self._preview_model.headerData(column, Qt.Orientation.Horizontal) or ""
+            )
+            width = min(max(120, len(label) * 9 + 28), 360)
             header.resizeSection(column, width)
 
     def _clear_worksheet_details(self) -> None:
@@ -973,6 +1003,8 @@ class HomePage(QWidget):
         ):
             label.setText("0")
         self._preview_model.clear()
+        self._update_preview_title(row_count=0, virtual=False)
+        self._refresh_preview_view()
         self._populate_column_mapping(())
 
     def _on_sheet_changed(self, sheet_name: str) -> None:
@@ -1179,7 +1211,6 @@ class HomePage(QWidget):
         enabled = not locked
         self._source_panels_container.setEnabled(enabled)
         self._sheet_selector.setEnabled(enabled)
-        self._preview_rows_selector.setEnabled(enabled)
         self._mapping_frame.setEnabled(enabled)
         self._provider_frame.setEnabled(enabled)
 

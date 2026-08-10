@@ -9,9 +9,10 @@ from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from app.batch.batch_queue import BatchQueue
 from app.batch.file_access import OutputWriteError
-from app.batch.models import RouteJob
+from app.batch.models import RouteJob, RouteJobStatus
 from app.batch.progress import BatchProgressTracker
 from app.batch.result_writer import ResultWriterFactory
+from app.batch.row_event import RouteJobEvent
 from app.batch.summary import BatchSummary, BatchSummaryWriter
 from app.models.route_result import RouteResult
 from app.services.batch_calculation_service import BatchCalculationService
@@ -23,6 +24,7 @@ class CalculationWorker(QObject):
     """Run one calculation job outside the GUI thread."""
 
     progress = Signal(int, int, object, object)
+    row_event = Signal(object)
     metrics = Signal(object)
     completed = Signal(object)
     stopped = Signal(object)
@@ -68,6 +70,7 @@ class CalculationWorker(QObject):
                 initial_retried=sum(job.retry_count for job in queue),
             )
             self.metrics.emit(self._progress_tracker.snapshot)
+            self._emit_initial_row_events(queue)
             if self._job.output_path is None:
                 writer = self._writer_factory.create(
                     self._job.file_path,
@@ -88,6 +91,7 @@ class CalculationWorker(QObject):
                     should_stop=self._should_stop,
                     wait_if_paused=self._wait_if_paused,
                     result_writer=writer,
+                    row_event_callback=self._on_row_event,
                 )
                 stopped = self._should_stop()
                 metrics = self._progress_tracker.snapshot
@@ -139,6 +143,14 @@ class CalculationWorker(QObject):
             while self._paused and not self._stop_requested:
                 self._condition.wait()
 
+    def _emit_initial_row_events(self, queue: BatchQueue) -> None:
+        for job in queue:
+            if job.status is not RouteJobStatus.PENDING:
+                self._on_row_event(RouteJobEvent.from_job(job))
+
+    def _on_row_event(self, event: RouteJobEvent) -> None:
+        self.row_event.emit(event)
+
     def _on_progress(
         self,
         current: int,
@@ -155,6 +167,7 @@ class CalculationExecutionCoordinator(QObject):
     """Own the worker thread and relay execution events to the UI."""
 
     progress = Signal(int, int, object, object)
+    row_event = Signal(object)
     metrics = Signal(object)
     completed = Signal(object)
     stopped = Signal(object)
@@ -233,6 +246,7 @@ class CalculationExecutionCoordinator(QObject):
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.progress.connect(self.progress.emit)
+        worker.row_event.connect(self.row_event.emit)
         worker.metrics.connect(self.metrics.emit)
         worker.completed.connect(self.completed.emit)
         worker.stopped.connect(self.stopped.emit)

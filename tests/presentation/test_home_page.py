@@ -1,10 +1,10 @@
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from PySide6.QtCore import QMimeData, QPoint, Qt, QUrl
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
+from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import QListWidgetItem
 
 from app.batch.progress import ProgressSnapshot
@@ -272,8 +272,9 @@ def test_workbook_inspection_is_rendered_and_sheet_can_change(qtbot: object) -> 
     assert page._file_size_value.text() == "2.0 KB (2,048 bytes)"
     assert page._row_count_value.text() == "1,200"
     assert page._preview_model.rowCount() == 2
-    assert page._preview_model.columnCount() == 4
-    assert page._preview_model.item(0, 0).text() == "A"
+    assert page._preview_model.columnCount() == 5
+    assert page._preview_model.data(page._preview_model.index(0, 0)) == "○ Pending"
+    assert page._preview_model.data(page._preview_model.index(0, 1)) == "A"
 
     with qtbot.waitSignal(page.sheet_changed):  # type: ignore[attr-defined]
         page._sheet_selector.setCurrentIndex(1)
@@ -336,7 +337,9 @@ def test_inspection_error_clears_metadata(qtbot: object) -> None:
     assert page._workspace_status.text() == "Inspection failed · Invalid workbook"
 
 
-def test_preview_row_selector_supports_configured_limits(qtbot: object) -> None:
+def test_preview_rows_selector_is_removed_and_cached_fallback_is_unbounded(
+    qtbot: object,
+) -> None:
     from datetime import datetime
 
     from app.workbooks.models import WorkbookInfo, WorksheetInfo
@@ -364,20 +367,54 @@ def test_preview_row_selector_supports_configured_limits(qtbot: object) -> None:
 
     page.set_inspection(info)
 
-    assert page._preview_rows_selector.count() == 5
-    assert [
-        page._preview_rows_selector.itemText(index)
-        for index in range(page._preview_rows_selector.count())
-    ] == ["20", "50", "100", "200", "500"]
-    assert page._preview_model.rowCount() == 20
-    assert page._preview_title.text() == "Data Preview (first 20 rows)"
+    assert not hasattr(page, "_preview_rows_selector")
+    assert page._preview_model.rowCount() == 500
+    assert page._preview_title.text() == "Data Preview (500 cached rows)"
+    assert page._preview_model.data(page._preview_model.index(0, 2)) == "Value 1"
 
-    for limit in (50, 100, 200, 500):
-        page._preview_rows_selector.setCurrentText(str(limit))
-        assert page._preview_model.rowCount() == limit
-        assert page._preview_title.text() == f"Data Preview (first {limit} rows)"
 
-    assert page._preview_model.item(0, 1).toolTip() == "Value 1"
+def test_real_csv_uses_virtual_preview_for_all_data_rows(
+    qtbot: object,
+    tmp_path: Path,
+) -> None:
+    from datetime import datetime
+
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    file_path = tmp_path / "routes.csv"
+    file_path.write_text(
+        "Origin,Destination\nA,B\nC,D\nE,F\n",
+        encoding="utf-8",
+    )
+    info = WorkbookInfo(
+        file_path=str(file_path),
+        file_name=file_path.name,
+        file_type="CSV",
+        file_size_bytes=file_path.stat().st_size,
+        modified_at=datetime(2026, 8, 7, 10, 0),
+        worksheets=(
+            WorksheetInfo(
+                "routes",
+                4,
+                2,
+                ("Origin", "Destination"),
+                (("A", "B"),),
+            ),
+        ),
+    )
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.set_inspection(info)
+
+    assert page._preview_model.rowCount() == 3
+    assert page._preview_title.text() == "Data Preview (3 data rows)"
+    assert page._preview_model.data(page._preview_model.index(2, 2)) == "F"
+
+    page.clear_inspection()
+    assert page._preview_model.rowCount() == 0
 
 
 def test_source_panels_can_be_hidden_and_shown(
@@ -469,17 +506,6 @@ def test_workspace_guidance_stays_visible_when_source_panels_are_toggled(
 
     assert page._description_label.isVisible()
     assert page._workspace_status.isVisible()
-
-
-def test_invalid_preview_row_limit_is_ignored(qtbot: object) -> None:
-    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
-        page = HomePage()
-    qtbot.addWidget(page)  # type: ignore[attr-defined]
-
-    page._on_preview_row_limit_changed("invalid")
-    page._on_preview_row_limit_changed("7")
-
-    assert page._preview_row_limit == 20
 
 
 def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
@@ -611,19 +637,12 @@ def test_preview_extends_missing_headers_and_handles_no_rows(qtbot: object) -> N
 
     page.set_inspection(info)
 
-    assert page._preview_model.columnCount() == 3
-    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Column 2"
+    assert page._preview_model.columnCount() == 4
+    assert page._preview_model.headerData(0, Qt.Orientation.Horizontal) == "Status"
+    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Only header"
+    assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Column 2"
+    assert page._preview_model.headerData(3, Qt.Orientation.Horizontal) == "Column 3"
     assert page._preview_title.text() == "Data Preview (no data rows)"
-
-
-def test_preview_limit_change_without_current_worksheet_is_safe(qtbot: object) -> None:
-    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
-        page = HomePage()
-    qtbot.addWidget(page)  # type: ignore[attr-defined]
-
-    page._on_preview_row_limit_changed("50")
-
-    assert page._preview_row_limit == 50
 
 
 def test_unknown_sheet_name_is_ignored(qtbot: object) -> None:
@@ -722,9 +741,10 @@ def test_preview_generates_headers_when_worksheet_has_none(qtbot: object) -> Non
         )
     )
 
-    assert page._preview_model.columnCount() == 2
-    assert page._preview_model.headerData(0, Qt.Orientation.Horizontal) == "Column 1"
-    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Column 2"
+    assert page._preview_model.columnCount() == 3
+    assert page._preview_model.headerData(0, Qt.Orientation.Horizontal) == "Status"
+    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Column 1"
+    assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Column 2"
 
 
 def test_sheet_change_before_inspection_is_ignored(qtbot: object) -> None:
@@ -973,7 +993,6 @@ def test_configuration_inputs_can_be_locked_and_unlocked(qtbot: object) -> None:
     assert page.workspace_locked
     assert not page._source_panels_container.isEnabled()
     assert not page._sheet_selector.isEnabled()
-    assert not page._preview_rows_selector.isEnabled()
     assert not page._mapping_frame.isEnabled()
     assert not page._provider_frame.isEnabled()
 
@@ -981,7 +1000,6 @@ def test_configuration_inputs_can_be_locked_and_unlocked(qtbot: object) -> None:
     assert not page.workspace_locked
     assert page._source_panels_container.isEnabled()
     assert page._sheet_selector.isEnabled()
-    assert page._preview_rows_selector.isEnabled()
     assert page._mapping_frame.isEnabled()
     assert page._provider_frame.isEnabled()
 
@@ -1257,3 +1275,328 @@ def test_workspace_toggle_icons_use_theme_text_colors(qtbot: object) -> None:
         icon_factory.assert_any_call("fa5s.upload", color="#2563EB")
         icon_factory.assert_any_call("fa5s.chevron-left", color="#111827")
         icon_factory.assert_any_call("fa5s.chevron-up", color="#111827")
+
+
+class WorksheetLifecycleSource:
+    def __init__(
+        self,
+        worksheet_name: str,
+        headers: tuple[str, ...],
+        row_count: int,
+    ) -> None:
+        self.file_path = Path("routes.xlsx")
+        self.worksheet_name = worksheet_name
+        self.headers = headers
+        self.row_count = row_count
+        self.column_count = len(headers)
+        self.closed = False
+
+    def read_rows(
+        self,
+        start: int,
+        count: int,
+    ) -> tuple[tuple[str, ...], ...]:
+        stop = min(start + count, self.row_count)
+        return tuple(
+            tuple(f"{header}-{row}" for header in self.headers)
+            for row in range(start, stop)
+        )
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def test_changing_worksheet_closes_source_and_refreshes_preview_view(
+    qtbot: object,
+    tmp_path: Path,
+) -> None:
+    workbook = tmp_path / "routes.xlsx"
+    workbook.write_bytes(b"placeholder")
+
+    first_source = WorksheetLifecycleSource(
+        "Routes",
+        ("Origin", "Destination"),
+        100,
+    )
+    second_source = WorksheetLifecycleSource(
+        "Settings",
+        ("Key", "Value"),
+        4,
+    )
+    factory = MagicMock()
+    factory.create.side_effect = [first_source, second_source]
+
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page._virtual_source_factory = factory
+    page.show()
+
+    info = WorkbookInfo(
+        file_path=str(workbook),
+        file_name=workbook.name,
+        file_type="XLSX",
+        file_size_bytes=workbook.stat().st_size,
+        modified_at=datetime(2026, 8, 8, 8, 0),
+        worksheets=(
+            WorksheetInfo(
+                "Routes",
+                101,
+                2,
+                ("Origin", "Destination"),
+            ),
+            WorksheetInfo(
+                "Settings",
+                5,
+                2,
+                ("Key", "Value"),
+            ),
+        ),
+    )
+
+    page.set_inspection(info)
+    page._preview_table.selectRow(20)
+    page._preview_table.setCurrentIndex(page._preview_model.index(20, 0))
+    page._preview_table.verticalScrollBar().setValue(
+        page._preview_table.verticalScrollBar().maximum()
+    )
+
+    page._sheet_selector.setCurrentText("Settings")
+
+    assert first_source.closed
+    assert not second_source.closed
+    assert page._preview_model.rowCount() == 4
+    assert page._preview_title.text() == "Data Preview (4 data rows)"
+    assert page._preview_model.headerData(0, Qt.Orientation.Horizontal) == "Status"
+    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Key"
+    assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Value"
+    assert not page._preview_table.selectionModel().hasSelection()
+    assert not page._preview_table.currentIndex().isValid()
+    assert page._preview_table.verticalScrollBar().value() == 0
+    assert factory.create.call_count == 2
+
+
+def test_changing_legacy_worksheet_refreshes_cached_title_and_headers(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    info = WorkbookInfo(
+        file_path="missing.xlsx",
+        file_name="missing.xlsx",
+        file_type="XLSX",
+        file_size_bytes=1,
+        modified_at=datetime(2026, 8, 8, 8, 0),
+        worksheets=(
+            WorksheetInfo(
+                "Routes",
+                3,
+                2,
+                ("Origin", "Destination"),
+                (("A", "B"), ("C", "D")),
+            ),
+            WorksheetInfo(
+                "Settings",
+                2,
+                2,
+                ("Key", "Value"),
+                (("mode", "fast"),),
+            ),
+        ),
+    )
+
+    page.set_inspection(info)
+    assert page._preview_title.text() == "Data Preview (2 cached rows)"
+
+    page._sheet_selector.setCurrentText("Settings")
+
+    assert page._preview_title.text() == "Data Preview (1 cached rows)"
+    assert page._preview_model.headerData(0, Qt.Orientation.Horizontal) == "Status"
+    assert page._preview_model.headerData(1, Qt.Orientation.Horizontal) == "Key"
+    assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Value"
+
+
+def test_replacing_workbook_closes_previous_virtual_source(
+    qtbot: object,
+    tmp_path: Path,
+) -> None:
+    first_workbook = tmp_path / "first.xlsx"
+    second_workbook = tmp_path / "second.xlsx"
+    first_workbook.write_bytes(b"placeholder")
+    second_workbook.write_bytes(b"placeholder")
+
+    first_source = WorksheetLifecycleSource(
+        "Routes",
+        ("Origin", "Destination"),
+        10,
+    )
+    second_source = WorksheetLifecycleSource(
+        "Data",
+        ("Key", "Value"),
+        4,
+    )
+    factory = MagicMock()
+    factory.create.side_effect = [first_source, second_source]
+
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page._virtual_source_factory = factory
+
+    first_info = WorkbookInfo(
+        file_path=str(first_workbook),
+        file_name=first_workbook.name,
+        file_type="XLSX",
+        file_size_bytes=first_workbook.stat().st_size,
+        modified_at=datetime(2026, 8, 9, 8, 0),
+        worksheets=(
+            WorksheetInfo(
+                "Routes",
+                11,
+                2,
+                ("Origin", "Destination"),
+            ),
+        ),
+    )
+    second_info = WorkbookInfo(
+        file_path=str(second_workbook),
+        file_name=second_workbook.name,
+        file_type="XLSX",
+        file_size_bytes=second_workbook.stat().st_size,
+        modified_at=datetime(2026, 8, 9, 8, 1),
+        worksheets=(
+            WorksheetInfo(
+                "Data",
+                5,
+                2,
+                ("Key", "Value"),
+            ),
+        ),
+    )
+
+    page.set_inspection(first_info)
+    assert not first_source.closed
+
+    page.set_inspection(second_info)
+
+    assert first_source.closed
+    assert not second_source.closed
+    assert page.workbook_info == second_info
+    assert page._preview_model.rowCount() == 4
+
+
+def test_clear_inspection_releases_virtual_preview_source(
+    qtbot: object,
+    tmp_path: Path,
+) -> None:
+    workbook = tmp_path / "routes.xlsx"
+    workbook.write_bytes(b"placeholder")
+    source = WorksheetLifecycleSource(
+        "Routes",
+        ("Origin", "Destination"),
+        10,
+    )
+    factory = MagicMock()
+    factory.create.return_value = source
+
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+    page._virtual_source_factory = factory
+    page.set_inspection(
+        WorkbookInfo(
+            file_path=str(workbook),
+            file_name=workbook.name,
+            file_type="XLSX",
+            file_size_bytes=workbook.stat().st_size,
+            modified_at=datetime(2026, 8, 9, 8, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    11,
+                    2,
+                    ("Origin", "Destination"),
+                ),
+            ),
+        )
+    )
+
+    page.clear_inspection()
+
+    assert source.closed
+    assert page._preview_model.rowCount() == 0
+    assert page._preview_model.columnCount() == 0
+
+
+def test_home_page_close_event_releases_preview_resources(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    with patch.object(page, "release_resources") as release_resources:
+        event = QCloseEvent()
+        page.closeEvent(event)
+
+    release_resources.assert_called_once_with()
+    assert event.isAccepted()
+
+
+def test_preview_processing_status_column_updates_one_row(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.models.preview_row_status import PreviewRowStatus
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="status.xlsx",
+            file_name="status.xlsx",
+            file_type="XLSX",
+            file_size_bytes=128,
+            modified_at=datetime(2026, 8, 10, 8, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    3,
+                    2,
+                    ("Origin", "Destination"),
+                    (("A", "B"), ("C", "D")),
+                ),
+            ),
+        )
+    )
+
+    assert page._preview_model.headerData(0, Qt.Orientation.Horizontal) == "Status"
+    assert page._preview_model.data(page._preview_model.index(0, 0)) == "○ Pending"
+
+    page.set_preview_row_status(0, PreviewRowStatus.RUNNING)
+    assert page._preview_model.data(page._preview_model.index(0, 0)) == "● Running"
+
+    page.set_preview_row_status(0, PreviewRowStatus.SUCCESS)
+    assert page._preview_model.data(page._preview_model.index(0, 0)) == "✓ Success"
+
+    page.reset_preview_row_statuses()
+    assert page._preview_model.data(page._preview_model.index(0, 0)) == "○ Pending"

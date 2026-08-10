@@ -1022,6 +1022,30 @@ def test_retry_failed_action_uses_theme_specific_icon(
     assert dark_redo_calls[0].kwargs["color_disabled"] == "#9CA3AF"
 
 
+def test_close_event_releases_home_page_resources_after_shutdown(
+    window: MainWindow,
+) -> None:
+    original_coordinator = window._execution_coordinator
+    coordinator = MagicMock()
+    coordinator.is_running = False
+    coordinator.shutdown.return_value = True
+    event = QCloseEvent()
+
+    try:
+        window._execution_coordinator = coordinator
+        with patch.object(
+            window._home_page,
+            "release_resources",
+        ) as release_resources:
+            window.closeEvent(event)
+
+        coordinator.shutdown.assert_called_once_with(5_000)
+        release_resources.assert_called_once_with()
+        assert event.isAccepted()
+    finally:
+        window._execution_coordinator = original_coordinator
+
+
 def test_close_event_can_cancel_running_calculation(
     window: MainWindow,
     settings_manager: MagicMock,

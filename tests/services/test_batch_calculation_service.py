@@ -668,3 +668,83 @@ def test_calculate_queue_preserves_resumed_existing_results() -> None:
     writer.write.assert_called_once_with(zero_distance)
     writer.flush.assert_called_once_with()
     calculation_service.start_batch.assert_not_called()
+
+
+def test_calculate_queue_emits_row_events_for_retry_lifecycle() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+    from app.exceptions import ErrorCode
+    from app.models.route_option import RouteOption
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    retryable = RouteResult(
+        False,
+        make_request("A", "B"),
+        "Google",
+        error="timeout",
+        error_code=ErrorCode.ENGINE_ERROR,
+    )
+    success = RouteResult(
+        True,
+        make_request("A", "B"),
+        "Google",
+        routes=[RouteOption(distance_km=8.6, duration_minutes=20)],
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.side_effect = [retryable, success]
+    events = []
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(max_attempts=2, initial_delay_seconds=0),
+    )
+
+    assert service.calculate_queue(queue, row_event_callback=events.append) == [success]
+
+    assert [event.status for event in events] == [
+        RouteJobStatus.RUNNING,
+        RouteJobStatus.RETRY,
+        RouteJobStatus.RUNNING,
+        RouteJobStatus.DONE,
+    ]
+    assert [event.attempt_count for event in events] == [0, 1, 1, 2]
+    assert [event.retry_count for event in events] == [0, 1, 1, 1]
+    assert all(event.preview_row_index == 0 for event in events)
+
+
+def test_calculate_queue_emits_pending_when_stopped_during_retry() -> None:
+    from app.batch import BatchQueue, RetryPolicy, RouteJob, RouteJobStatus
+    from app.exceptions import ErrorCode
+
+    job = RouteJob(2, "A", "B", "Distance")
+    queue = BatchQueue([job])
+    result = RouteResult(
+        False,
+        make_request("A", "B"),
+        "Google",
+        error="timeout",
+        error_code=ErrorCode.ENGINE_ERROR,
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    checks = iter([False, False, True])
+    events = []
+    service = BatchCalculationService(
+        calculation_service,
+        retry_policy=RetryPolicy(max_attempts=2, initial_delay_seconds=1),
+        sleep_callback=MagicMock(),
+    )
+
+    assert (
+        service.calculate_queue(
+            queue,
+            should_stop=lambda: next(checks),
+            row_event_callback=events.append,
+        )
+        == []
+    )
+
+    assert [event.status for event in events] == [
+        RouteJobStatus.RUNNING,
+        RouteJobStatus.RETRY,
+        RouteJobStatus.PENDING,
+    ]

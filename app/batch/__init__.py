@@ -18,6 +18,7 @@ from .result_writer import (
 from .resume_analyzer import ResumeAnalyzer, ResumeDecision
 from .retry_decision import RetryDecision
 from .retry_policy import RetryPolicy
+from .row_event import RouteJobEvent
 from .row_mapper import RowMapper
 from .row_validator import RowValidation, RowValidator
 from .summary import BatchSummary, BatchSummaryWriter
@@ -48,6 +49,7 @@ __all__ = [
     "RetryDecision",
     "RetryPolicy",
     "RouteJob",
+    "RouteJobEvent",
     "RouteJobStatus",
     "RowMapper",
     "RowValidator",

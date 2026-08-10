@@ -9,12 +9,14 @@ from app.batch.models import RouteJob, RouteJobStatus
 from app.batch.result_writer import BaseResultWriter
 from app.batch.retry_decision import RetryDecision
 from app.batch.retry_policy import RetryPolicy
+from app.batch.row_event import RouteJobEvent
 from app.models.route_request import RouteRequest
 from app.models.route_result import RouteResult
 from app.services.calculation_service import CalculationService
 
 ProgressCallback = Callable[[int, int, RouteRequest, RouteResult], None]
 QueueProgressCallback = Callable[[int, int, RouteJob, RouteResult], None]
+RowEventCallback = Callable[[RouteJobEvent], None]
 ControlCallback = Callable[[], bool]
 WaitCallback = Callable[[], None]
 SleepCallback = Callable[[float], None]
@@ -76,6 +78,7 @@ class BatchCalculationService:
         should_stop: ControlCallback | None = None,
         wait_if_paused: WaitCallback | None = None,
         result_writer: BaseResultWriter | None = None,
+        row_event_callback: RowEventCallback | None = None,
     ) -> list[RouteResult]:
         """Process pending jobs while updating state and writing results."""
         total = queue.pending_count
@@ -100,6 +103,7 @@ class BatchCalculationService:
                     break
                 current += 1
                 job.started_at = job.started_at or datetime.now(UTC)
+                self._emit_row_event(job, row_event_callback)
 
                 try:
                     result = self._calculate_job_with_retry(
@@ -107,6 +111,7 @@ class BatchCalculationService:
                         job,
                         should_stop,
                         wait_if_paused,
+                        row_event_callback,
                     )
                 except Exception:
                     if result_writer is not None:
@@ -114,6 +119,7 @@ class BatchCalculationService:
                     raise
                 if result is None:
                     queue.schedule_retry(job)
+                    self._emit_row_event(job, row_event_callback)
                     break
 
                 results.append(result)
@@ -128,6 +134,8 @@ class BatchCalculationService:
                     message = result.error or "Unknown error."
                     job.last_error = message
                     queue.mark_failed(job, message)
+
+                self._emit_row_event(job, row_event_callback)
 
                 if result_writer is not None:
                     result_writer.write(job)
@@ -147,6 +155,7 @@ class BatchCalculationService:
         job: RouteJob,
         should_stop: ControlCallback | None,
         wait_if_paused: WaitCallback | None,
+        row_event_callback: RowEventCallback | None,
     ) -> RouteResult | None:
         request = self._request_from_job(job)
         while True:
@@ -159,13 +168,16 @@ class BatchCalculationService:
                 if not self._can_retry_exception(job, error):
                     queue.mark_failed(job, message)
                     job.finished_at = datetime.now(UTC)
+                    self._emit_row_event(job, row_event_callback)
                     raise
                 queue.mark_retry(job, message)
+                self._emit_row_event(job, row_event_callback)
                 if not self._wait_before_retry(
                     queue,
                     job,
                     should_stop,
                     wait_if_paused,
+                    row_event_callback,
                 ):
                     return None
                 continue
@@ -175,11 +187,13 @@ class BatchCalculationService:
 
             message = result.error or "Unknown error."
             queue.mark_retry(job, message)
+            self._emit_row_event(job, row_event_callback)
             if not self._wait_before_retry(
                 queue,
                 job,
                 should_stop,
                 wait_if_paused,
+                row_event_callback,
             ):
                 return None
 
@@ -199,6 +213,7 @@ class BatchCalculationService:
         job: RouteJob,
         should_stop: ControlCallback | None,
         wait_if_paused: WaitCallback | None,
+        row_event_callback: RowEventCallback | None,
     ) -> bool:
         delay = self.retry_policy.delay_for_retry(job.retry_count)
         remaining = delay
@@ -213,7 +228,16 @@ class BatchCalculationService:
         if self._should_stop(should_stop):
             return False
         queue.resume_retry(job)
+        self._emit_row_event(job, row_event_callback)
         return True
+
+    @staticmethod
+    def _emit_row_event(
+        job: RouteJob,
+        callback: RowEventCallback | None,
+    ) -> None:
+        if callback is not None:
+            callback(RouteJobEvent.from_job(job))
 
     @staticmethod
     def _write_existing_results(

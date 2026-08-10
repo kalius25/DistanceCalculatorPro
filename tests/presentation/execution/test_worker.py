@@ -181,6 +181,7 @@ def test_coordinator_starts_retries_controls_and_clears_worker() -> None:
     worker = MagicMock()
     for signal_name in (
         "progress",
+        "row_event",
         "metrics",
         "completed",
         "stopped",
@@ -351,3 +352,40 @@ def test_worker_passes_explicit_output_path_and_coordinator_can_retry() -> None:
     coordinator._last_job = job
     coordinator._thread = MagicMock()
     assert not coordinator.retry_with_output("blocked.xlsx")
+
+
+def test_worker_emits_initial_terminal_row_events(qtbot: object) -> None:
+    from app.batch import RouteJobEvent
+
+    job, builder, batch, _writer, writer_factory = make_worker_components()
+    invalid = RouteJob(2, "", "B", "Distance", status=RouteJobStatus.INVALID)
+    skipped = RouteJob(3, "C", "D", "Distance", status=RouteJobStatus.SKIPPED)
+    queue = BatchQueue([invalid, skipped])
+    builder.build_queue.return_value = queue
+    batch.calculate_queue.return_value = []
+    worker = CalculationWorker(job, builder, batch, writer_factory)
+    received: list[RouteJobEvent] = []
+    worker.row_event.connect(received.append)
+
+    with qtbot.waitSignal(worker.finished):  # type: ignore[attr-defined]
+        worker.run()
+
+    assert [event.status for event in received] == [
+        RouteJobStatus.INVALID,
+        RouteJobStatus.SKIPPED,
+    ]
+    assert [event.preview_row_index for event in received] == [0, 1]
+
+
+def test_worker_relays_service_row_event(qtbot: object) -> None:
+    from app.batch import RouteJobEvent
+
+    worker = CalculationWorker(MagicMock(), MagicMock(), MagicMock())
+    route_job = RouteJob(4, "A", "B", "Distance", status=RouteJobStatus.RUNNING)
+    event = RouteJobEvent.from_job(route_job)
+
+    with qtbot.waitSignal(  # type: ignore[attr-defined]
+        worker.row_event,
+        check_params_cb=lambda received: received == event,
+    ):
+        worker._on_row_event(event)

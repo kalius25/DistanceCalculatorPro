@@ -1052,6 +1052,8 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
 
+        self._home_page.release_resources()
+
         self._settings_manager.set_window_geometry(self.saveGeometry())
         self._settings_manager.set_window_state(self.saveState())
         self._settings_manager.set_toolbar_visible(self._toolbar.isVisible())
