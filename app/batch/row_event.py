@@ -17,6 +17,8 @@ class RouteJobEvent:
     attempt_count: int
     retry_count: int
     message: str | None = None
+    duration_minutes: int | None = None
+    duration_text: str | None = None
 
     @classmethod
     def from_job(cls, job: RouteJob) -> RouteJobEvent:
@@ -28,6 +30,8 @@ class RouteJobEvent:
             attempt_count=job.attempt_count,
             retry_count=job.retry_count,
             message=job.last_error or job.validation_error,
+            duration_minutes=job.result_duration_minutes,
+            duration_text=job.result_duration_text,
         )
 
 

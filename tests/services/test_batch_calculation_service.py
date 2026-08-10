@@ -369,6 +369,31 @@ def test_calculate_queue_flushes_writer_for_empty_and_exception() -> None:
     writer.flush.assert_called_once_with()
 
 
+def test_calculate_queue_finishes_batch_when_final_flush_fails() -> None:
+    from pathlib import Path
+
+    from app.batch import BatchQueue, OutputWriteError, RouteJob
+
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = make_result(make_request("A", "B"))
+    writer = MagicMock()
+    writer.flush.side_effect = OutputWriteError(
+        Path("routes.result.xlsx"),
+        "replace",
+        "locked",
+    )
+    service = BatchCalculationService(calculation_service)
+    queue = BatchQueue([RouteJob(2, "A", "B", "Distance")])
+
+    import pytest
+
+    with pytest.raises(OutputWriteError, match="Unable to replace"):
+        service.calculate_queue(queue, result_writer=writer)
+
+    writer.flush.assert_called_once_with()
+    calculation_service.finish_batch.assert_called_once_with()
+
+
 def test_calculate_queue_stops_when_pending_job_disappears() -> None:
     from unittest.mock import PropertyMock
 

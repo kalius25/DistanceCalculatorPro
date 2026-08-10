@@ -129,7 +129,13 @@ class BatchCalculationService:
                     distance_km = (
                         best_route.distance_km if best_route is not None else None
                     )
-                    queue.mark_done(job, distance_km)
+                    duration_minutes = (
+                        best_route.duration_minutes if best_route is not None else None
+                    )
+                    duration_text = (
+                        best_route.duration_text if best_route is not None else None
+                    )
+                    queue.mark_done(job, distance_km, duration_minutes, duration_text)
                 else:
                     message = result.error or "Unknown error."
                     job.last_error = message
@@ -143,9 +149,17 @@ class BatchCalculationService:
                 if progress_callback is not None:
                     progress_callback(current, total, job, result)
         finally:
-            if result_writer is not None:
-                result_writer.flush()
-            self.calculation_service.finish_batch()
+            try:
+                if result_writer is not None:
+                    result_writer.flush()
+            finally:
+                # Provider resources (notably sync Playwright) must always be
+                # released on the same worker thread that created them.  A
+                # locked result file can make flush() raise OutputWriteError;
+                # without this nested finally the worker thread exits while
+                # Playwright is still bound to it, making a later Save As
+                # retry fail with a cross-thread greenlet error.
+                self.calculation_service.finish_batch()
 
         return results
 

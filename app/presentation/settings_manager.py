@@ -87,6 +87,16 @@ class SettingsManager:
             recent_files[: self.MAX_RECENT_FILES],
         )
 
+    def remove_recent_file(self, file_path: str) -> None:
+        normalized_path = file_path.strip()
+        if not normalized_path:
+            return
+        recent_files = [item for item in self.recent_files() if item != normalized_path]
+        if recent_files:
+            self._settings.setValue(self.RECENT_FILES_KEY, recent_files)
+        else:
+            self._settings.remove(self.RECENT_FILES_KEY)
+
     def clear_recent_files(self) -> None:
         self._settings.remove(self.RECENT_FILES_KEY)
 

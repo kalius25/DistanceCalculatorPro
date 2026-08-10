@@ -33,9 +33,9 @@ class GuiSmokeHarness:
                 WorksheetInfo(
                     "Routes",
                     2,
-                    3,
-                    ("Origin", "Destination", "Distance"),
-                    (("A", "B", ""),),
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
+                    (("A", "B", "", ""),),
                 ),
             ),
         )

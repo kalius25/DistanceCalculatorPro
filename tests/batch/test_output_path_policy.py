@@ -9,6 +9,6 @@ def test_output_path_policy_builds_safe_sibling_path() -> None:
     assert OutputPathPolicy().build(source) == Path("reports/routes.result.xlsm")
 
 
-def test_output_path_policy_does_not_duplicate_result_suffix() -> None:
+def test_output_path_policy_always_creates_a_distinct_result_path() -> None:
     source = Path("reports/routes.result.xlsx")
-    assert OutputPathPolicy().build(source) == source
+    assert OutputPathPolicy().build(source) == Path("reports/routes.result.result.xlsx")

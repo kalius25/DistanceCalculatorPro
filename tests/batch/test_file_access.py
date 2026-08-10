@@ -50,6 +50,21 @@ def test_atomic_output_file_requires_temp_and_wraps_replace_failure(
     assert not temporary.exists()
 
 
+def test_atomic_output_file_reports_missing_generated_temp(tmp_path: Path) -> None:
+    output = tmp_path / "routes.result.xlsx"
+    atomic = AtomicOutputFile(output)
+    temporary = atomic.create()
+    temporary.unlink()
+
+    with pytest.raises(
+        OutputWriteError,
+        match="Temporary result file was not created",
+    ):
+        atomic.replace()
+
+    assert atomic.temp_path is None
+
+
 def test_ensure_output_writable_accepts_directory_and_wraps_failure(
     tmp_path: Path,
 ) -> None:
@@ -57,9 +72,28 @@ def test_ensure_output_writable_accepts_directory_and_wraps_failure(
     ensure_output_writable(output)
     assert output.parent.exists()
 
+    output.write_bytes(b"existing")
+    ensure_output_writable(output)
+    assert output.read_bytes() == b"existing"
+
     with patch(
         "app.batch.file_access.NamedTemporaryFile",
         side_effect=PermissionError("denied"),
+    ):
+        with pytest.raises(OutputWriteError, match="Unable to write"):
+            ensure_output_writable(output)
+
+
+def test_ensure_output_writable_rejects_locked_existing_destination(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "routes.result.xlsx"
+    output.write_bytes(b"existing")
+
+    with patch.object(
+        Path,
+        "open",
+        side_effect=PermissionError("locked by Excel"),
     ):
         with pytest.raises(OutputWriteError, match="Unable to write"):
             ensure_output_writable(output)

@@ -57,6 +57,34 @@ def test_excel_writer_writes_and_flushes_result(tmp_path: Path) -> None:
     saved.close()
 
 
+def test_excel_writer_loads_source_from_memory_snapshot(tmp_path: Path) -> None:
+    source = tmp_path / "routes.result.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Routes"
+    sheet.append(["Origin", "Destination", "Distance"])
+    sheet.append(["A", "B", None])
+    workbook.save(source)
+    workbook.close()
+
+    real_load_workbook = load_workbook
+    with patch(
+        "app.batch.result_writer.load_workbook",
+        wraps=real_load_workbook,
+    ) as mocked_load:
+        writer = ExcelResultWriter(source, "Routes", source)
+
+    loaded_from = mocked_load.call_args.args[0]
+    assert not isinstance(loaded_from, (str, Path))
+
+    assert writer.write(done_job())
+    writer.close()
+
+    saved = load_workbook(source, data_only=True)
+    assert saved["Routes"]["C2"].value == 8.6
+    saved.close()
+
+
 def test_excel_writer_preserves_errors_and_validates_inputs(
     tmp_path: Path,
 ) -> None:
@@ -492,4 +520,183 @@ def test_csv_writer_cleans_up_and_reraises_unexpected_error(
     atomic.cleanup.assert_called_once_with()
     atomic.replace.assert_not_called()
 
+    writer.close()
+
+
+def test_factory_never_writes_back_to_the_opened_source_path(tmp_path: Path) -> None:
+    source = tmp_path / "routes.result.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Routes"
+    sheet.append(["Origin", "Destination", "Distance"])
+    sheet.append(["A", "B", None])
+    workbook.save(source)
+    workbook.close()
+
+    writer = ResultWriterFactory().create(source, "Routes")
+
+    assert writer.output_path == tmp_path / "routes.result.result.xlsx"
+    assert writer.output_path != source
+    writer.write(done_job())
+    writer.close()
+    assert writer.output_path.is_file()
+    assert source.is_file()
+
+
+def test_factory_redirects_explicit_output_equal_to_source(tmp_path: Path) -> None:
+    source = tmp_path / "routes.csv"
+    source.write_text("Origin,Destination,Distance\nA,B,\n", encoding="utf-8")
+
+    writer = ResultWriterFactory().create(
+        source,
+        "Routes",
+        output_path=source,
+    )
+
+    assert writer.output_path == tmp_path / "routes.result.csv"
+    writer.close()
+
+
+def test_excel_writer_writes_route_duration_to_mapped_column(tmp_path: Path) -> None:
+    source = tmp_path / "routes.xlsx"
+    output = tmp_path / "routes.result.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Routes"
+    sheet.append(["Origin", "Destination", "Distance", "Travel time"])
+    sheet.append(["A", "B", None, None])
+    workbook.save(source)
+    workbook.close()
+
+    writer = ExcelResultWriter(source, "Routes", output, AutoSavePolicy(1, 60.0))
+    job = RouteJob(
+        2,
+        "A",
+        "B",
+        "Distance",
+        result_duration_column="Travel time",
+        status=RouteJobStatus.DONE,
+        result_distance_km=8.6,
+        result_duration_minutes=20,
+        result_duration_text="20 min",
+    )
+
+    assert writer.write(job)
+    writer.close()
+
+    saved = load_workbook(output, data_only=True)
+    assert saved["Routes"]["C2"].value == 8.6
+    assert saved["Routes"]["D2"].value == 20
+    saved.close()
+
+
+def test_csv_writer_writes_route_duration_to_mapped_column(tmp_path: Path) -> None:
+    source = tmp_path / "routes.csv"
+    output = tmp_path / "routes.result.csv"
+    source.write_text(
+        "Origin,Destination,Distance,Travel time\nA,B,,\n",
+        encoding="utf-8",
+    )
+    writer = CsvResultWriter(source, output, AutoSavePolicy(1, 60.0))
+    job = RouteJob(
+        2,
+        "A",
+        "B",
+        "Distance",
+        result_duration_column="Travel time",
+        status=RouteJobStatus.DONE,
+        result_distance_km=8.6,
+        result_duration_minutes=20,
+    )
+
+    assert writer.write(job)
+    writer.close()
+
+    with output.open("r", encoding="utf-8-sig", newline="") as stream:
+        rows = list(csv.reader(stream))
+    assert rows[1][2:] == ["8.6", "20"]
+
+
+def test_writers_validate_result_duration_column(tmp_path: Path) -> None:
+    source = tmp_path / "routes.xlsx"
+    output = tmp_path / "routes.result.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Routes"
+    sheet.append(["Origin", "Destination", "Distance"])
+    sheet.append(["A", "B", None])
+    workbook.save(source)
+    workbook.close()
+
+    excel_writer = ExcelResultWriter(source, "Routes", output)
+    job = RouteJob(
+        2,
+        "A",
+        "B",
+        "Distance",
+        result_duration_column="Missing duration",
+        status=RouteJobStatus.DONE,
+        result_distance_km=1.0,
+        result_duration_minutes=5,
+    )
+    with pytest.raises(ValueError, match="Result duration column not found"):
+        excel_writer.write(job)
+    excel_writer.close()
+
+    csv_source = tmp_path / "routes.csv"
+    csv_output = tmp_path / "routes.result.csv"
+    csv_source.write_text("Origin,Destination,Distance\nA,B,\n", encoding="utf-8")
+    csv_writer = CsvResultWriter(csv_source, csv_output)
+    with pytest.raises(ValueError, match="Result duration column not found"):
+        csv_writer.write(job)
+    csv_writer.close()
+
+
+def test_csv_writer_extends_short_row_for_duration_column(tmp_path: Path) -> None:
+    source = tmp_path / "routes.csv"
+    source.write_text(
+        "Origin,Destination,Distance,Travel time\nA,B\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "routes.result.csv"
+    writer = CsvResultWriter(source, output)
+    job = RouteJob(
+        row_index=2,
+        origin="A",
+        destination="B",
+        result_column="Distance",
+        result_duration_column="Travel time",
+        status=RouteJobStatus.DONE,
+        result_distance_km=8.6,
+        result_duration_minutes=17,
+    )
+
+    assert writer.write(job)
+    writer.flush()
+
+    with output.open("r", encoding="utf-8-sig", newline="") as stream:
+        rows = list(csv.reader(stream))
+    assert rows[1] == ["A", "B", "8.6", "17"]
+
+
+def test_csv_writer_rejects_invalid_row_for_duration(tmp_path: Path) -> None:
+    source = tmp_path / "routes.csv"
+    source.write_text(
+        "Origin,Destination,Distance,Travel time\nA,B,,\n",
+        encoding="utf-8",
+    )
+    writer = CsvResultWriter(source, tmp_path / "routes.result.csv")
+    job = RouteJob(
+        row_index=99,
+        origin="A",
+        destination="B",
+        result_column="Distance",
+        result_duration_column="Travel time",
+        status=RouteJobStatus.DONE,
+        result_distance_km=8.6,
+        result_duration_minutes=17,
+    )
+
+    with pytest.raises(ValueError, match="CSV row not found: 99"):
+        writer._write_duration(job, 17)
     writer.close()

@@ -2,8 +2,14 @@ from datetime import datetime
 from pathlib import Path
 
 import qtawesome as qta
-from PySide6.QtCore import Signal
-from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
+from PySide6.QtCore import QUrl, Signal
+from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
+    QCloseEvent,
+    QDesktopServices,
+    QKeySequence,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -278,6 +284,8 @@ class MainWindow(QMainWindow):
         self._view_menu.addAction(self._toolbar.toggleViewAction())
 
     def _create_status_bar(self) -> None:
+        self._execution_status_label = QLabel("[Ready]", self)
+        self._execution_status_label.setObjectName("lblExecutionStatus")
         self._status_label = QLabel("Ready", self)
         self._status_label.setObjectName("lblStatus")
         self._provider_label = QLabel("Provider: -", self)
@@ -291,6 +299,7 @@ class MainWindow(QMainWindow):
         self._version_label.setObjectName("lblVersion")
 
         status_bar = self.statusBar()
+        status_bar.addWidget(self._execution_status_label, 0)
         status_bar.addWidget(self._status_label, 1)
         status_bar.addPermanentWidget(self._provider_label)
         status_bar.addPermanentWidget(self._theme_label)
@@ -554,9 +563,13 @@ class MainWindow(QMainWindow):
         if state is not None:
             self.restoreState(state)
 
-    def _update_recent_files_menu(self) -> None:
+    def _update_recent_files_menu(
+        self,
+        recent_files: list[str] | None = None,
+    ) -> None:
         self._recent_files_menu.clear()
-        recent_files = self._settings_manager.recent_files()
+        if recent_files is None:
+            recent_files = self._settings_manager.recent_files()
         if not recent_files:
             empty_action = self._recent_files_menu.addAction("No recent files")
             empty_action.setEnabled(False)
@@ -566,7 +579,7 @@ class MainWindow(QMainWindow):
             action = self._recent_files_menu.addAction(Path(file_path).name)
             action.setToolTip(file_path)
             action.setData(file_path)
-            action.triggered.connect(self._show_recent_file_placeholder)
+            action.triggered.connect(self._open_recent_file)
 
         self._recent_files_menu.addSeparator()
         clear_action = self._recent_files_menu.addAction("Clear Recent Files")
@@ -621,10 +634,30 @@ class MainWindow(QMainWindow):
         self._navigation.setCurrentRow(self.HOME_PAGE_INDEX)
         self._status_label.setText(f"Ready · {path.name}")
 
-    def _show_recent_file_placeholder(self) -> None:
+    def _open_recent_file(self) -> None:
         action = self.sender()
-        if isinstance(action, QAction):
-            self._select_workbook(str(action.data()))
+        if not isinstance(action, QAction):
+            return
+
+        file_path = str(action.data())
+        if Path(file_path).is_file():
+            self._select_workbook(file_path)
+            return
+
+        self._settings_manager.remove_recent_file(file_path)
+        recent_files = self._settings_manager.recent_files()
+        self._update_recent_files_menu(recent_files)
+        self._home_page.set_recent_files(recent_files)
+        self._status_label.setText("Ready · recent workbook unavailable")
+        QMessageBox.warning(
+            self,
+            "Recent workbook unavailable",
+            (
+                "This workbook no longer exists at its saved location and "
+                "was removed from Recent Workbooks.\n\n"
+                f"{file_path}"
+            ),
+        )
 
     def _clear_recent_files(self) -> None:
         self._settings_manager.clear_recent_files()
@@ -856,14 +889,12 @@ class MainWindow(QMainWindow):
                 self._execution_coordinator.pause()
             self._set_execution_state(ExecutionState.PAUSED)
             self._home_page.set_batch_summary_state("Paused")
-            self._home_page.set_preview_activity("Paused")
             self.calculation_pause_requested.emit()
         elif self._execution_state is ExecutionState.PAUSED:
             if self._execution_coordinator is not None:
                 self._execution_coordinator.resume()
             self._set_execution_state(ExecutionState.RUNNING)
             self._home_page.set_batch_summary_state("Running")
-            self._home_page.set_preview_activity("Resuming")
             self.calculation_resume_requested.emit()
 
     def _stop_calculation(self) -> None:
@@ -872,7 +903,6 @@ class MainWindow(QMainWindow):
         if self._execution_coordinator is not None:
             self._execution_coordinator.stop()
         self._home_page.set_batch_summary_state("Stopping")
-        self._home_page.set_preview_activity("Stopping")
         self._set_execution_state(ExecutionState.IDLE)
         self.calculation_stop_requested.emit()
 
@@ -883,7 +913,7 @@ class MainWindow(QMainWindow):
         _request: object,
         _result: object,
     ) -> None:
-        self._status_label.setText(f"Calculating route {current:,} of {total:,}")
+        self._status_label.setText(f"{current:,}/{total:,}")
         self.calculation_progress.emit(
             current,
             total,
@@ -906,15 +936,8 @@ class MainWindow(QMainWindow):
             RouteJobStatus.INVALID: PreviewRowStatus.INVALID,
         }[event.status]
         self._home_page.set_preview_row_status(event.preview_row_index, status)
-        row_number = event.preview_row_index + 1
         if event.status is RouteJobStatus.RUNNING:
-            activity = f"Row {row_number:,} · Running · Attempt {event.attempt_count:,}"
             self._home_page.focus_preview_row(event.preview_row_index)
-        elif event.status is RouteJobStatus.RETRY:
-            activity = f"Row {row_number:,} · Retrying · Retry {event.retry_count:,}"
-        else:
-            activity = f"Row {row_number:,} · {status.value.title()}"
-        self._home_page.set_preview_activity(activity)
 
     def _on_calculation_metrics(self, metrics: object) -> None:
         if not isinstance(metrics, ProgressSnapshot):
@@ -922,10 +945,10 @@ class MainWindow(QMainWindow):
         elapsed = self._format_duration(metrics.elapsed_seconds)
         eta = self._format_duration(metrics.eta_seconds)
         self._status_label.setText(
-            f"{metrics.completed:,}/{metrics.total:,} · "
-            f"{metrics.percent_complete:.0f}% · "
-            f"{metrics.items_per_minute:.1f} jobs/min · "
-            f"Elapsed {elapsed} · ETA {eta}"
+            f"{metrics.completed:,}/{metrics.total:,} - "
+            f"{metrics.percent_complete:.0f}% - "
+            f"{metrics.items_per_minute:.1f} jobs/min - "
+            f"Elapsed {elapsed} - ETA {eta}"
         )
         self._home_page.set_live_batch_summary(metrics)
         self.calculation_metrics.emit(metrics)
@@ -944,27 +967,81 @@ class MainWindow(QMainWindow):
             return
         self._last_summary = summary
         self._home_page.set_batch_summary(summary)
+        state = "Stopped" if summary.stopped else "Completed"
+        self._execution_status_label.setText(f"[{state}]")
         self._status_label.setText(
-            f"Completed {summary.successful:,}/{summary.total:,} · "
+            f"{state} {summary.successful:,}/{summary.total:,} · "
             f"Failed {summary.failed:,} · Retried {summary.retry_count:,}"
         )
         self.calculation_summary.emit(summary)
         self._update_execution_actions()
+        self._prompt_open_result_file(summary)
+
+    def _prompt_open_result_file(self, summary: BatchSummary) -> None:
+        output_path = Path(summary.output_file)
+        if not output_path.is_file():
+            self._logger.warning(
+                "RESULT_FILE_MISSING_AFTER_BATCH",
+                extra={
+                    "event": "RESULT_FILE_MISSING_AFTER_BATCH",
+                    "output_path": str(output_path),
+                },
+            )
+            return
+        state = "stopped" if summary.stopped else "completed"
+        answer = QMessageBox.question(
+            self,
+            "Calculation stopped" if summary.stopped else "Calculation completed",
+            (
+                f"Calculation {state}. The result file was saved to:\n\n"
+                f"{output_path}\n\n"
+                "Do you want to open the result file?"
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        opened = QDesktopServices.openUrl(QUrl.fromLocalFile(str(output_path)))
+        if not opened:
+            self._logger.warning(
+                "RESULT_FILE_OPEN_FAILED",
+                extra={
+                    "event": "RESULT_FILE_OPEN_FAILED",
+                    "output_path": str(output_path),
+                },
+            )
+            QMessageBox.warning(
+                self,
+                "Unable to open result file",
+                (
+                    "The file was saved successfully, but could not be opened:"
+                    f"\n\n{output_path}"
+                ),
+            )
+        else:
+            self._logger.info(
+                "RESULT_FILE_OPEN_REQUESTED",
+                extra={
+                    "event": "RESULT_FILE_OPEN_REQUESTED",
+                    "output_path": str(output_path),
+                },
+            )
 
     def _on_calculation_completed(self, results: object) -> None:
         result_count = len(results) if isinstance(results, list) else 0
         self._set_execution_state(ExecutionState.IDLE)
+        self._execution_status_label.setText("[Completed]")
         self._status_label.setText(f"Calculation completed · {result_count:,} results")
-        self._home_page.set_preview_activity("Completed")
         self.calculation_completed.emit(results)
 
     def _on_calculation_stopped(self, results: object) -> None:
         result_count = len(results) if isinstance(results, list) else 0
         self._set_execution_state(ExecutionState.IDLE)
+        self._execution_status_label.setText("[Stopped]")
         self._status_label.setText(
             f"Calculation stopped · {result_count:,} results retained"
         )
-        self._home_page.set_preview_activity("Stopped")
         self.calculation_stopped.emit(results)
 
     def _on_output_write_failed(self, error: object) -> None:
@@ -1023,7 +1100,6 @@ class MainWindow(QMainWindow):
     def _on_calculation_failed(self, message: str) -> None:
         self._set_execution_state(ExecutionState.IDLE)
         self._home_page.set_batch_summary_state("Failed")
-        self._home_page.set_preview_activity("Failed")
         self._status_label.setText("Calculation failed")
         self.calculation_failed.emit(message)
         QMessageBox.critical(
@@ -1058,11 +1134,15 @@ class MainWindow(QMainWindow):
         )
 
         if running:
-            self._status_label.setText("Calculation running")
+            self._execution_status_label.setText("[Running]")
         elif paused:
-            self._status_label.setText("Calculation paused")
-        elif self._home_page.workspace_ready:
-            self._status_label.setText("Ready to calculate")
+            self._execution_status_label.setText("[Paused]")
+        else:
+            final_states = {"[Completed]", "[Stopped]"}
+            if self._execution_status_label.text() not in final_states:
+                self._execution_status_label.setText("[Ready]")
+            if self._home_page.workspace_ready:
+                self._status_label.setText("Ready to calculate")
 
     def shutdown(self, timeout_ms: int = 5_000) -> bool:
         """Stop background execution and release runtime resources."""

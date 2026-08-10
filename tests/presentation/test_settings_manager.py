@@ -114,6 +114,29 @@ def test_add_recent_file_limits_history(manager: SettingsManager) -> None:
     assert recent_files[-1] == "file-2.xlsx"
 
 
+def test_remove_recent_file_removes_only_requested_entry(
+    manager: SettingsManager,
+) -> None:
+    manager.add_recent_file("first.xlsx")
+    manager.add_recent_file("second.xlsx")
+
+    manager.remove_recent_file(" first.xlsx ")
+
+    assert manager.recent_files() == ["second.xlsx"]
+
+
+def test_remove_recent_file_ignores_blank_and_clears_last_entry(
+    manager: SettingsManager,
+) -> None:
+    manager.add_recent_file("only.xlsx")
+
+    manager.remove_recent_file("   ")
+    assert manager.recent_files() == ["only.xlsx"]
+
+    manager.remove_recent_file("only.xlsx")
+    assert manager.recent_files() == []
+
+
 def test_clear_recent_files(manager: SettingsManager) -> None:
     manager.add_recent_file("one.xlsx")
 

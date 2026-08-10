@@ -31,10 +31,18 @@ class BatchQueue:
         job.status = RouteJobStatus.RUNNING
         return job
 
-    def mark_done(self, job: RouteJob, distance_km: float | None = None) -> None:
+    def mark_done(
+        self,
+        job: RouteJob,
+        distance_km: float | None = None,
+        duration_minutes: int | None = None,
+        duration_text: str | None = None,
+    ) -> None:
         self._require(job, RouteJobStatus.RUNNING)
         job.status = RouteJobStatus.DONE
         job.result_distance_km = distance_km
+        job.result_duration_minutes = duration_minutes
+        job.result_duration_text = duration_text
         job.validation_error = None
 
     def mark_failed(self, job: RouteJob, message: str) -> None:

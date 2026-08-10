@@ -358,3 +358,58 @@ def test_statuses_reset_when_model_data_source_changes():
     model.set_row_status(0, PreviewRowStatus.SUCCESS)
     model.clear_source()
     assert model.columnCount() == 0
+
+
+def test_status_counts_track_sparse_status_transitions() -> None:
+    from app.models.preview_row_status import PreviewRowStatus
+
+    model = ExcelTableModel(
+        ["Origin"],
+        [["A"], ["B"], ["C"]],
+        show_status_column=True,
+    )
+
+    assert model.status_count(PreviewRowStatus.PENDING) == 3
+    assert model.status_count(PreviewRowStatus.SUCCESS) == 0
+
+    model.set_row_status(0, PreviewRowStatus.RUNNING)
+    model.set_row_status(1, PreviewRowStatus.RUNNING)
+    assert model.status_count(PreviewRowStatus.PENDING) == 1
+    assert model.status_count(PreviewRowStatus.RUNNING) == 2
+
+    # Move one of two RUNNING rows away while one remains RUNNING.
+    model.set_row_status(0, PreviewRowStatus.SUCCESS)
+    assert model.status_count(PreviewRowStatus.RUNNING) == 1
+    assert model.status_count(PreviewRowStatus.SUCCESS) == 1
+
+    model.set_row_status(1, PreviewRowStatus.FAILED)
+    assert model.status_count(PreviewRowStatus.RUNNING) == 0
+    assert model.status_count(PreviewRowStatus.FAILED) == 1
+
+    model.set_row_status(1, PreviewRowStatus.PENDING)
+    assert model.status_count(PreviewRowStatus.FAILED) == 0
+    assert model.status_count(PreviewRowStatus.PENDING) == 2
+
+    snapshot = model.status_counts()
+    assert snapshot[PreviewRowStatus.SUCCESS] == 1
+    assert snapshot[PreviewRowStatus.PENDING] == 2
+
+
+def test_status_updates_without_visible_status_column() -> None:
+    from app.models.preview_row_status import PreviewRowStatus
+
+    model = ExcelTableModel(["Origin"], [["A"]], show_status_column=False)
+
+    model.set_row_status(0, PreviewRowStatus.SUCCESS)
+    assert model.row_status(0) is PreviewRowStatus.SUCCESS
+
+    model.reset_row_statuses()
+    assert model.row_status(0) is PreviewRowStatus.PENDING
+
+
+def test_status_count_rejects_non_status() -> None:
+    import pytest
+
+    model = ExcelTableModel(["Origin"], [["A"]])
+    with pytest.raises(TypeError, match="PreviewRowStatus"):
+        model.status_count("failed")  # type: ignore[arg-type]

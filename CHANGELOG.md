@@ -1,3 +1,11 @@
+## 1.2.0-rc24
+
+- Added live status counts to the Data Preview filter options.
+- Added O(1) sparse status counters to ExcelTableModel.
+- Active count combines Running and Retried rows.
+- Pending count remains implicit and scales with virtual worksheets.
+- Replaced deprecated QSortFilterProxyModel.invalidateFilter() usage.
+
 ## 1.2.0-rc23
 
 - Added a compact Data Preview status filter with All, Active, Success, Failed, Skipped, Invalid, Retried, and Pending views.

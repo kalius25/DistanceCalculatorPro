@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from abc import ABC, abstractmethod
+from io import BytesIO
 from pathlib import Path
 from time import perf_counter
 
@@ -11,11 +12,15 @@ from openpyxl import load_workbook
 from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+from app.logging import LoggingManager
+
 from .autosave_metrics import AutosaveMetrics, AutosaveSnapshot
 from .autosave_policy import AutoSavePolicy
 from .file_access import AtomicOutputFile, OutputWriteError, ensure_output_writable
 from .models import RouteJob, RouteJobStatus
 from .output_path_policy import OutputPathPolicy
+
+logger = LoggingManager.get_logger(__name__)
 
 
 class BaseResultWriter(ABC):
@@ -49,6 +54,12 @@ class BaseResultWriter(ABC):
         if value is None:
             return False
         self._write_value(job, value)
+        if (
+            job.status is RouteJobStatus.DONE
+            and job.result_duration_column
+            and job.result_duration_minutes is not None
+        ):
+            self._write_duration(job, job.result_duration_minutes)
         self._dirty = True
         self._autosave_policy.record_write()
         if self._autosave_policy.should_save():
@@ -58,6 +69,16 @@ class BaseResultWriter(ABC):
     def flush(self) -> bool:
         if self._closed or not self._dirty:
             return False
+        logger.debug(
+            "RESULT_FLUSH_BEGIN",
+            extra={
+                "event": "RESULT_FLUSH_BEGIN",
+                "writer_type": type(self).__name__,
+                "output_path": str(self.output_path),
+                "output_exists": self.output_path.exists(),
+                "dirty_rows": self._autosave_policy.dirty_rows,
+            },
+        )
         ensure_output_writable(self.output_path)
         dirty_rows = self._autosave_policy.dirty_rows
         started_at = perf_counter()
@@ -66,6 +87,17 @@ class BaseResultWriter(ABC):
         self._autosave_metrics.record(dirty_rows, elapsed)
         self._dirty = False
         self._autosave_policy.mark_saved()
+        logger.debug(
+            "RESULT_FLUSH_OK",
+            extra={
+                "event": "RESULT_FLUSH_OK",
+                "writer_type": type(self).__name__,
+                "output_path": str(self.output_path),
+                "elapsed_seconds": elapsed,
+                "output_exists": self.output_path.is_file(),
+                "output_size_bytes": self.output_path.stat().st_size,
+            },
+        )
         return True
 
     def close(self) -> None:
@@ -94,6 +126,10 @@ class BaseResultWriter(ABC):
         """Write one value into the in-memory document."""
 
     @abstractmethod
+    def _write_duration(self, job: RouteJob, value: int | str) -> None:
+        """Write route duration into the configured duration column."""
+
+    @abstractmethod
     def _save(self) -> None:
         """Persist the in-memory document to output_path."""
 
@@ -112,8 +148,32 @@ class ExcelResultWriter(BaseResultWriter):
         autosave_policy: AutoSavePolicy | None = None,
     ) -> None:
         source = Path(source_path)
+        # Load from an in-memory snapshot instead of giving openpyxl the live
+        # source path.  This is especially important when resuming directly
+        # from an existing *.result.xlsx on Windows: some openpyxl/ZipFile
+        # combinations can otherwise retain a file handle long enough to make
+        # the later atomic os.replace(temp, output) fail with WinError 5.
+        logger.debug(
+            "EXCEL_WRITER_OPEN_BEGIN",
+            extra={
+                "event": "EXCEL_WRITER_OPEN_BEGIN",
+                "source_path": str(source),
+                "output_path": str(output_path),
+                "paths_are_distinct": source != output_path,
+            },
+        )
+        source_bytes = source.read_bytes()
+        source_snapshot = BytesIO(source_bytes)
+        logger.debug(
+            "EXCEL_WRITER_SOURCE_SNAPSHOT_OK",
+            extra={
+                "event": "EXCEL_WRITER_SOURCE_SNAPSHOT_OK",
+                "source_path": str(source),
+                "source_size_bytes": len(source_bytes),
+            },
+        )
         self._workbook: Workbook = load_workbook(
-            source,
+            source_snapshot,
             data_only=False,
             keep_vba=source.suffix.casefold() == ".xlsm",
         )
@@ -123,6 +183,16 @@ class ExcelResultWriter(BaseResultWriter):
         self._worksheet: Worksheet = self._workbook[sheet_name]
         self._columns = self._header_columns(self._worksheet)
         super().__init__(output_path, autosave_policy)
+        logger.info(
+            "EXCEL_WRITER_OPEN_OK",
+            extra={
+                "event": "EXCEL_WRITER_OPEN_OK",
+                "source_path": str(source),
+                "output_path": str(output_path),
+                "sheet_name": sheet_name,
+                "column_count": len(self._columns),
+            },
+        )
 
     def _write_value(self, job: RouteJob, value: float | str) -> None:
         column = self._columns.get(job.result_column)
@@ -130,15 +200,74 @@ class ExcelResultWriter(BaseResultWriter):
             raise ValueError(f"Result column not found: {job.result_column}")
         self._worksheet.cell(row=job.row_index, column=column, value=value)
 
+    def _write_duration(self, job: RouteJob, value: int | str) -> None:
+        column = self._columns.get(job.result_duration_column)
+        if column is None:
+            raise ValueError(
+                f"Result duration column not found: {job.result_duration_column}"
+            )
+        self._worksheet.cell(row=job.row_index, column=column, value=value)
+
     def _save(self) -> None:
+        logger.debug(
+            "EXCEL_SAVE_BEGIN",
+            extra={
+                "event": "EXCEL_SAVE_BEGIN",
+                "output_path": str(self.output_path),
+                "output_exists": self.output_path.exists(),
+            },
+        )
         atomic = AtomicOutputFile(self.output_path)
         temporary = atomic.create(suffix=self.output_path.suffix)
         try:
+            logger.debug(
+                "EXCEL_SAVE_TEMP_WRITE_BEGIN",
+                extra={
+                    "event": "EXCEL_SAVE_TEMP_WRITE_BEGIN",
+                    "output_path": str(self.output_path),
+                    "temp_path": str(temporary),
+                },
+            )
             self._workbook.save(temporary)
+            logger.debug(
+                "EXCEL_SAVE_TEMP_WRITE_OK",
+                extra={
+                    "event": "EXCEL_SAVE_TEMP_WRITE_OK",
+                    "output_path": str(self.output_path),
+                    "temp_path": str(temporary),
+                    "temp_exists": temporary.is_file(),
+                    "temp_size_bytes": temporary.stat().st_size,
+                },
+            )
             atomic.replace()
+            logger.debug(
+                "EXCEL_SAVE_OK",
+                extra={
+                    "event": "EXCEL_SAVE_OK",
+                    "output_path": str(self.output_path),
+                },
+            )
         except OutputWriteError:
+            logger.exception(
+                "EXCEL_SAVE_OUTPUT_WRITE_FAILED",
+                extra={
+                    "event": "EXCEL_SAVE_OUTPUT_WRITE_FAILED",
+                    "output_path": str(self.output_path),
+                    "temp_path": str(temporary),
+                },
+            )
             raise
         except (PermissionError, OSError) as error:
+            logger.exception(
+                "EXCEL_SAVE_IO_FAILED",
+                extra={
+                    "event": "EXCEL_SAVE_IO_FAILED",
+                    "output_path": str(self.output_path),
+                    "temp_path": str(temporary),
+                    "error_type": type(error).__name__,
+                    "error": str(error),
+                },
+            )
             atomic.cleanup()
             raise OutputWriteError(
                 self.output_path,
@@ -184,6 +313,20 @@ class CsvResultWriter(BaseResultWriter):
         column = self._columns.get(job.result_column)
         if column is None:
             raise ValueError(f"Result column not found: {job.result_column}")
+        row_index = job.row_index - 1
+        if row_index < 1 or row_index >= len(self._rows):
+            raise ValueError(f"CSV row not found: {job.row_index}")
+        row = self._rows[row_index]
+        while len(row) <= column:
+            row.append("")
+        row[column] = str(value)
+
+    def _write_duration(self, job: RouteJob, value: int | str) -> None:
+        column = self._columns.get(job.result_duration_column)
+        if column is None:
+            raise ValueError(
+                f"Result duration column not found: {job.result_duration_column}"
+            )
         row_index = job.row_index - 1
         if row_index < 1 or row_index >= len(self._rows):
             raise ValueError(f"CSV row not found: {job.row_index}")
@@ -241,7 +384,21 @@ class ResultWriterFactory:
             if output_path is not None
             else self._output_path_policy.build(source)
         )
+        if output.resolve() == source.resolve():
+            output = self._output_path_policy.build(source)
         input_path = output if resume_from_output and output.exists() else source
+        logger.info(
+            "RESULT_WRITER_FACTORY_CREATE",
+            extra={
+                "event": "RESULT_WRITER_FACTORY_CREATE",
+                "source_path": str(source),
+                "input_path": str(input_path),
+                "output_path": str(output),
+                "resume_from_output": resume_from_output,
+                "output_exists": output.exists(),
+                "paths_are_distinct": source.resolve() != output.resolve(),
+            },
+        )
         suffix = source.suffix.casefold()
         if suffix in {".xlsx", ".xlsm"}:
             return ExcelResultWriter(

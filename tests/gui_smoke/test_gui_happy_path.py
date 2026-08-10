@@ -84,7 +84,7 @@ def test_gui_smoke_happy_path(
 ) -> None:
     source = tmp_path / "routes.csv"
     source.write_text(
-        "Origin,Destination,Distance\nA,B,\n",
+        "Origin,Destination,Distance,Duration\nA,B,,\n",
         encoding="utf-8",
     )
 
@@ -193,7 +193,7 @@ def test_gui_smoke_harness_without_coordinator_reports_failure(
 ) -> None:
     source = tmp_path / "routes.csv"
     source.write_text(
-        "Origin,Destination,Distance\nA,B,\n",
+        "Origin,Destination,Distance,Duration\nA,B,,\n",
         encoding="utf-8",
     )
     harness = GuiSmokeHarness(qapp, smoke_window)

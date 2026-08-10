@@ -13,6 +13,7 @@ class ColumnMapping:
     origin_column: str
     destination_column: str
     result_column: str
+    result_duration_column: str = ""
 
 
 @dataclass(frozen=True, slots=True)

@@ -52,7 +52,7 @@ class HomePage(QWidget):
     clear_recent_requested = Signal()
     file_selected = Signal(str)
     sheet_changed = Signal(str)
-    column_mapping_changed = Signal(str, str, str)
+    column_mapping_changed = Signal(str, str, str, str)
     provider_configuration_changed = Signal(str, str, bool, bool, bool)
     workspace_configuration_changed = Signal(object)
     workspace_ready_changed = Signal(bool)
@@ -102,6 +102,9 @@ class HomePage(QWidget):
             origin_column=str(self._origin_column_selector.currentData()),
             destination_column=str(self._destination_column_selector.currentData()),
             result_column=str(self._result_column_selector.currentData()),
+            result_duration_column=str(
+                self._result_duration_column_selector.currentData()
+            ),
         )
 
     @property
@@ -502,14 +505,16 @@ class HomePage(QWidget):
             "Destination column", "cmbDestinationColumn", mapping_layout, 2
         )
         self._result_column_selector = self._mapping_selector(
-            "Result column", "cmbResultColumn", mapping_layout, 3
+            "Result distance", "cmbResultColumn", mapping_layout, 3
+        )
+        self._result_duration_column_selector = self._mapping_selector(
+            "Result duration", "cmbResultDurationColumn", mapping_layout, 4
         )
         self._mapping_status = QLabel(self._mapping_frame)
         self._mapping_status.setObjectName("lblMappingStatus")
-        mapping_layout.addWidget(self._mapping_status, 4, 0, 1, 3)
-        mapping_layout.setColumnStretch(0, 1)
-        mapping_layout.setColumnStretch(1, 1)
-        mapping_layout.setColumnStretch(2, 1)
+        mapping_layout.addWidget(self._mapping_status, 4, 0, 1, 4)
+        for column in range(4):
+            mapping_layout.setColumnStretch(column, 1)
         self._provider_frame = QFrame(self._inspector_frame)
         self._provider_frame.setObjectName("frmProviderConfiguration")
         provider_layout = QGridLayout(self._provider_frame)
@@ -596,9 +601,6 @@ class HomePage(QWidget):
         self._preview_title = QLabel("Data Preview", self._preview_frame)
         self._preview_title.setObjectName("lblPreviewTitle")
         preview_header_layout.addWidget(self._preview_title, 1)
-        self._preview_activity_label = QLabel("Idle", self._preview_frame)
-        self._preview_activity_label.setObjectName("lblPreviewActivity")
-        preview_header_layout.addWidget(self._preview_activity_label, 0)
         self._preview_auto_scroll_checkbox = QCheckBox(
             "Auto-scroll", self._preview_frame
         )
@@ -610,6 +612,16 @@ class HomePage(QWidget):
         self._preview_status_filter.setToolTip(
             "Filter Data Preview by processing status"
         )
+        self._preview_status_filter_labels = (
+            "All statuses",
+            "Active",
+            "Success",
+            "Failed",
+            "Skipped",
+            "Invalid",
+            "Retried",
+            "Pending",
+        )
         self._preview_status_filter.addItem("All statuses", None)
         self._preview_status_filter.addItem("Active", "active")
         self._preview_status_filter.addItem("Success", PreviewRowStatus.SUCCESS)
@@ -618,6 +630,7 @@ class HomePage(QWidget):
         self._preview_status_filter.addItem("Invalid", PreviewRowStatus.INVALID)
         self._preview_status_filter.addItem("Retried", PreviewRowStatus.RETRIED)
         self._preview_status_filter.addItem("Pending", PreviewRowStatus.PENDING)
+        self._preview_status_filter_counted_index = -1
         preview_header_layout.addWidget(self._preview_status_filter, 0)
         preview_layout.addLayout(preview_header_layout)
         self._preview_table = QTableView(self._preview_frame)
@@ -638,6 +651,7 @@ class HomePage(QWidget):
         self._preview_filter_model = PreviewStatusFilterProxyModel()
         self._preview_filter_model.setSourceModel(self._preview_model)
         self._preview_table.setModel(self._preview_filter_model)
+        self._refresh_selected_preview_status_filter_count()
         preview_layout.addWidget(self._preview_table, 1)
         inspector_layout.addWidget(self._preview_frame, 1)
 
@@ -703,7 +717,6 @@ class HomePage(QWidget):
         """Show zeroed counters immediately when batch execution starts."""
         self._summary_values = (total, 0, 0, 0, 0, 0)
         self._render_batch_summary_state("Running")
-        self.set_preview_activity("Waiting for first row")
 
     def set_batch_summary_state(self, state: str) -> None:
         """Change only the live execution state while preserving counters."""
@@ -716,13 +729,46 @@ class HomePage(QWidget):
     ) -> None:
         """Update one zero-based Data Preview row processing status."""
         self._preview_model.set_row_status(row, status)
-        self._preview_filter_model.refresh_filter()
+        self._refresh_selected_preview_status_filter_count()
 
     def reset_preview_row_statuses(self) -> None:
         """Reset visible processing state without reloading worksheet data."""
         self._preview_model.reset_row_statuses()
-        self._preview_filter_model.refresh_filter()
-        self.set_preview_activity("Idle")
+        self._refresh_selected_preview_status_filter_count()
+
+    @property
+    def preview_status_counts(self) -> dict[PreviewRowStatus, int]:
+        """Return current Data Preview status counts."""
+        return self._preview_model.status_counts()
+
+    def _preview_status_filter_count(self, value: object) -> int:
+        """Return only the count required by the currently selected filter."""
+        if value == "active":
+            return self._preview_model.status_count(PreviewRowStatus.RUNNING) + (
+                self._preview_model.status_count(PreviewRowStatus.RETRIED)
+            )
+        if isinstance(value, PreviewRowStatus):
+            return self._preview_model.status_count(value)
+        return self._preview_model.rowCount()
+
+    def _refresh_selected_preview_status_filter_count(self) -> None:
+        """Refresh only the selected filter label to minimize live UI work."""
+        index = self._preview_status_filter.currentIndex()
+        previous_index = self._preview_status_filter_counted_index
+        self._preview_status_filter.blockSignals(True)
+        if previous_index >= 0 and previous_index != index:
+            self._preview_status_filter.setItemText(
+                previous_index,
+                self._preview_status_filter_labels[previous_index],
+            )
+        value = self._preview_status_filter.currentData()
+        count = self._preview_status_filter_count(value)
+        self._preview_status_filter.setItemText(
+            index,
+            f"{self._preview_status_filter_labels[index]} ({count:,})",
+        )
+        self._preview_status_filter_counted_index = index
+        self._preview_status_filter.blockSignals(False)
 
     @property
     def preview_status_filter(self) -> frozenset[PreviewRowStatus] | None:
@@ -748,6 +794,7 @@ class HomePage(QWidget):
         else:
             statuses = None
         self.set_preview_status_filter(statuses)
+        self._refresh_selected_preview_status_filter_count()
 
     @property
     def preview_auto_scroll_enabled(self) -> bool:
@@ -760,18 +807,21 @@ class HomePage(QWidget):
             return
         source_index = self._preview_model.index(row, 0)
         proxy_index = self._preview_filter_model.mapFromSource(source_index)
-        if not proxy_index.isValid():
-            return
-        self._preview_table.selectRow(proxy_index.row())
-        if self.preview_auto_scroll_enabled:
-            self._preview_table.scrollTo(
-                proxy_index,
-                QAbstractItemView.ScrollHint.PositionAtCenter,
-            )
+        if proxy_index.isValid():
+            self._preview_table.selectRow(proxy_index.row())
+            if self.preview_auto_scroll_enabled:
+                self._preview_table.scrollTo(
+                    proxy_index,
+                    QAbstractItemView.ScrollHint.PositionAtCenter,
+                )
+            else:
+                self._preview_table.setFocus()
+        else:
+            self._preview_table.clearSelection()
 
     def set_preview_activity(self, text: str) -> None:
-        """Show compact live processing activity beside the preview title."""
-        self._preview_activity_label.setText(text or "Idle")
+        """Compatibility no-op; live preview text was removed for performance."""
+        _ = text
 
     def set_live_batch_summary(self, metrics: ProgressSnapshot) -> None:
         """Update summary counters from a live progress snapshot."""
@@ -803,7 +853,6 @@ class HomePage(QWidget):
         self._summary_values = None
         self._summary_label.setText("No batch summary available")
         self._summary_frame.setVisible(False)
-        self.set_preview_activity("Idle")
 
     def _create_layout(self) -> None:
         layout = QVBoxLayout(self)
@@ -871,6 +920,7 @@ class HomePage(QWidget):
             self._origin_column_selector,
             self._destination_column_selector,
             self._result_column_selector,
+            self._result_duration_column_selector,
         ):
             selector.currentTextChanged.connect(self._on_mapping_changed)
         self._provider_selector.currentTextChanged.connect(
@@ -933,6 +983,7 @@ class HomePage(QWidget):
                 row_count=self._preview_model.rowCount(),
                 virtual=True,
             )
+            self._refresh_selected_preview_status_filter_count()
             self._refresh_preview_view()
             return
 
@@ -960,6 +1011,7 @@ class HomePage(QWidget):
             row_count=self._preview_model.rowCount(),
             virtual=False,
         )
+        self._refresh_selected_preview_status_filter_count()
         self._refresh_preview_view()
 
     def _update_preview_title(
@@ -1174,6 +1226,7 @@ class HomePage(QWidget):
             self._origin_column_selector,
             self._destination_column_selector,
             self._result_column_selector,
+            self._result_duration_column_selector,
         )
         for selector in selectors:
             selector.blockSignals(True)
@@ -1205,7 +1258,22 @@ class HomePage(QWidget):
             ),
             (
                 self._result_column_selector,
-                ("result", "distance", "kết quả", "khoảng cách"),
+                (
+                    "result distance",
+                    "distance",
+                    "kết quả",
+                    "khoảng cách",
+                ),
+            ),
+            (
+                self._result_duration_column_selector,
+                (
+                    "result duration",
+                    "duration",
+                    "travel time",
+                    "thời gian di chuyển",
+                    "thoi gian di chuyen",
+                ),
             ),
         )
         for selector, keywords in keyword_groups:
@@ -1227,18 +1295,22 @@ class HomePage(QWidget):
         origin = self._origin_column_selector.currentData() or ""
         destination = self._destination_column_selector.currentData() or ""
         result = self._result_column_selector.currentData() or ""
-        selected = [value for value in (origin, destination, result) if value]
-        self._mapping_valid = len(selected) == 3 and len(set(selected)) == 3
+        duration = self._result_duration_column_selector.currentData() or ""
+        selected = [value for value in (origin, destination, result, duration) if value]
+        self._mapping_valid = len(selected) == 4 and len(set(selected)) == 4
         if self._mapping_valid:
             self._mapping_status.setText("Mapping ready")
             self._mapping_status.setProperty("valid", True)
-            self.column_mapping_changed.emit(origin, destination, result)
+            self.column_mapping_changed.emit(origin, destination, result, duration)
         elif len(selected) != len(set(selected)):
             self._mapping_status.setText("Each role must use a different column")
             self._mapping_status.setProperty("valid", False)
         else:
             self._mapping_status.setText(
-                "Select origin, destination and result columns"
+                (
+                    "Select origin, destination, result distance "
+                    "and result duration columns"
+                )
             )
             self._mapping_status.setProperty("valid", False)
         self._refresh_style(self._mapping_status)

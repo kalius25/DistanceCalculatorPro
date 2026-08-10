@@ -46,6 +46,7 @@ class ExcelTableModel(QAbstractTableModel):
         self._cache = VirtualTableBlockCache(max_cached_blocks)
         self._show_status_column = show_status_column
         self._row_statuses: dict[int, PreviewRowStatus] = {}
+        self._status_counts: dict[PreviewRowStatus, int] = {}
 
     # ==========================================================
     # Public
@@ -62,6 +63,7 @@ class ExcelTableModel(QAbstractTableModel):
         self._headers = list(headers)
         self._rows = [list(row) for row in rows]
         self._row_statuses.clear()
+        self._status_counts.clear()
         self.endResetModel()
 
     def set_source(self, source: VirtualWorksheetDataSource) -> None:
@@ -71,6 +73,7 @@ class ExcelTableModel(QAbstractTableModel):
         self._headers = list(source.headers)
         self._rows = []
         self._row_statuses.clear()
+        self._status_counts.clear()
         self.endResetModel()
 
     def clear_source(self) -> None:
@@ -80,6 +83,7 @@ class ExcelTableModel(QAbstractTableModel):
         self._headers = []
         self._rows = []
         self._row_statuses.clear()
+        self._status_counts.clear()
         self.endResetModel()
 
     def row_status(self, row: int) -> PreviewRowStatus:
@@ -95,10 +99,20 @@ class ExcelTableModel(QAbstractTableModel):
         if not isinstance(status, PreviewRowStatus):
             raise TypeError("status must be a PreviewRowStatus.")
 
-        if status is PreviewRowStatus.PENDING:
-            self._row_statuses.pop(row, None)
-        else:
-            self._row_statuses[row] = status
+        previous = self._row_statuses.get(row, PreviewRowStatus.PENDING)
+        if previous is not status:
+            if previous is not PreviewRowStatus.PENDING:
+                remaining = self._status_counts.get(previous, 0) - 1
+                if remaining > 0:
+                    self._status_counts[previous] = remaining
+                else:
+                    self._status_counts.pop(previous, None)
+
+            if status is PreviewRowStatus.PENDING:
+                self._row_statuses.pop(row, None)
+            else:
+                self._row_statuses[row] = status
+                self._status_counts[status] = self._status_counts.get(status, 0) + 1
 
         if self._show_status_column and self.columnCount() > 0:
             index = self.index(row, 0)
@@ -116,6 +130,7 @@ class ExcelTableModel(QAbstractTableModel):
         if not self._row_statuses:
             return
         self._row_statuses.clear()
+        self._status_counts.clear()
         if self._show_status_column and self.rowCount() > 0:
             self.dataChanged.emit(
                 self.index(0, 0),
@@ -125,6 +140,19 @@ class ExcelTableModel(QAbstractTableModel):
                     Qt.ItemDataRole.ForegroundRole,
                 ],
             )
+
+    def status_count(self, status: PreviewRowStatus) -> int:
+        """Return the number of rows currently in *status*."""
+        if not isinstance(status, PreviewRowStatus):
+            raise TypeError("status must be a PreviewRowStatus.")
+        if status is PreviewRowStatus.PENDING:
+            explicit = sum(self._status_counts.values())
+            return max(self.rowCount() - explicit, 0)
+        return self._status_counts.get(status, 0)
+
+    def status_counts(self) -> dict[PreviewRowStatus, int]:
+        """Return a snapshot of current row counts for every preview status."""
+        return {status: self.status_count(status) for status in PreviewRowStatus}
 
     def invalidate_cache(self) -> None:
         """Discard lazy row blocks so subsequent reads are refreshed."""

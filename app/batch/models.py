@@ -31,6 +31,7 @@ class RouteJob:
     origin: str
     destination: str
     result_column: str
+    result_duration_column: str = ""
     travel_mode: TravelMode = TravelMode.DRIVING
     toll_preference: RoutePreference = RoutePreference.AUTO
     ferry_preference: RoutePreference = RoutePreference.AUTO
@@ -39,6 +40,8 @@ class RouteJob:
     retry_count: int = 0
     validation_error: str | None = None
     result_distance_km: float | None = None
+    result_duration_minutes: int | None = None
+    result_duration_text: str | None = None
     metadata: dict[str, object] = field(default_factory=dict)
     attempt_count: int = 0
     last_error: str | None = None

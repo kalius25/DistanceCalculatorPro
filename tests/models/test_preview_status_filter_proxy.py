@@ -44,3 +44,14 @@ def test_status_filter_allows_non_excel_source_model() -> None:
     proxy.set_statuses({PreviewRowStatus.FAILED})
 
     assert proxy.rowCount() == 2
+
+
+def test_refresh_filter_re_evaluates_active_filter() -> None:
+    source = _status_model()
+    proxy = PreviewStatusFilterProxyModel()
+    proxy.setSourceModel(source)
+    proxy.set_statuses({PreviewRowStatus.FAILED})
+
+    assert proxy.rowCount() == 1
+    proxy.refresh_filter()
+    assert proxy.rowCount() == 1

@@ -33,6 +33,11 @@ class RowMapper:
             mapping.origin_column,
             mapping.destination_column,
             mapping.result_column,
+            *(
+                [mapping.result_duration_column]
+                if mapping.result_duration_column
+                else []
+            ),
         )
         missing = [column for column in required if column not in indexes]
         if missing:
@@ -72,6 +77,7 @@ class RowMapper:
             origin=origin,
             destination=destination,
             result_column=mapping.result_column,
+            result_duration_column=mapping.result_duration_column,
             travel_mode=provider.travel_mode,
             toll_preference=avoid if provider.avoid_tolls else automatic,
             highway_preference=(avoid if provider.avoid_highways else automatic),

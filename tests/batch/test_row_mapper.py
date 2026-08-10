@@ -69,3 +69,26 @@ def test_mapper_rejects_missing_mapped_columns() -> None:
         match="Missing mapped columns: Destination, Distance",
     ):
         RowMapper().resolve_indexes(("Origin",), configuration())
+
+
+def test_mapper_resolves_result_duration_column() -> None:
+    mapper = RowMapper()
+    config = WorkspaceConfiguration(
+        ColumnMapping("Origin", "Destination", "Distance", "Travel time"),
+        ProviderConfiguration(
+            ProviderType.GOOGLE_MAPS_WEB,
+            TravelMode.DRIVING,
+        ),
+    )
+    indexes = mapper.resolve_indexes(
+        ("Origin", "Destination", "Distance", "Travel time"),
+        config,
+    )
+    job = mapper.map_row(
+        WorkbookRow(2, ("A", "B", None, None)),
+        indexes,
+        config,
+    )
+
+    assert indexes["Travel time"] == 3
+    assert job.result_duration_column == "Travel time"

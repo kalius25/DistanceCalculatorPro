@@ -526,8 +526,13 @@ def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
             WorksheetInfo(
                 "Routes",
                 10,
-                3,
-                ("TỌA ĐỘ NƠI ĐI", "TỌA ĐỘ NƠI ĐẾN", "KẾT QUẢ"),
+                4,
+                (
+                    "TỌA ĐỘ NƠI ĐI",
+                    "TỌA ĐỘ NƠI ĐẾN",
+                    "KẾT QUẢ",
+                    "THỜI GIAN DI CHUYỂN",
+                ),
             ),
         ),
     )
@@ -538,6 +543,7 @@ def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
     assert page._origin_column_selector.currentText() == "TỌA ĐỘ NƠI ĐI"
     assert page._destination_column_selector.currentText() == "TỌA ĐỘ NƠI ĐẾN"
     assert page._result_column_selector.currentText() == "KẾT QUẢ"
+    assert page._result_duration_column_selector.currentText() == "THỜI GIAN DI CHUYỂN"
     assert page._mapping_valid
     assert page._mapping_status.text() == "Mapping ready"
 
@@ -557,7 +563,9 @@ def test_column_mapping_rejects_duplicate_roles(qtbot: object) -> None:
             file_type="CSV",
             file_size_bytes=100,
             modified_at=datetime(2026, 7, 31),
-            worksheets=(WorksheetInfo("routes", 2, 3, ("From", "To", "Distance")),),
+            worksheets=(
+                WorksheetInfo("routes", 2, 4, ("From", "To", "Distance", "Duration")),
+            ),
         )
     )
 
@@ -577,6 +585,7 @@ def test_column_mapping_resets_when_inspection_is_cleared(qtbot: object) -> None
     assert page._origin_column_selector.count() == 1
     assert page._destination_column_selector.count() == 1
     assert page._result_column_selector.count() == 1
+    assert page._result_duration_column_selector.count() == 1
     assert not page._mapping_valid
 
 
@@ -699,7 +708,7 @@ def test_column_mapping_without_matching_keywords_remains_unselected(
     assert page._destination_column_selector.currentData() == ""
     assert page._result_column_selector.currentData() == ""
     assert page._mapping_status.text() == (
-        "Select origin, destination and result columns"
+        "Select origin, destination, result distance and result duration columns"
     )
 
 
@@ -709,6 +718,7 @@ def test_clear_inspection_is_safe_before_widgets_are_created() -> None:
     incomplete_page = SimpleNamespace()
 
     HomePage.clear_inspection(incomplete_page)  # type: ignore[arg-type]
+    HomePage.release_resources(incomplete_page)  # type: ignore[arg-type]
 
     assert incomplete_page._workbook_info is None
     assert incomplete_page._current_worksheet is None
@@ -856,8 +866,8 @@ def test_complete_workspace_configuration_emits_ready_state(
                 WorksheetInfo(
                     "Routes",
                     2,
-                    3,
-                    ("Origin", "Destination", "Distance"),
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
                 ),
             ),
         )
@@ -868,6 +878,7 @@ def test_complete_workspace_configuration_emits_ready_state(
     assert configuration.column_mapping.origin_column == "Origin"
     assert configuration.column_mapping.destination_column == "Destination"
     assert configuration.column_mapping.result_column == "Distance"
+    assert configuration.column_mapping.result_duration_column == "Duration"
     assert configuration.provider_configuration.provider is (
         ProviderType.GOOGLE_MAPS_WEB
     )
@@ -900,8 +911,8 @@ def test_workspace_ready_transition_is_emitted_only_when_state_changes(
                 WorksheetInfo(
                     "Routes",
                     2,
-                    3,
-                    ("Origin", "Destination", "Distance"),
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
                 ),
             ),
         )
@@ -939,8 +950,8 @@ def test_workspace_requires_provider_when_mapping_is_complete(
                 WorksheetInfo(
                     "Routes",
                     2,
-                    3,
-                    ("Origin", "Destination", "Distance"),
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
                 ),
             ),
         )
@@ -1021,8 +1032,8 @@ def test_skip_existing_results_option_updates_workspace_configuration(
                 WorksheetInfo(
                     "Routes",
                     2,
-                    3,
-                    ("Origin", "Destination", "Distance"),
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
                 ),
             ),
         )
@@ -1150,10 +1161,9 @@ def test_live_summary_state_preserves_current_counters(qtbot: object) -> None:
     assert "1 Invalid" in text
     assert "2 Retried" in text
 
+    assert not hasattr(page, "_preview_activity_label")
     page.set_preview_activity("Row 8 · Running")
-    assert page._preview_activity_label.text() == "Row 8 · Running"
     page.set_preview_activity("")
-    assert page._preview_activity_label.text() == "Idle"
 
 
 def test_workspace_panel_preference_and_splitter_state_helpers(qtbot: object) -> None:
@@ -1182,7 +1192,12 @@ def test_workspace_panel_preference_and_splitter_state_helpers(qtbot: object) ->
             file_size_bytes=2_048,
             modified_at=datetime(2026, 8, 7, 8, 0),
             worksheets=(
-                WorksheetInfo("Routes", 2, 3, ("Origin", "Destination", "Distance")),
+                WorksheetInfo(
+                    "Routes",
+                    2,
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
+                ),
             ),
         )
     )
@@ -1225,7 +1240,12 @@ def test_workbook_inspector_file_metadata_and_config_toggle(qtbot: object) -> No
         file_size_bytes=2_048,
         modified_at=datetime(2026, 8, 7, 8, 0),
         worksheets=(
-            WorksheetInfo("Routes", 2, 3, ("Origin", "Destination", "Distance")),
+            WorksheetInfo(
+                "Routes",
+                2,
+                4,
+                ("Origin", "Destination", "Distance", "Duration"),
+            ),
         ),
     )
     page.set_selected_file(info.file_path)
@@ -1668,7 +1688,7 @@ def test_preview_status_filter_bar_filters_live_statuses(qtbot: object) -> None:
         )
     )
 
-    assert page._preview_status_filter.currentText() == "All statuses"
+    assert page._preview_status_filter.currentText() == "All statuses (3)"
     assert page.preview_status_filter is None
     assert page._preview_filter_model.rowCount() == 3
 
@@ -1676,20 +1696,20 @@ def test_preview_status_filter_bar_filters_live_statuses(qtbot: object) -> None:
     page.set_preview_row_status(1, PreviewRowStatus.FAILED)
     page.set_preview_row_status(2, PreviewRowStatus.RETRIED)
 
-    page._preview_status_filter.setCurrentText("Failed")
+    page._preview_status_filter.setCurrentIndex(3)
     assert page.preview_status_filter == frozenset({PreviewRowStatus.FAILED})
     assert page._preview_filter_model.rowCount() == 1
     assert (
         page._preview_filter_model.data(page._preview_filter_model.index(0, 1)) == "C"
     )
 
-    page._preview_status_filter.setCurrentText("Active")
+    page._preview_status_filter.setCurrentIndex(1)
     assert page.preview_status_filter == frozenset(
         {PreviewRowStatus.RUNNING, PreviewRowStatus.RETRIED}
     )
     assert page._preview_filter_model.rowCount() == 1
 
-    page._preview_status_filter.setCurrentText("All statuses")
+    page._preview_status_filter.setCurrentIndex(0)
     assert page.preview_status_filter is None
     assert page._preview_filter_model.rowCount() == 3
 
@@ -1723,7 +1743,7 @@ def test_preview_status_filter_reacts_to_incremental_row_update(qtbot: object) -
         )
     )
 
-    page._preview_status_filter.setCurrentText("Failed")
+    page._preview_status_filter.setCurrentIndex(3)
     assert page._preview_filter_model.rowCount() == 0
 
     page.set_preview_row_status(1, PreviewRowStatus.FAILED)
@@ -1765,9 +1785,151 @@ def test_focus_preview_row_respects_active_status_filter(qtbot: object) -> None:
     page.set_preview_row_status(0, PreviewRowStatus.FAILED)
     page.set_preview_status_filter({PreviewRowStatus.FAILED})
 
+    page.focus_preview_row(-1)
+    assert not page._preview_table.selectionModel().hasSelection()
+
     page.focus_preview_row(1)
     assert not page._preview_table.selectionModel().hasSelection()
 
     page._preview_auto_scroll_checkbox.setChecked(False)
     page.focus_preview_row(0)
     assert page._preview_table.selectionModel().hasSelection()
+
+
+def test_preview_status_filter_badges_track_live_counts(qtbot: object) -> None:
+    from datetime import datetime
+
+    from app.models.preview_row_status import PreviewRowStatus
+    from app.workbooks.models import WorkbookInfo, WorksheetInfo
+
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page.set_inspection(
+        WorkbookInfo(
+            file_path="counts.xlsx",
+            file_name="counts.xlsx",
+            file_type="XLSX",
+            file_size_bytes=128,
+            modified_at=datetime(2026, 8, 10, 11, 0),
+            worksheets=(
+                WorksheetInfo(
+                    "Routes",
+                    5,
+                    1,
+                    ("Origin",),
+                    (("A",), ("B",), ("C",), ("D",)),
+                ),
+            ),
+        )
+    )
+
+    assert page._preview_status_filter.itemText(0) == "All statuses (4)"
+    assert page._preview_status_filter.itemText(7) == "Pending"
+    assert page.preview_status_counts == {
+        PreviewRowStatus.PENDING: 4,
+        PreviewRowStatus.RUNNING: 0,
+        PreviewRowStatus.SUCCESS: 0,
+        PreviewRowStatus.FAILED: 0,
+        PreviewRowStatus.SKIPPED: 0,
+        PreviewRowStatus.INVALID: 0,
+        PreviewRowStatus.RETRIED: 0,
+    }
+
+    page.set_preview_row_status(0, PreviewRowStatus.SUCCESS)
+    page.set_preview_row_status(1, PreviewRowStatus.FAILED)
+    page.set_preview_row_status(2, PreviewRowStatus.RUNNING)
+    page.set_preview_row_status(3, PreviewRowStatus.RETRIED)
+
+    assert page._preview_status_filter.itemText(0) == "All statuses (4)"
+    assert page._preview_status_filter.itemText(1) == "Active"
+    assert page._preview_status_filter.itemText(2) == "Success"
+    assert page._preview_status_filter.itemText(3) == "Failed"
+
+    page._preview_status_filter.setCurrentIndex(1)
+    assert page._preview_status_filter.currentText() == "Active (2)"
+    page._preview_status_filter.setCurrentIndex(2)
+    assert page._preview_status_filter.currentText() == "Success (1)"
+    page._preview_status_filter.setCurrentIndex(7)
+    assert page._preview_status_filter.currentText() == "Pending (0)"
+
+    page.reset_preview_row_statuses()
+    assert page._preview_status_filter.currentText() == "Pending (4)"
+
+
+def _focus_preview_test_page(qtbot: object) -> HomePage:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._preview_model = MagicMock()
+    page._preview_model.rowCount.return_value = 10
+    page._preview_model.index.return_value = MagicMock()
+
+    page._preview_filter_model = MagicMock()
+    page._preview_table = MagicMock()
+    return page
+
+
+def test_focus_preview_row_auto_scroll_enabled(qtbot: object) -> None:
+    from PySide6.QtWidgets import QAbstractItemView
+
+    page = _focus_preview_test_page(qtbot)
+    proxy_index = MagicMock()
+    proxy_index.isValid.return_value = True
+    proxy_index.row.return_value = 2
+    page._preview_filter_model.mapFromSource.return_value = proxy_index
+    page._preview_auto_scroll_checkbox.setChecked(True)
+
+    page.focus_preview_row(2)
+
+    page._preview_table.selectRow.assert_called_once_with(2)
+    page._preview_table.scrollTo.assert_called_once_with(
+        proxy_index,
+        QAbstractItemView.ScrollHint.PositionAtCenter,
+    )
+    page._preview_table.setFocus.assert_not_called()
+    page._preview_table.clearSelection.assert_not_called()
+
+
+def test_focus_preview_row_auto_scroll_disabled(qtbot: object) -> None:
+    page = _focus_preview_test_page(qtbot)
+    proxy_index = MagicMock()
+    proxy_index.isValid.return_value = True
+    proxy_index.row.return_value = 2
+    page._preview_filter_model.mapFromSource.return_value = proxy_index
+    page._preview_auto_scroll_checkbox.setChecked(False)
+
+    page.focus_preview_row(2)
+
+    page._preview_table.selectRow.assert_called_once_with(2)
+    page._preview_table.setFocus.assert_called_once_with()
+    page._preview_table.scrollTo.assert_not_called()
+    page._preview_table.clearSelection.assert_not_called()
+
+
+def test_focus_preview_row_invalid_proxy_index(qtbot: object) -> None:
+    page = _focus_preview_test_page(qtbot)
+    proxy_index = MagicMock()
+    proxy_index.isValid.return_value = False
+    page._preview_filter_model.mapFromSource.return_value = proxy_index
+
+    page.focus_preview_row(2)
+
+    proxy_index.isValid.assert_called_once_with()
+    page._preview_table.clearSelection.assert_called_once_with()
+    page._preview_table.selectRow.assert_not_called()
+    page._preview_table.scrollTo.assert_not_called()
+
+
+@pytest.mark.parametrize("row", [-1, 10, 999])
+def test_focus_preview_row_out_of_bounds(qtbot: object, row: int) -> None:
+    page = _focus_preview_test_page(qtbot)
+
+    page.focus_preview_row(row)
+
+    page._preview_model.index.assert_not_called()
+    page._preview_filter_model.mapFromSource.assert_not_called()
+    page._preview_table.selectRow.assert_not_called()
+    page._preview_table.scrollTo.assert_not_called()

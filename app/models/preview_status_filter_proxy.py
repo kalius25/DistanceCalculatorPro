@@ -33,7 +33,12 @@ class PreviewStatusFilterProxyModel(QSortFilterProxyModel):
         normalized = None if statuses is None else frozenset(statuses)
         if normalized == self._statuses:
             return
+        self.beginFilterChange()
         self._statuses = normalized
+        self.endFilterChange()
+
+    def refresh_filter(self) -> None:
+        """Re-evaluate the active filter after source statuses change."""
         self.beginFilterChange()
         self.endFilterChange()
 
@@ -48,11 +53,6 @@ class PreviewStatusFilterProxyModel(QSortFilterProxyModel):
         if not isinstance(source, ExcelTableModel):
             return True
         return source.row_status(source_row) in self._statuses
-
-    def refresh_filter(self) -> None:
-        """Re-evaluate the active filter after source row statuses change."""
-        self.beginFilterChange()
-        self.endFilterChange()
 
 
 __all__ = ["PreviewStatusFilterProxyModel"]

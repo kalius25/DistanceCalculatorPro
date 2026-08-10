@@ -337,16 +337,36 @@ def test_recent_files_menu_builds_actions_and_selects_workbook(
     assert window._status_label.text() == "Ready · first.xlsx"
 
 
-def test_recent_file_handler_ignores_non_action_sender(
+def test_open_recent_file_ignores_non_action_sender(
     window: MainWindow,
 ) -> None:
     with (
         patch.object(window, "sender", return_value=None),
         patch.object(window, "_select_workbook") as select_workbook,
     ):
-        window._show_recent_file_placeholder()
+        window._open_recent_file()
 
     select_workbook.assert_not_called()
+
+
+def test_open_recent_file_removes_missing_path(
+    window: MainWindow,
+    settings_manager: MagicMock,
+    tmp_path: Path,
+) -> None:
+    missing_path = str(tmp_path / "missing.xlsx")
+    settings_manager.recent_files.side_effect = [[missing_path], []]
+    window._update_recent_files_menu()
+
+    with patch.object(QMessageBox, "warning") as warning:
+        window._recent_files_menu.actions()[0].trigger()
+
+    settings_manager.remove_recent_file.assert_called_once_with(missing_path)
+    assert window._recent_files_menu.actions()[0].text() == "No recent files"
+    assert window._home_page._recent_files.count() == 1
+    assert window._home_page._recent_files.item(0).text() == "No recent workbooks"
+    assert window._status_label.text() == "Ready · recent workbook unavailable"
+    warning.assert_called_once()
 
 
 def test_clear_recent_files_updates_manager_and_menu(
@@ -380,8 +400,8 @@ def _make_workspace_ready(window: MainWindow) -> object:
                 WorksheetInfo(
                     "Routes",
                     25,
-                    3,
-                    ("Origin", "Destination", "Distance"),
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
                 ),
             ),
         )
@@ -412,7 +432,7 @@ def test_execution_actions_start_pause_resume_and_stop(
     assert window._action_stop.isEnabled()
     assert window._home_page.workspace_locked
     assert not window._home_page._mapping_frame.isEnabled()
-    assert window._status_label.text() == "Calculation running"
+    assert window._execution_status_label.text() == "[Running]"
 
     with qtbot.waitSignal(  # type: ignore[attr-defined]
         window.calculation_pause_requested
@@ -421,7 +441,7 @@ def test_execution_actions_start_pause_resume_and_stop(
 
     assert window.execution_state is ExecutionState.PAUSED
     assert window._action_pause.text() == "Resume"
-    assert window._status_label.text() == "Calculation paused"
+    assert window._execution_status_label.text() == "[Paused]"
 
     with qtbot.waitSignal(  # type: ignore[attr-defined]
         window.calculation_resume_requested
@@ -442,6 +462,7 @@ def test_execution_actions_start_pause_resume_and_stop(
     assert not window._action_stop.isEnabled()
     assert not window._home_page.workspace_locked
     assert window._home_page._mapping_frame.isEnabled()
+    assert window._execution_status_label.text() == "[Ready]"
     assert window._status_label.text() == "Ready to calculate"
 
 
@@ -658,6 +679,11 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
             self.pause = MagicMock()
             self.resume = MagicMock()
             self.stop = MagicMock()
+            self.shutdown = MagicMock(return_value=True)
+
+        @property
+        def is_running(self) -> bool:
+            return False
 
     coordinator = Coordinator()
     workbook_inspector.inspect.side_effect = None
@@ -671,11 +697,11 @@ def test_execution_coordinator_runs_real_job_and_relays_controls(
             WorksheetInfo(
                 "Sheet1",
                 3,
-                3,
-                ("Origin", "Destination", "Distance"),
+                4,
+                ("Origin", "Destination", "Distance", "Duration"),
                 (
-                    ("A", "B", ""),
-                    ("C", "D", ""),
+                    ("A", "B", "", ""),
+                    ("C", "D", "", ""),
                 ),
             ),
         ),
@@ -768,7 +794,7 @@ def test_execution_coordinator_events_update_window(
     qtbot.addWidget(result)  # type: ignore[attr-defined]
 
     coordinator.progress.emit(2, 10, object(), object())
-    assert result._status_label.text() == "Calculating route 2 of 10"
+    assert result._status_label.text() == "2/10"
 
     metrics = ProgressSnapshot(
         total=10,
@@ -786,7 +812,7 @@ def test_execution_coordinator_events_update_window(
     with qtbot.waitSignal(result.calculation_metrics):  # type: ignore[attr-defined]
         coordinator.metrics.emit(metrics)
     assert result._status_label.text() == (
-        "2/10 · 20% · 4.0 jobs/min · Elapsed 00:30 · ETA 02:00"
+        "2/10 - 20% - 4.0 jobs/min - Elapsed 00:30 - ETA 02:00"
     )
     assert result._format_duration(3_661.0) == "01:01:01"
     result._on_calculation_metrics(object())
@@ -2264,7 +2290,7 @@ def test_row_event_updates_exact_preview_row_status(
     set_status.assert_called_once_with(5, preview_status)
 
 
-def test_row_event_updates_preview_activity(window: MainWindow) -> None:
+def test_row_event_updates_preview_without_live_text(window: MainWindow) -> None:
     window._home_page._preview_model.set_data(
         ["Origin", "Destination"],
         [
@@ -2292,30 +2318,27 @@ def test_row_event_updates_preview_activity(window: MainWindow) -> None:
         retry_count=1,
     )
 
-    with patch.object(window._home_page, "set_preview_activity") as activity:
+    with patch.object(window._home_page, "focus_preview_row") as focus:
         window._on_row_event(running)
-        activity.assert_called_with("Row 6 · Running · Attempt 2")
+        focus.assert_called_once_with(5)
         window._on_row_event(retry)
-        activity.assert_called_with("Row 6 · Retrying · Retry 1")
+        assert focus.call_count == 1
 
 
 def test_pause_resume_and_stop_update_live_summary_state(window: MainWindow) -> None:
     window._execution_state = ExecutionState.RUNNING
-    with (
-        patch.object(window._home_page, "set_batch_summary_state") as summary_state,
-        patch.object(window._home_page, "set_preview_activity") as activity,
-    ):
+    with patch.object(window._home_page, "set_batch_summary_state") as summary_state:
         window._toggle_pause()
         summary_state.assert_called_with("Paused")
-        activity.assert_called_with("Paused")
+        assert window._execution_status_label.text() == "[Paused]"
 
         window._toggle_pause()
         summary_state.assert_called_with("Running")
-        activity.assert_called_with("Resuming")
+        assert window._execution_status_label.text() == "[Running]"
 
         window._stop_calculation()
         summary_state.assert_called_with("Stopping")
-        activity.assert_called_with("Stopping")
+        assert window._execution_status_label.text() == "[Ready]"
 
 
 def test_row_event_ignores_unknown_payload(window: MainWindow) -> None:
@@ -2326,3 +2349,99 @@ def test_row_event_ignores_unknown_payload(window: MainWindow) -> None:
         window._on_row_event(object())
 
     set_status.assert_not_called()
+
+
+def test_row_event_completed_duration_does_not_create_live_text(
+    window: MainWindow,
+) -> None:
+    window._home_page._preview_model.set_data(["Origin", "Destination"], [["A", "B"]])
+    event = RouteJobEvent(
+        row_index=2,
+        preview_row_index=0,
+        status=RouteJobStatus.DONE,
+        attempt_count=1,
+        retry_count=0,
+        duration_minutes=25,
+        duration_text="0 h 25 min",
+    )
+
+    with patch.object(window._home_page, "set_preview_row_status") as set_status:
+        window._on_row_event(event)
+
+    set_status.assert_called_once_with(0, PreviewRowStatus.SUCCESS)
+
+
+def test_result_completion_prompt_can_open_with_default_application(
+    window: MainWindow,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "routes.result.xlsx"
+    output.write_bytes(b"saved")
+    summary = BatchSummary(
+        total=1,
+        completed=1,
+        successful=1,
+        failed=0,
+        skipped=0,
+        invalid=0,
+        resumed=0,
+        retry_count=0,
+        elapsed_seconds=1.0,
+        items_per_minute=60.0,
+        output_file=str(output),
+    )
+
+    with (
+        patch.object(
+            QMessageBox,
+            "question",
+            return_value=QMessageBox.StandardButton.No,
+        ) as question,
+        patch("app.presentation.main_window.QDesktopServices.openUrl") as open_url,
+    ):
+        window._prompt_open_result_file(summary)
+    question.assert_called_once()
+    open_url.assert_not_called()
+
+    with (
+        patch.object(
+            QMessageBox,
+            "question",
+            return_value=QMessageBox.StandardButton.Yes,
+        ),
+        patch(
+            "app.presentation.main_window.QDesktopServices.openUrl",
+            return_value=True,
+        ) as open_url,
+    ):
+        window._prompt_open_result_file(summary)
+    open_url.assert_called_once()
+
+    with (
+        patch.object(
+            QMessageBox,
+            "question",
+            return_value=QMessageBox.StandardButton.Yes,
+        ),
+        patch(
+            "app.presentation.main_window.QDesktopServices.openUrl",
+            return_value=False,
+        ),
+        patch.object(QMessageBox, "warning") as warning,
+    ):
+        window._prompt_open_result_file(summary)
+    warning.assert_called_once()
+
+
+def test_update_recent_files_menu_accepts_snapshot(
+    window: MainWindow,
+    settings_manager: MagicMock,
+) -> None:
+    settings_manager.recent_files.reset_mock()
+
+    window._update_recent_files_menu(["C:/tmp/example.xlsx"])
+
+    settings_manager.recent_files.assert_not_called()
+    action = window._recent_files_menu.actions()[0]
+    assert action.text() == "example.xlsx"
+    assert action.data() == "C:/tmp/example.xlsx"
