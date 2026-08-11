@@ -23,7 +23,7 @@ def test_about_page_uses_application_metadata(qtbot) -> None:
         == "Organization: Test Org"
     )
     assert (
-        "UX Polish"
+        "Release Candidate"
         in page.findChild(
             QLabel,
             "lblAboutPageRelease",

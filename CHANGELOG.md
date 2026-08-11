@@ -1,3 +1,20 @@
+## 1.2.0-rc25 — Sprint 2.7.8 Packaging Readiness
+
+- Added repeatable Windows PyInstaller build configuration.
+- Added frozen-resource resolution for QSS, application icon and splash.
+- Added automated distribution smoke validation.
+- Added a PowerShell build-and-smoke workflow for the RC package.
+
+## 1.2.0-rc25 — Sprint 2.7.7 Release Candidate Readiness
+
+- Synchronized runtime application metadata with the package release version.
+- Added `app.version.__version__` as the runtime version source of truth.
+- Updated package metadata from the stale `1.0.0` value to `1.2.0rc25`.
+- Preserved user-facing version formatting as `1.2.0-rc25`.
+- Added release-version consistency regression tests.
+- Baseline includes the completed Sprint 2.7 UX polish and native checkbox
+  rendering restoration.
+
 ## 1.2.0-rc24
 
 - Added live status counts to the Data Preview filter options.

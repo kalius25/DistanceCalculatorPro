@@ -19,3 +19,19 @@ def test_resolves_all_resource_paths(tmp_path: Path) -> None:
         resolved / "resources" / "icons" / "app_icon.svg"
     )
     assert manager.splash_path() == resolved / "resources" / "splash.svg"
+
+
+def test_resource_manager_uses_pyinstaller_meipass(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    import sys
+
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+
+    manager = ResourceManager(Path("ignored"))
+
+    assert (
+        manager.styles_directory
+        == (tmp_path / "app" / "presentation" / "styles").resolve()
+    )

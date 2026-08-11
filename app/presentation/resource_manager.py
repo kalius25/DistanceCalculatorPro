@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 
@@ -5,7 +6,14 @@ class ResourceManager:
     """Resolves presentation resources from one centralized location."""
 
     def __init__(self, package_directory: Path) -> None:
-        self._package_directory = package_directory.resolve()
+        self._package_directory = self._resolve_package_directory(package_directory)
+
+    @staticmethod
+    def _resolve_package_directory(package_directory: Path) -> Path:
+        frozen_root = getattr(sys, "_MEIPASS", None)
+        if isinstance(frozen_root, str) and frozen_root:
+            return (Path(frozen_root) / "app" / "presentation").resolve()
+        return package_directory.resolve()
 
     @property
     def styles_directory(self) -> Path:
