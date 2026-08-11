@@ -20,8 +20,9 @@ def validate_distribution(distribution: Path) -> tuple[str, ...]:
     if not executable.is_file():
         issues.append(f"Missing executable: {executable}")
 
+    resource_root = distribution / "_internal"
     for relative_path in _REQUIRED_RELATIVE_FILES:
-        resource = distribution / relative_path
+        resource = resource_root / relative_path
         if not resource.is_file():
             issues.append(f"Missing resource: {resource}")
 

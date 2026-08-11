@@ -1,8 +1,9 @@
+import os
 import sys
 from pathlib import Path
 from typing import cast
 
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -70,7 +71,11 @@ def create_application() -> tuple[
 ]:
     metadata = AppMetadata()
     configuration = ConfigurationLoader.load()
-    StartupValidator().validate(configuration)
+    validate_browser = not _is_executable_smoke()
+    StartupValidator().validate(
+        configuration,
+        validate_browser=validate_browser,
+    )
     LoggingManager.configure(configuration.logging)
     logger = LoggingManager.get_logger("presentation")
 
@@ -131,16 +136,54 @@ def create_application() -> tuple[
     return application, main_window, exception_handler, splash_screen
 
 
+def _is_executable_smoke() -> bool:
+    return os.getenv("DCP_EXECUTABLE_SMOKE", "").strip() == "1"
+
+
+def _write_smoke_stage(stage: str) -> None:
+    status_file = os.getenv("DCP_SMOKE_STATUS_FILE", "").strip()
+    if not status_file:
+        return
+
+    try:
+        Path(status_file).write_text(stage, encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _schedule_smoke_exit(application: QApplication) -> None:
+    raw_delay = os.getenv("DCP_SMOKE_EXIT_MS", "").strip()
+    if not raw_delay:
+        return
+
+    try:
+        delay_ms = int(raw_delay)
+    except ValueError:
+        return
+
+    if delay_ms <= 0:
+        return
+
+    QTimer.singleShot(delay_ms, application.quit)
+
+
 def main() -> int:
     main_window: MainWindow | None = None
     exception_handler: ExceptionHandler | None = None
     try:
+        _write_smoke_stage("before create_application")
         application, main_window, exception_handler, splash_screen = (
             create_application()
         )
+        _write_smoke_stage("after create_application")
         main_window.show()
+        _write_smoke_stage("after main_window.show")
         splash_screen.finish(main_window)
-        return application.exec()
+        _write_smoke_stage("before event loop")
+        _schedule_smoke_exit(application)
+        result = application.exec()
+        _write_smoke_stage("after event loop")
+        return result
     except StartupValidationError as error:
         existing_application = QApplication.instance()
 

@@ -12,7 +12,7 @@ def _make_distribution(root: Path) -> None:
         "app/presentation/resources/splash.svg",
     )
     for relative in required:
-        path = root / relative
+        path = root / "_internal" / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("resource", encoding="utf-8")
 

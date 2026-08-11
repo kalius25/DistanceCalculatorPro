@@ -127,7 +127,10 @@ def test_create_application_composes_and_initializes_shell() -> None:
         result = app_module.create_application()
 
     metadata = app_module.AppMetadata()
-    validator_type.return_value.validate.assert_called_once_with(configuration)
+    validator_type.return_value.validate.assert_called_once_with(
+        configuration,
+        validate_browser=True,
+    )
     configure.assert_called_once_with(configuration.logging)
     get_logger.assert_called_once_with("presentation")
     application_type.assert_called_once_with(app_module.sys.argv)
@@ -461,3 +464,166 @@ def test_main_creates_application_to_report_early_startup_failure() -> None:
         str(error),
     )
     reset.assert_called_once_with()
+
+
+def test_schedule_smoke_exit_ignores_missing_delay(monkeypatch) -> None:
+    application = MagicMock()
+    monkeypatch.delenv("DCP_SMOKE_EXIT_MS", raising=False)
+
+    with patch.object(app_module.QTimer, "singleShot") as single_shot:
+        app_module._schedule_smoke_exit(application)
+
+    single_shot.assert_not_called()
+
+
+@pytest.mark.parametrize("raw_delay", ["bad", "0", "-5"])
+def test_schedule_smoke_exit_ignores_invalid_delay(
+    monkeypatch,
+    raw_delay: str,
+) -> None:
+    application = MagicMock()
+    monkeypatch.setenv("DCP_SMOKE_EXIT_MS", raw_delay)
+
+    with patch.object(app_module.QTimer, "singleShot") as single_shot:
+        app_module._schedule_smoke_exit(application)
+
+    single_shot.assert_not_called()
+
+
+def test_schedule_smoke_exit_schedules_positive_delay(monkeypatch) -> None:
+    application = MagicMock()
+    monkeypatch.setenv("DCP_SMOKE_EXIT_MS", "1250")
+
+    with patch.object(app_module.QTimer, "singleShot") as single_shot:
+        app_module._schedule_smoke_exit(application)
+
+    single_shot.assert_called_once_with(1250, application.quit)
+
+
+def test_main_schedules_smoke_exit_before_event_loop() -> None:
+    application = MagicMock()
+    application.exec.return_value = 0
+    main_window = MagicMock()
+    exception_handler = MagicMock()
+    splash_screen = MagicMock()
+
+    with (
+        patch.object(
+            app_module,
+            "create_application",
+            return_value=(
+                application,
+                main_window,
+                exception_handler,
+                splash_screen,
+            ),
+        ),
+        patch.object(app_module, "_schedule_smoke_exit") as schedule,
+        patch.object(app_module.LoggingManager, "reset"),
+    ):
+        result = app_module.main()
+
+    assert result == 0
+    schedule.assert_called_once_with(application)
+
+
+def test_write_smoke_stage_ignores_missing_status_file(monkeypatch) -> None:
+    monkeypatch.delenv("DCP_SMOKE_STATUS_FILE", raising=False)
+
+    app_module._write_smoke_stage("stage")
+
+
+def test_write_smoke_stage_writes_status_file(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    status_file = tmp_path / "smoke.txt"
+    monkeypatch.setenv("DCP_SMOKE_STATUS_FILE", str(status_file))
+
+    app_module._write_smoke_stage("before event loop")
+
+    assert status_file.read_text(encoding="utf-8") == "before event loop"
+
+
+def test_write_smoke_stage_ignores_write_error(monkeypatch) -> None:
+    monkeypatch.setenv("DCP_SMOKE_STATUS_FILE", "status.txt")
+
+    with patch.object(app_module.Path, "write_text", side_effect=OSError):
+        app_module._write_smoke_stage("stage")
+
+
+def test_is_executable_smoke_requires_explicit_flag(monkeypatch) -> None:
+    monkeypatch.delenv("DCP_EXECUTABLE_SMOKE", raising=False)
+    assert not app_module._is_executable_smoke()
+
+    monkeypatch.setenv("DCP_EXECUTABLE_SMOKE", "0")
+    assert not app_module._is_executable_smoke()
+
+    monkeypatch.setenv("DCP_EXECUTABLE_SMOKE", "1")
+    assert app_module._is_executable_smoke()
+
+
+def test_create_application_skips_browser_validation_in_executable_smoke(
+    monkeypatch,
+) -> None:
+    configuration = MagicMock()
+    validator = MagicMock()
+    monkeypatch.setenv("DCP_EXECUTABLE_SMOKE", "1")
+
+    with (
+        patch.object(
+            app_module.ConfigurationLoader,
+            "load",
+            return_value=configuration,
+        ),
+        patch.object(
+            app_module,
+            "StartupValidator",
+            return_value=validator,
+        ),
+        patch.object(
+            app_module.LoggingManager,
+            "configure",
+            side_effect=RuntimeError("stop after validation"),
+        ),
+        pytest.raises(RuntimeError, match="stop after validation"),
+    ):
+        app_module.create_application()
+
+    validator.validate.assert_called_once_with(
+        configuration,
+        validate_browser=False,
+    )
+
+
+def test_create_application_requires_browser_validation_normally(
+    monkeypatch,
+) -> None:
+    configuration = MagicMock()
+    validator = MagicMock()
+    monkeypatch.delenv("DCP_EXECUTABLE_SMOKE", raising=False)
+
+    with (
+        patch.object(
+            app_module.ConfigurationLoader,
+            "load",
+            return_value=configuration,
+        ),
+        patch.object(
+            app_module,
+            "StartupValidator",
+            return_value=validator,
+        ),
+        patch.object(
+            app_module.LoggingManager,
+            "configure",
+            side_effect=RuntimeError("stop after validation"),
+        ),
+        pytest.raises(RuntimeError, match="stop after validation"),
+    ):
+        app_module.create_application()
+
+    validator.validate.assert_called_once_with(
+        configuration,
+        validate_browser=True,
+    )

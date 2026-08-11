@@ -1,3 +1,10 @@
+## 1.2.0-rc25 — Sprint 2.7.9 Executable Smoke
+
+- Added actual packaged-EXE startup/shutdown smoke validation.
+- Added a smoke-only timed Qt shutdown path controlled by environment variable.
+- Extended the Windows RC build script to fail on EXE crash or timeout.
+- Added the final manual GUI smoke checklist for stable promotion.
+
 ## 1.2.0-rc25 — Sprint 2.7.8 Packaging Readiness
 
 - Added repeatable Windows PyInstaller build configuration.

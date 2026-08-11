@@ -42,12 +42,26 @@ class StartupValidator:
             browser_executable_resolver or self._resolve_browser_executable
         )
 
-    def validate(self, configuration: AppConfig) -> None:
+    def validate(
+        self,
+        configuration: AppConfig,
+        *,
+        validate_browser: bool = True,
+    ) -> None:
         issues: list[StartupIssue] = []
         self._validate_configuration(configuration, issues)
-        self._validate_directory("Logging", configuration.logging.directory, issues)
-        self._validate_directory("Output", configuration.excel.export_directory, issues)
-        self._validate_browser(issues)
+        self._validate_directory(
+            "Logging",
+            configuration.logging.directory,
+            issues,
+        )
+        self._validate_directory(
+            "Output",
+            configuration.excel.export_directory,
+            issues,
+        )
+        if validate_browser:
+            self._validate_browser(issues)
         if issues:
             raise StartupValidationError(tuple(issues))
 
