@@ -131,7 +131,6 @@ class MainWindow(QMainWindow):
         self._action_open.setToolTip("Open an Excel workbook (Ctrl+O)")
 
         self._action_exit = QAction("Exit", self)
-        self._action_exit.setShortcut(QKeySequence.StandardKey.Quit)
 
         self._action_light_theme = QAction("Light Theme", self)
         self._action_light_theme.setCheckable(True)
@@ -226,10 +225,11 @@ class MainWindow(QMainWindow):
         self._home_page = HomePage(self)
         self._history_page = HistoryPage(self)
         self._settings_page = SettingsPage(self)
+        self._about_page = AboutPage(self._metadata, self)
         self._content_stack.addWidget(self._home_page)
         self._content_stack.addWidget(self._history_page)
         self._content_stack.addWidget(self._settings_page)
-        self._content_stack.addWidget(AboutPage(self))
+        self._content_stack.addWidget(self._about_page)
 
     def _create_layout(self) -> None:
         central_widget = QWidget(self)
@@ -329,6 +329,7 @@ class MainWindow(QMainWindow):
         self._settings_page.diagnostics_changed.connect(
             self._on_settings_diagnostics_changed
         )
+        self._about_page.details_requested.connect(self._show_about_dialog)
         self._action_start.triggered.connect(self._start_calculation)
         self._action_pause.triggered.connect(self._toggle_pause)
         self._action_stop.triggered.connect(self._stop_calculation)

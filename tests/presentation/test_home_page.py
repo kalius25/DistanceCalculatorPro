@@ -564,7 +564,12 @@ def test_column_mapping_rejects_duplicate_roles(qtbot: object) -> None:
             file_size_bytes=100,
             modified_at=datetime(2026, 7, 31),
             worksheets=(
-                WorksheetInfo("routes", 2, 4, ("From", "To", "Distance", "Duration")),
+                WorksheetInfo(
+                    "routes",
+                    2,
+                    4,
+                    ("From", "To", "Distance", "Duration"),
+                ),
             ),
         )
     )
@@ -1933,3 +1938,177 @@ def test_focus_preview_row_out_of_bounds(qtbot: object, row: int) -> None:
     page._preview_filter_model.mapFromSource.assert_not_called()
     page._preview_table.selectRow.assert_not_called()
     page._preview_table.scrollTo.assert_not_called()
+
+
+def test_mapping_auto_detects_result_headers_and_blank_fallback(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    worksheet = WorksheetInfo(
+        "Routes",
+        4,
+        6,
+        ("Origin", "Destination", "A", "B", "C", "D"),
+        (
+            ("A1", "B1", "", "", "x", "y"),
+            ("A2", "B2", "", "v", "x", "y"),
+            ("A3", "B3", "", "", "x", "y"),
+        ),
+    )
+    page._current_worksheet = worksheet
+    page._populate_column_mapping(worksheet.headers)
+
+    assert page._origin_column_selector.currentData() == "Origin"
+    assert page._destination_column_selector.currentData() == "Destination"
+    assert page._result_column_selector.currentData() == "A"
+    assert page._result_duration_column_selector.currentData() == "B"
+
+
+@pytest.mark.parametrize(
+    ("distance_header", "duration_header"),
+    [
+        ("distance", "duration"),
+        ("KM", "Time"),
+        ("Kilomet", "Thời gian"),
+        ("Khoảng cách", "Result duration"),
+        ("Quãng đường", "Duration"),
+    ],
+)
+def test_mapping_auto_detects_result_header_synonyms(
+    qtbot: object,
+    distance_header: str,
+    duration_header: str,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    worksheet = WorksheetInfo(
+        "Routes",
+        2,
+        4,
+        ("Origin", "Destination", distance_header, duration_header),
+        (("A", "B", "", ""),),
+    )
+    page._current_worksheet = worksheet
+    page._populate_column_mapping(worksheet.headers)
+
+    assert page._result_column_selector.currentData() == distance_header
+    assert page._result_duration_column_selector.currentData() == duration_header
+
+
+def test_mapping_header_detection_has_priority_over_blank_ranking(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    worksheet = WorksheetInfo(
+        "Routes",
+        4,
+        5,
+        ("Origin", "Destination", "Empty", "Distance", "Duration"),
+        (
+            ("A1", "B1", "", "12", "20"),
+            ("A2", "B2", "", "", ""),
+            ("A3", "B3", "", "15", "25"),
+        ),
+    )
+    page._current_worksheet = worksheet
+    page._populate_column_mapping(worksheet.headers)
+
+    assert page._result_column_selector.currentData() == "Distance"
+    assert page._result_duration_column_selector.currentData() == "Duration"
+
+
+def test_mapping_blank_fallback_uses_left_to_right_for_ties(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    worksheet = WorksheetInfo(
+        "Routes",
+        3,
+        4,
+        ("Origin", "Destination", "C", "D"),
+        (
+            ("A1", "B1", "", ""),
+            ("A2", "B2", "", ""),
+        ),
+    )
+    page._current_worksheet = worksheet
+    page._populate_column_mapping(worksheet.headers)
+
+    assert page._result_column_selector.currentData() == "C"
+    assert page._result_duration_column_selector.currentData() == "D"
+
+
+def test_mapping_leaves_result_columns_manual_without_preview_data(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    worksheet = WorksheetInfo(
+        "Routes",
+        1,
+        4,
+        ("Origin", "Destination", "Output A", "Output B"),
+        (),
+    )
+    page._current_worksheet = worksheet
+    page._populate_column_mapping(worksheet.headers)
+
+    assert page._result_column_selector.currentData() == ""
+    assert page._result_duration_column_selector.currentData() == ""
+
+
+def test_blank_preview_value_detection() -> None:
+    assert HomePage._is_blank_preview_value(None)
+    assert HomePage._is_blank_preview_value("")
+    assert HomePage._is_blank_preview_value("   ")
+    assert not HomePage._is_blank_preview_value("0")
+    assert not HomePage._is_blank_preview_value(0)
+
+
+def test_mapping_keeps_legacy_ket_qua_as_result_distance(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    worksheet = WorksheetInfo(
+        "Routes",
+        10,
+        4,
+        (
+            "TỌA ĐỘ NƠI ĐI",
+            "TỌA ĐỘ NƠI ĐẾN",
+            "KẾT QUẢ",
+            "THỜI GIAN DI CHUYỂN",
+        ),
+    )
+    page._current_worksheet = worksheet
+
+    with qtbot.waitSignal(
+        page.column_mapping_changed,
+        timeout=1000,
+    ) as blocker:
+        page._populate_column_mapping(worksheet.headers)
+
+    assert page._result_column_selector.currentData() == "KẾT QUẢ"
+    assert page._result_duration_column_selector.currentData() == "THỜI GIAN DI CHUYỂN"
+    assert blocker.args == [
+        "TỌA ĐỘ NƠI ĐI",
+        "TỌA ĐỘ NƠI ĐẾN",
+        "KẾT QUẢ",
+        "THỜI GIAN DI CHUYỂN",
+    ]

@@ -2538,3 +2538,22 @@ def test_debug_menu_change_refreshes_settings_page(
 
     assert window._settings_page.diagnostics_state[0] is False
     assert not window._settings_page._trace_browser.isEnabled()
+
+
+def test_about_page_details_button_executes_existing_dialog(
+    window: MainWindow,
+    metadata: AppMetadata,
+) -> None:
+    dialog = MagicMock()
+    with patch(
+        "app.presentation.main_window.AboutDialog",
+        return_value=dialog,
+    ) as dialog_type:
+        window._about_page.details_requested.emit()
+
+    dialog_type.assert_called_once_with(metadata, window)
+    dialog.exec.assert_called_once_with()
+
+
+def test_exit_action_has_no_shortcut(window: MainWindow) -> None:
+    assert window._action_exit.shortcut().isEmpty()

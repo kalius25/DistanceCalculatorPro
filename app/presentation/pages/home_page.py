@@ -1261,8 +1261,13 @@ class HomePage(QWidget):
                 (
                     "result distance",
                     "distance",
-                    "kết quả",
+                    "kilomet",
+                    "kilometer",
+                    "kilometre",
+                    "km",
                     "khoảng cách",
+                    "quãng đường",
+                    "kết quả",
                 ),
             ),
             (
@@ -1271,8 +1276,11 @@ class HomePage(QWidget):
                     "result duration",
                     "duration",
                     "travel time",
+                    "time",
                     "thời gian di chuyển",
+                    "thời gian",
                     "thoi gian di chuyen",
+                    "thoi gian",
                 ),
             ),
         )
@@ -1287,6 +1295,66 @@ class HomePage(QWidget):
             )
             if match is not None:
                 selector.setCurrentText(match)
+
+        self._auto_detect_result_columns_from_blank_data(headers)
+
+    def _auto_detect_result_columns_from_blank_data(
+        self,
+        headers: tuple[str, ...],
+    ) -> None:
+        if (
+            self._result_column_selector.currentData()
+            and self._result_duration_column_selector.currentData()
+        ):
+            return
+
+        worksheet = self._current_worksheet
+        if worksheet is None or not worksheet.preview_rows:
+            return
+
+        used_columns = {
+            value
+            for value in (
+                self._origin_column_selector.currentData(),
+                self._destination_column_selector.currentData(),
+            )
+            if isinstance(value, str) and value
+        }
+        result_distance = self._result_column_selector.currentData()
+        result_duration = self._result_duration_column_selector.currentData()
+        for value in (result_distance, result_duration):
+            if isinstance(value, str) and value:
+                used_columns.add(value)
+
+        ranked_columns: list[tuple[int, int, str]] = []
+        for index, header in enumerate(headers):
+            display_name = header or f"Column {index + 1}"
+            if display_name in used_columns:
+                continue
+            blank_count = sum(
+                self._is_blank_preview_value(row[index] if index < len(row) else "")
+                for row in worksheet.preview_rows
+            )
+            ranked_columns.append((-blank_count, index, display_name))
+
+        ranked_columns.sort()
+        candidates = [name for _blank, _index, name in ranked_columns]
+
+        if not self._result_column_selector.currentData() and candidates:
+            distance_column = candidates.pop(0)
+            self._result_column_selector.setCurrentText(distance_column)
+
+        if not self._result_duration_column_selector.currentData() and candidates:
+            duration_column = candidates.pop(0)
+            self._result_duration_column_selector.setCurrentText(duration_column)
+
+    @staticmethod
+    def _is_blank_preview_value(value: object) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return not value.strip()
+        return False
 
     def _on_mapping_changed(self, _value: str) -> None:
         self._validate_mapping()
