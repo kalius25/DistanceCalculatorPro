@@ -126,15 +126,19 @@ class MainWindow(QMainWindow):
         return self._execution_state
 
     def _create_actions(self) -> None:
-        self._action_open = QAction("Open Excel", self)
+        self._action_open = QAction("Open Workbook...", self)
         self._action_open.setShortcut(QKeySequence.StandardKey.Open)
-        self._action_open.setToolTip("Open an Excel workbook (Ctrl+O)")
+        self._action_open.setToolTip("Open a workbook (Ctrl+O)")
+        self._action_open.setStatusTip("Open an XLSX, XLSM, or CSV workbook")
 
         self._action_exit = QAction("Exit", self)
+        self._action_exit.setStatusTip("Exit DistanceCalculatorPro")
 
         self._action_light_theme = QAction("Light Theme", self)
+        self._action_light_theme.setStatusTip("Use the light application theme")
         self._action_light_theme.setCheckable(True)
         self._action_dark_theme = QAction("Dark Theme", self)
+        self._action_dark_theme.setStatusTip("Use the dark application theme")
         self._action_dark_theme.setCheckable(True)
 
         self._theme_action_group = QActionGroup(self)
@@ -145,23 +149,30 @@ class MainWindow(QMainWindow):
         self._action_start = QAction("Start", self)
         self._action_start.setShortcut(QKeySequence("F5"))
         self._action_start.setToolTip("Start calculation (F5)")
+        self._action_start.setStatusTip("Start the configured route calculation")
 
         self._action_pause = QAction("Pause", self)
         self._action_pause.setShortcut(QKeySequence("F6"))
         self._action_pause.setToolTip("Pause calculation (F6)")
+        self._action_pause.setStatusTip("Pause or resume the active calculation")
 
         self._action_stop = QAction("Stop", self)
         self._action_stop.setShortcut(QKeySequence("Shift+F5"))
         self._action_stop.setToolTip("Stop calculation (Shift+F5)")
+        self._action_stop.setStatusTip("Stop the active calculation safely")
 
         self._action_retry_failed = QAction("Retry Failed", self)
         self._action_retry_failed.setToolTip(
             "Run only rows that failed in the previous batch"
         )
+        self._action_retry_failed.setStatusTip(
+            "Retry only rows that failed in the previous batch"
+        )
 
         self._action_settings = QAction("Settings", self)
         self._action_settings.setShortcut(QKeySequence("Ctrl+,"))
         self._action_settings.setToolTip("Open settings (Ctrl+,)")
+        self._action_settings.setStatusTip("Open application settings")
 
         self._action_debug_mode = QAction("Debug Mode", self)
         self._action_debug_mode.setCheckable(True)
@@ -183,8 +194,12 @@ class MainWindow(QMainWindow):
         self._action_export_support_bundle.setToolTip(
             "Create a privacy-safe diagnostics package for technical support"
         )
+        self._action_export_support_bundle.setStatusTip(
+            "Export a diagnostics package for technical support"
+        )
 
         self._action_about = QAction("About", self)
+        self._action_about.setStatusTip("Show application information")
         self._action_home = self._create_navigation_action(
             "Home",
             "Ctrl+1",
@@ -214,6 +229,8 @@ class MainWindow(QMainWindow):
     ) -> QAction:
         action = QAction(text, self)
         action.setShortcut(QKeySequence(shortcut))
+        page_name = text.removesuffix(" Page")
+        action.setStatusTip(f"Open the {page_name} page")
         action.setData(page_index)
         self.addAction(action)
         return action

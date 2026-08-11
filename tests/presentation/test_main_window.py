@@ -1873,15 +1873,24 @@ def test_warning_preflight_dialog_returns_all_actions(
 
     with patch("app.presentation.main_window.QMessageBox") as message_box_type:
         _configure_preflight_message_box(message_box_type, 0)
-        assert window._show_preflight_warning_dialog(result) == "continue"  # type: ignore[arg-type]
+        assert (
+            window._show_preflight_warning_dialog(result)  # type: ignore[arg-type]
+            == "continue"
+        )
 
     with patch("app.presentation.main_window.QMessageBox") as message_box_type:
         _configure_preflight_message_box(message_box_type, 1)
-        assert window._show_preflight_warning_dialog(result) == "change"  # type: ignore[arg-type]
+        assert (
+            window._show_preflight_warning_dialog(result)  # type: ignore[arg-type]
+            == "change"
+        )
 
     with patch("app.presentation.main_window.QMessageBox") as message_box_type:
         _configure_preflight_message_box(message_box_type, 2)
-        assert window._show_preflight_warning_dialog(result) == "cancel"  # type: ignore[arg-type]
+        assert (
+            window._show_preflight_warning_dialog(result)  # type: ignore[arg-type]
+            == "cancel"
+        )
 
 
 def test_preflight_result_is_logged(
@@ -2557,3 +2566,36 @@ def test_about_page_details_button_executes_existing_dialog(
 
 def test_exit_action_has_no_shortcut(window: MainWindow) -> None:
     assert window._action_exit.shortcut().isEmpty()
+
+
+def test_primary_actions_have_release_ready_labels_and_status_tips(
+    window: MainWindow,
+) -> None:
+    assert window._action_open.text() == "Open Workbook..."
+    assert window._action_open.shortcut().toString() == "Ctrl+O"
+    assert window._action_open.statusTip() == "Open an XLSX, XLSM, or CSV workbook"
+
+    assert window._action_exit.text() == "Exit"
+    assert window._action_exit.shortcut().isEmpty()
+    assert window._action_exit.statusTip() == "Exit DistanceCalculatorPro"
+
+    assert window._action_start.statusTip() == (
+        "Start the configured route calculation"
+    )
+    assert window._action_pause.statusTip() == (
+        "Pause or resume the active calculation"
+    )
+    assert window._action_stop.statusTip() == ("Stop the active calculation safely")
+    assert window._action_settings.statusTip() == "Open application settings"
+    assert window._action_about.statusTip() == "Show application information"
+
+
+def test_navigation_actions_expose_status_tips(window: MainWindow) -> None:
+    actions = (
+        (window._action_home, "Open the Home page"),
+        (window._action_history, "Open the History page"),
+        (window._action_settings_page, "Open the Settings page"),
+        (window._action_about_page, "Open the About page"),
+    )
+    for action, expected_tip in actions:
+        assert action.statusTip() == expected_tip
