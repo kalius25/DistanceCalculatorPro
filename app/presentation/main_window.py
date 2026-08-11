@@ -176,16 +176,32 @@ class MainWindow(QMainWindow):
 
         self._action_debug_mode = QAction("Debug Mode", self)
         self._action_debug_mode.setCheckable(True)
+        self._action_debug_mode.setStatusTip(
+            "Enable diagnostic logging and capture options"
+        )
         self._action_trace_browser = QAction("Trace Browser", self)
         self._action_trace_browser.setCheckable(True)
+        self._action_trace_browser.setStatusTip("Record browser navigation diagnostics")
         self._action_parser_diagnostics = QAction("Parser Diagnostics", self)
         self._action_parser_diagnostics.setCheckable(True)
+        self._action_parser_diagnostics.setStatusTip(
+            "Record Google Maps parser diagnostics"
+        )
         self._action_save_html = QAction("Save HTML", self)
         self._action_save_html.setCheckable(True)
+        self._action_save_html.setStatusTip(
+            "Save diagnostic HTML when Debug Mode is enabled"
+        )
         self._action_save_screenshot = QAction("Save Screenshot", self)
         self._action_save_screenshot.setCheckable(True)
+        self._action_save_screenshot.setStatusTip(
+            "Save diagnostic screenshots when Debug Mode is enabled"
+        )
         self._action_save_json = QAction("Save Parser JSON", self)
         self._action_save_json.setCheckable(True)
+        self._action_save_json.setStatusTip(
+            "Save parser JSON when Debug Mode is enabled"
+        )
 
         self._action_export_support_bundle = QAction(
             "Export Support Bundle...",
@@ -1200,6 +1216,11 @@ class MainWindow(QMainWindow):
         self._action_pause.setText("Resume" if paused else "Pause")
         self._action_pause.setToolTip(
             "Resume calculation (F6)" if paused else "Pause calculation (F6)"
+        )
+        self._action_pause.setStatusTip(
+            "Resume the paused calculation"
+            if paused
+            else "Pause the active calculation"
         )
 
         if running:

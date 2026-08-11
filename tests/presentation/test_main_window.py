@@ -2582,9 +2582,7 @@ def test_primary_actions_have_release_ready_labels_and_status_tips(
     assert window._action_start.statusTip() == (
         "Start the configured route calculation"
     )
-    assert window._action_pause.statusTip() == (
-        "Pause or resume the active calculation"
-    )
+    assert window._action_pause.statusTip() == ("Pause the active calculation")
     assert window._action_stop.statusTip() == ("Stop the active calculation safely")
     assert window._action_settings.statusTip() == "Open application settings"
     assert window._action_about.statusTip() == "Show application information"
@@ -2599,3 +2597,55 @@ def test_navigation_actions_expose_status_tips(window: MainWindow) -> None:
     )
     for action, expected_tip in actions:
         assert action.statusTip() == expected_tip
+
+
+def test_pause_action_status_tip_tracks_execution_state(
+    window: MainWindow,
+) -> None:
+    window._set_execution_state(ExecutionState.RUNNING)
+
+    assert window._action_pause.text() == "Pause"
+    assert window._action_pause.toolTip() == "Pause calculation (F6)"
+    assert window._action_pause.statusTip() == "Pause the active calculation"
+
+    window._set_execution_state(ExecutionState.PAUSED)
+
+    assert window._action_pause.text() == "Resume"
+    assert window._action_pause.toolTip() == "Resume calculation (F6)"
+    assert window._action_pause.statusTip() == "Resume the paused calculation"
+
+    window._set_execution_state(ExecutionState.IDLE)
+
+    assert window._action_pause.text() == "Pause"
+    assert window._action_pause.statusTip() == "Pause the active calculation"
+
+
+def test_diagnostics_actions_have_status_tips(window: MainWindow) -> None:
+    expected = (
+        (
+            window._action_debug_mode,
+            "Enable diagnostic logging and capture options",
+        ),
+        (
+            window._action_trace_browser,
+            "Record browser navigation diagnostics",
+        ),
+        (
+            window._action_parser_diagnostics,
+            "Record Google Maps parser diagnostics",
+        ),
+        (
+            window._action_save_html,
+            "Save diagnostic HTML when Debug Mode is enabled",
+        ),
+        (
+            window._action_save_screenshot,
+            "Save diagnostic screenshots when Debug Mode is enabled",
+        ),
+        (
+            window._action_save_json,
+            "Save parser JSON when Debug Mode is enabled",
+        ),
+    )
+    for action, status_tip in expected:
+        assert action.statusTip() == status_tip

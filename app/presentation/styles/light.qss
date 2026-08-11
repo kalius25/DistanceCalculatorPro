@@ -265,4 +265,3 @@ QLabel#lblWorkspaceReadinessStatus[valid="true"] {
 QLabel#lblWorkspaceReadinessStatus[valid="false"] {
     color: #b45309;
 }
-
