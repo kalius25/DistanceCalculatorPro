@@ -2483,3 +2483,58 @@ def test_open_recent_file_without_action_updates_status(
         window._open_recent_file()
 
     assert window._status_label.text() == "Ready · recent workbook unavailable"
+
+
+def test_settings_page_theme_change_uses_existing_theme_flow(
+    window: MainWindow,
+    qapp: QApplication,
+    theme_manager: MagicMock,
+    settings_manager: MagicMock,
+) -> None:
+    window._settings_page.theme_changed.emit("dark")
+
+    theme_manager.apply_theme.assert_called_with(qapp, "dark")
+    settings_manager.set_theme_name.assert_called_with("dark")
+    assert window._settings_page.theme_name == "dark"
+    assert window._action_dark_theme.isChecked()
+
+
+def test_settings_page_diagnostics_change_syncs_actions_and_persists(
+    window: MainWindow,
+    settings_manager: MagicMock,
+) -> None:
+    window._settings_page.diagnostics_changed.emit(
+        True,
+        True,
+        False,
+        True,
+        False,
+        True,
+    )
+
+    assert window._action_debug_mode.isChecked()
+    assert window._action_trace_browser.isChecked()
+    assert not window._action_parser_diagnostics.isChecked()
+    assert window._action_save_html.isChecked()
+    assert not window._action_save_screenshot.isChecked()
+    assert window._action_save_json.isChecked()
+    settings_manager.set_debug_enabled.assert_called_with(True)
+    settings_manager.set_trace_browser.assert_called_with(True)
+    settings_manager.set_parser_diagnostics.assert_called_with(False)
+    settings_manager.set_save_html.assert_called_with(True)
+    settings_manager.set_save_screenshot.assert_called_with(False)
+    settings_manager.set_save_json.assert_called_with(True)
+
+
+def test_debug_menu_change_refreshes_settings_page(
+    window: MainWindow,
+) -> None:
+    window._action_debug_mode.setChecked(True)
+    window._action_trace_browser.setChecked(True)
+
+    assert window._settings_page.diagnostics_state[:2] == (True, True)
+
+    window._action_debug_mode.setChecked(False)
+
+    assert window._settings_page.diagnostics_state[0] is False
+    assert not window._settings_page._trace_browser.isEnabled()

@@ -225,9 +225,10 @@ class MainWindow(QMainWindow):
         self._content_stack.setObjectName("stkContent")
         self._home_page = HomePage(self)
         self._history_page = HistoryPage(self)
+        self._settings_page = SettingsPage(self)
         self._content_stack.addWidget(self._home_page)
         self._content_stack.addWidget(self._history_page)
-        self._content_stack.addWidget(SettingsPage(self))
+        self._content_stack.addWidget(self._settings_page)
         self._content_stack.addWidget(AboutPage(self))
 
     def _create_layout(self) -> None:
@@ -324,6 +325,10 @@ class MainWindow(QMainWindow):
         self._history_page.open_requested.connect(self._open_recent_path)
         self._history_page.remove_requested.connect(self._remove_recent_path)
         self._history_page.clear_requested.connect(self._clear_recent_files)
+        self._settings_page.theme_changed.connect(self._apply_theme)
+        self._settings_page.diagnostics_changed.connect(
+            self._on_settings_diagnostics_changed
+        )
         self._action_start.triggered.connect(self._start_calculation)
         self._action_pause.triggered.connect(self._toggle_pause)
         self._action_stop.triggered.connect(self._stop_calculation)
@@ -444,6 +449,14 @@ class MainWindow(QMainWindow):
         )
         self._diagnostics_manager.update(settings)
         LoggingManager.set_debug_enabled(enabled)
+        self._settings_page.set_diagnostics(
+            enabled,
+            settings.trace_browser,
+            settings.parser_diagnostics,
+            settings.save_html,
+            settings.save_screenshot,
+            settings.save_json,
+        )
         if persist:
             self._settings_manager.set_debug_enabled(enabled)
             self._settings_manager.set_trace_browser(settings.trace_browser)
@@ -451,6 +464,29 @@ class MainWindow(QMainWindow):
             self._settings_manager.set_save_html(settings.save_html)
             self._settings_manager.set_save_screenshot(settings.save_screenshot)
             self._settings_manager.set_save_json(settings.save_json)
+
+    def _on_settings_diagnostics_changed(
+        self,
+        enabled: bool,
+        trace_browser: bool,
+        parser_diagnostics: bool,
+        save_html: bool,
+        save_screenshot: bool,
+        save_json: bool,
+    ) -> None:
+        actions = (
+            (self._action_debug_mode, enabled),
+            (self._action_trace_browser, trace_browser),
+            (self._action_parser_diagnostics, parser_diagnostics),
+            (self._action_save_html, save_html),
+            (self._action_save_screenshot, save_screenshot),
+            (self._action_save_json, save_json),
+        )
+        for action, checked in actions:
+            action.blockSignals(True)
+            action.setChecked(checked)
+            action.blockSignals(False)
+        self._apply_diagnostics_state(persist=True)
 
     def _on_light_theme_selected(self) -> None:
         self._apply_theme("light")
@@ -543,6 +579,7 @@ class MainWindow(QMainWindow):
         self._action_light_theme.setChecked(theme_name == "light")
         self._action_dark_theme.setChecked(theme_name == "dark")
         self._home_page.update_theme_icons(theme_name)
+        self._settings_page.set_theme(theme_name)
         self._update_action_icons(theme_name)
 
     def _update_action_icons(self, theme_name: str) -> None:

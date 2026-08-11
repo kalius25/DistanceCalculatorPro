@@ -3,20 +3,11 @@ from PySide6.QtWidgets import QLabel
 
 from app.presentation.pages.about_page import AboutPage
 from app.presentation.pages.base_placeholder_page import BasePlaceholderPage
-from app.presentation.pages.settings_page import SettingsPage
 
 
 @pytest.mark.parametrize(
     ("page_type", "expected_title", "expected_description"),
     [
-        (
-            SettingsPage,
-            "Settings",
-            (
-                "Application settings and provider preferences will be "
-                "implemented later."
-            ),
-        ),
         (
             AboutPage,
             "About",
