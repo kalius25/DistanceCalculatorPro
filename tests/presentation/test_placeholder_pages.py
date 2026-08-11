@@ -3,18 +3,12 @@ from PySide6.QtWidgets import QLabel
 
 from app.presentation.pages.about_page import AboutPage
 from app.presentation.pages.base_placeholder_page import BasePlaceholderPage
-from app.presentation.pages.history_page import HistoryPage
 from app.presentation.pages.settings_page import SettingsPage
 
 
 @pytest.mark.parametrize(
     ("page_type", "expected_title", "expected_description"),
     [
-        (
-            HistoryPage,
-            "History",
-            "Calculation history will be implemented in a later sprint.",
-        ),
         (
             SettingsPage,
             "Settings",

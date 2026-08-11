@@ -224,8 +224,9 @@ class MainWindow(QMainWindow):
         self._content_stack = QStackedWidget(self)
         self._content_stack.setObjectName("stkContent")
         self._home_page = HomePage(self)
+        self._history_page = HistoryPage(self)
         self._content_stack.addWidget(self._home_page)
-        self._content_stack.addWidget(HistoryPage(self))
+        self._content_stack.addWidget(self._history_page)
         self._content_stack.addWidget(SettingsPage(self))
         self._content_stack.addWidget(AboutPage(self))
 
@@ -320,6 +321,9 @@ class MainWindow(QMainWindow):
         self._home_page.browse_requested.connect(self._browse_for_workbook)
         self._home_page.file_selected.connect(self._select_workbook)
         self._home_page.clear_recent_requested.connect(self._clear_recent_files)
+        self._history_page.open_requested.connect(self._open_recent_path)
+        self._history_page.remove_requested.connect(self._remove_recent_path)
+        self._history_page.clear_requested.connect(self._clear_recent_files)
         self._action_start.triggered.connect(self._start_calculation)
         self._action_pause.triggered.connect(self._toggle_pause)
         self._action_stop.triggered.connect(self._stop_calculation)
@@ -383,8 +387,10 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 700)
         self._restore_window_state()
         self._toolbar.setVisible(self._settings_manager.toolbar_visible())
-        self._update_recent_files_menu()
-        self._home_page.set_recent_files(self._settings_manager.recent_files())
+        recent_files = self._settings_manager.recent_files()
+        self._update_recent_files_menu(recent_files)
+        self._home_page.set_recent_files(recent_files)
+        self._history_page.set_recent_files(recent_files)
         # Always start on the file-selection workspace.  Once a workbook is
         # inspected, HomePage automatically switches to Workbook Inspector.
         self._home_page.set_source_panels_visible(True)
@@ -629,40 +635,48 @@ class MainWindow(QMainWindow):
         self._home_page.set_selected_file(normalized_path)
         self._home_page.set_inspection(workbook_info)
         self._settings_manager.add_recent_file(normalized_path)
-        self._update_recent_files_menu()
-        self._home_page.set_recent_files(self._settings_manager.recent_files())
+        recent_files = self._settings_manager.recent_files()
+        self._update_recent_files_menu(recent_files)
+        self._home_page.set_recent_files(recent_files)
+        self._history_page.set_recent_files(recent_files)
         self._navigation.setCurrentRow(self.HOME_PAGE_INDEX)
         self._status_label.setText(f"Ready · {path.name}")
 
     def _open_recent_file(self) -> None:
         action = self.sender()
-        if not isinstance(action, QAction):
-            return
+        if isinstance(action, QAction):
+            self._open_recent_path(str(action.data()))
+        else:
+            self._status_label.setText("Ready · recent workbook unavailable")
 
-        file_path = str(action.data())
+    def _open_recent_path(self, file_path: str) -> None:
         if Path(file_path).is_file():
             self._select_workbook(file_path)
-            return
+        else:
+            self._remove_recent_path(file_path)
+            self._status_label.setText("Ready · recent workbook unavailable")
+            QMessageBox.warning(
+                self,
+                "Recent workbook unavailable",
+                (
+                    "This workbook no longer exists at its saved location and "
+                    "was removed from Recent Workbooks.\n\n"
+                    f"{file_path}"
+                ),
+            )
 
+    def _remove_recent_path(self, file_path: str) -> None:
         self._settings_manager.remove_recent_file(file_path)
         recent_files = self._settings_manager.recent_files()
         self._update_recent_files_menu(recent_files)
         self._home_page.set_recent_files(recent_files)
-        self._status_label.setText("Ready · recent workbook unavailable")
-        QMessageBox.warning(
-            self,
-            "Recent workbook unavailable",
-            (
-                "This workbook no longer exists at its saved location and "
-                "was removed from Recent Workbooks.\n\n"
-                f"{file_path}"
-            ),
-        )
+        self._history_page.set_recent_files(recent_files)
 
     def _clear_recent_files(self) -> None:
         self._settings_manager.clear_recent_files()
-        self._update_recent_files_menu()
+        self._update_recent_files_menu([])
         self._home_page.set_recent_files([])
+        self._history_page.set_recent_files([])
 
     def _on_workspace_ready_changed(self, _ready: bool) -> None:
         self._update_execution_actions()

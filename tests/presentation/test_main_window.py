@@ -2445,3 +2445,41 @@ def test_update_recent_files_menu_accepts_snapshot(
     action = window._recent_files_menu.actions()[0]
     assert action.text() == "example.xlsx"
     assert action.data() == "C:/tmp/example.xlsx"
+
+
+def test_history_page_recent_actions_sync_all_surfaces(
+    window: MainWindow,
+    settings_manager: MagicMock,
+    tmp_path: Path,
+) -> None:
+    missing_path = str(tmp_path / "missing.xlsx")
+    settings_manager.recent_files.return_value = []
+
+    with patch.object(QMessageBox, "warning") as warning:
+        window._open_recent_path(missing_path)
+
+    settings_manager.remove_recent_file.assert_called_with(missing_path)
+    assert window._history_page.recent_files == []
+    assert window._home_page._recent_files.item(0).text() == "No recent workbooks"
+    warning.assert_called_once()
+
+
+def test_remove_recent_path_refreshes_history(
+    window: MainWindow,
+    settings_manager: MagicMock,
+) -> None:
+    settings_manager.recent_files.return_value = ["C:/tmp/remaining.xlsx"]
+
+    window._remove_recent_path("C:/tmp/removed.xlsx")
+
+    settings_manager.remove_recent_file.assert_called_once_with("C:/tmp/removed.xlsx")
+    assert window._history_page.recent_files == ["C:/tmp/remaining.xlsx"]
+
+
+def test_open_recent_file_without_action_updates_status(
+    window: MainWindow,
+) -> None:
+    with patch.object(window, "sender", return_value=None):
+        window._open_recent_file()
+
+    assert window._status_label.text() == "Ready · recent workbook unavailable"
