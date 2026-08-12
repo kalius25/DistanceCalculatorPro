@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -45,9 +46,15 @@ def test_start(
     playwright.chromium.launch.return_value = browser
     browser.new_context.return_value = context
 
-    with patch(
-        "app.engines.browser_manager.sync_playwright",
-        return_value=starter,
+    with (
+        patch(
+            "app.engines.browser_manager.sync_playwright",
+            return_value=starter,
+        ),
+        patch(
+            "app.engines.browser_manager.resolve_browser_executable",
+            return_value=Path("bundled/chrome.exe"),
+        ),
     ):
         manager = BrowserManager(browser_config)
         manager.start()
@@ -55,6 +62,7 @@ def test_start(
     starter.start.assert_called_once_with()
 
     playwright.chromium.launch.assert_called_once_with(
+        executable_path=str(Path("bundled/chrome.exe")),
         headless=True,
         slow_mo=50,
     )
@@ -96,14 +104,21 @@ def test_start_with_custom_user_agent():
     playwright.chromium.launch.return_value = browser
     browser.new_context.return_value = context
 
-    with patch(
-        "app.engines.browser_manager.sync_playwright",
-        return_value=starter,
+    with (
+        patch(
+            "app.engines.browser_manager.sync_playwright",
+            return_value=starter,
+        ),
+        patch(
+            "app.engines.browser_manager.resolve_browser_executable",
+            return_value=Path("bundled/chrome.exe"),
+        ),
     ):
         manager = BrowserManager(config)
         manager.start()
 
     playwright.chromium.launch.assert_called_once_with(
+        executable_path=str(Path("bundled/chrome.exe")),
         headless=False,
         slow_mo=0,
     )

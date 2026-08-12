@@ -7,9 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from playwright.sync_api import sync_playwright
-
 from app.configuration.models import AppConfig
+from app.engines.browser_executable import resolve_browser_executable
 
 BrowserExecutableResolver = Callable[[], Path]
 
@@ -39,7 +38,7 @@ class StartupValidator:
         browser_executable_resolver: BrowserExecutableResolver | None = None,
     ) -> None:
         self._browser_executable_resolver = (
-            browser_executable_resolver or self._resolve_browser_executable
+            browser_executable_resolver or resolve_browser_executable
         )
 
     def validate(
@@ -112,8 +111,3 @@ class StartupValidator:
                     "Browser executable is missing. Run: playwright install chromium",
                 )
             )
-
-    @staticmethod
-    def _resolve_browser_executable() -> Path:
-        with sync_playwright() as playwright:
-            return Path(playwright.chromium.executable_path)

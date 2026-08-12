@@ -26,7 +26,6 @@ def run_executable_smoke(
         return False, f"Executable not found: {executable}"
 
     environment = os.environ.copy()
-    environment["DCP_EXECUTABLE_SMOKE"] = "1"
     environment["DCP_SMOKE_EXIT_MS"] = str(auto_exit_ms)
     marker = executable.parent / "dcp-smoke-status.txt"
     environment["DCP_SMOKE_STATUS_FILE"] = str(marker)

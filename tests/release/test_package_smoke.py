@@ -10,6 +10,7 @@ def _make_distribution(root: Path) -> None:
         "app/presentation/styles/dark.qss",
         "app/presentation/resources/icons/app_icon.svg",
         "app/presentation/resources/splash.svg",
+        "app/browser/chromium/chrome.exe",
     )
     for relative in required:
         path = root / "_internal" / relative
@@ -31,7 +32,7 @@ def test_validate_distribution_reports_missing_files(tmp_path: Path) -> None:
 
     issues = validate_distribution(distribution)
 
-    assert len(issues) == 5
+    assert len(issues) == 6
     assert issues[0].startswith("Missing executable:")
     assert all("Missing " in issue for issue in issues)
 

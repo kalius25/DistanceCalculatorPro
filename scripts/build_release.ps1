@@ -12,7 +12,12 @@ function Invoke-CheckedPython {
     }
 }
 
-Write-Host "== DistanceCalculatorPro RC build =="
+Write-Host "== DistanceCalculatorPro Stable build =="
+
+Write-Host "== Stable release metadata gate =="
+Invoke-CheckedPython @(
+    "-m", "app.release.stable_release_gate", "."
+)
 
 Invoke-CheckedPython @(
     "-m", "pip", "install", "--upgrade", "pyinstaller"
@@ -46,4 +51,4 @@ Invoke-CheckedPython @(
     "dist/DistanceCalculatorPro/DistanceCalculatorPro.exe"
 )
 
-Write-Host "Build PASS: dist/DistanceCalculatorPro"
+Write-Host "Stable Build PASS: dist/DistanceCalculatorPro"

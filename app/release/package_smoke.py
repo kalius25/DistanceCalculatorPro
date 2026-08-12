@@ -10,6 +10,7 @@ _REQUIRED_RELATIVE_FILES = (
     Path("app/presentation/styles/dark.qss"),
     Path("app/presentation/resources/icons/app_icon.svg"),
     Path("app/presentation/resources/splash.svg"),
+    Path("app/browser/chromium/chrome.exe"),
 )
 
 

@@ -71,11 +71,7 @@ def create_application() -> tuple[
 ]:
     metadata = AppMetadata()
     configuration = ConfigurationLoader.load()
-    validate_browser = not _is_executable_smoke()
-    StartupValidator().validate(
-        configuration,
-        validate_browser=validate_browser,
-    )
+    StartupValidator().validate(configuration)
     LoggingManager.configure(configuration.logging)
     logger = LoggingManager.get_logger("presentation")
 
@@ -134,10 +130,6 @@ def create_application() -> tuple[
     )
     logger.info("Presentation application initialized")
     return application, main_window, exception_handler, splash_screen
-
-
-def _is_executable_smoke() -> bool:
-    return os.getenv("DCP_EXECUTABLE_SMOKE", "").strip() == "1"
 
 
 def _write_smoke_stage(stage: str) -> None:

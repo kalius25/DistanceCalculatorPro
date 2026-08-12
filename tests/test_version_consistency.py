@@ -25,5 +25,5 @@ def test_package_and_runtime_versions_are_synchronized() -> None:
     assert _pep440_display_version(package_version) == __version__
 
 
-def test_runtime_version_is_release_candidate_25() -> None:
-    assert __version__ == "1.2.0-rc25"
+def test_runtime_version_is_stable_1_2_0() -> None:
+    assert __version__ == "1.2.0"

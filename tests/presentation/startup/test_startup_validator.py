@@ -125,49 +125,18 @@ def test_validator_reports_browser_inspection_failure(tmp_path: Path) -> None:
         StartupValidator(fail).validate(configuration)
 
 
-def test_default_browser_resolver_reads_playwright_executable(tmp_path: Path) -> None:
-    executable = tmp_path / "chromium"
-    playwright = type(
-        "PlaywrightStub",
-        (),
-        {"chromium": type("ChromiumStub", (), {"executable_path": str(executable)})()},
-    )()
-
-    class Context:
-        def __enter__(self) -> object:
-            return playwright
-
-        def __exit__(self, *args: object) -> None:
-            return None
-
-    from unittest.mock import patch
-
-    with patch(
-        "app.presentation.startup.validator.sync_playwright",
-        return_value=Context(),
-    ):
-        result = StartupValidator._resolve_browser_executable()
-
-    assert result == executable
-
-
 def test_validate_can_skip_browser_check(tmp_path: Path) -> None:
     configuration = MagicMock()
-
     configuration.browser.timeout = 30
     configuration.browser.viewport_width = 1280
     configuration.browser.viewport_height = 720
     configuration.google_maps.action_timeout = 10
-
     configuration.logging.directory = str(tmp_path / "logs")
     configuration.excel.export_directory = str(tmp_path / "output")
 
     resolver = MagicMock(side_effect=RuntimeError("browser unavailable"))
     validator = StartupValidator(resolver)
 
-    validator.validate(
-        configuration,
-        validate_browser=False,
-    )
+    validator.validate(configuration, validate_browser=False)
 
     resolver.assert_not_called()

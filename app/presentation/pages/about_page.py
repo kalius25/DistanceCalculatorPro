@@ -41,7 +41,7 @@ class AboutPage(QWidget):
         version = QLabel(f"Version {self._metadata.version}")
         version.setObjectName("lblAboutPageVersion")
 
-        release = QLabel("Release channel: v1.2 · Release Candidate")
+        release = QLabel("Release channel: v1.2 · Stable")
         release.setObjectName("lblAboutPageRelease")
 
         separator = QFrame()

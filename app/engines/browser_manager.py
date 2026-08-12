@@ -21,6 +21,7 @@ from playwright.sync_api import (
 )
 
 from app.configuration.models import BrowserConfig
+from app.engines.browser_executable import resolve_browser_executable
 from app.exceptions.engine_exception import EngineException
 
 
@@ -66,7 +67,9 @@ class BrowserManager:
 
         self._playwright = sync_playwright().start()
 
+        executable = resolve_browser_executable()
         self._browser = self._playwright.chromium.launch(
+            executable_path=str(executable),
             headless=self._config.headless,
             slow_mo=self._config.slow_mo,
         )

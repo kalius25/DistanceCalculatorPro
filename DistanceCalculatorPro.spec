@@ -14,6 +14,10 @@ datas = [
         str(presentation / "resources"),
         "app/presentation/resources",
     ),
+    (
+        str(project_root / "build" / "bundled-browser" / "chromium"),
+        "app/browser/chromium",
+    ),
 ]
 
 a = Analysis(

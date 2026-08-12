@@ -23,11 +23,11 @@ def test_about_page_uses_application_metadata(qtbot) -> None:
         == "Organization: Test Org"
     )
     assert (
-        "Release Candidate"
-        in page.findChild(
+        page.findChild(
             QLabel,
             "lblAboutPageRelease",
         ).text()
+        == "Release channel: v1.2 · Stable"
     )
 
 

@@ -33,7 +33,6 @@ def test_executable_smoke_passes_clean_exit(tmp_path: Path) -> None:
     assert passed
     assert message == "Executable startup/shutdown smoke passed"
     environment = run.call_args.kwargs["env"]
-    assert environment["DCP_EXECUTABLE_SMOKE"] == "1"
     assert environment["DCP_SMOKE_EXIT_MS"] == "900"
     assert run.call_args.kwargs["timeout"] == 8
     assert run.call_args.kwargs["check"] is False

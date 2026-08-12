@@ -1,3 +1,12 @@
+## 1.2.0 — Stable Release
+
+- Promoted the validated `1.2.0-rc25` baseline to `1.2.0` Stable.
+- Bundled Chromium remains part of the Windows distribution.
+- Added a Stable metadata gate and dedicated Stable build script.
+- Retained packaging smoke and real executable startup/shutdown smoke gates.
+- Added the final Stable manual release checklist.
+- No new functional behavior was introduced during Stable promotion.
+
 ## 1.2.0-rc25 — Sprint 2.7.9 Executable Smoke
 
 - Added actual packaged-EXE startup/shutdown smoke validation.

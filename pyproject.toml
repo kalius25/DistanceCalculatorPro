@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "DistanceCalculatorPro"
-version = "1.2.0rc25"
+version = "1.2.0"
 description = "Distance Calculator Pro"
 requires-python = ">=3.13"
 

@@ -127,10 +127,7 @@ def test_create_application_composes_and_initializes_shell() -> None:
         result = app_module.create_application()
 
     metadata = app_module.AppMetadata()
-    validator_type.return_value.validate.assert_called_once_with(
-        configuration,
-        validate_browser=True,
-    )
+    validator_type.return_value.validate.assert_called_once_with(configuration)
     configure.assert_called_once_with(configuration.logging)
     get_logger.assert_called_once_with("presentation")
     application_type.assert_called_once_with(app_module.sys.argv)
@@ -550,80 +547,3 @@ def test_write_smoke_stage_ignores_write_error(monkeypatch) -> None:
 
     with patch.object(app_module.Path, "write_text", side_effect=OSError):
         app_module._write_smoke_stage("stage")
-
-
-def test_is_executable_smoke_requires_explicit_flag(monkeypatch) -> None:
-    monkeypatch.delenv("DCP_EXECUTABLE_SMOKE", raising=False)
-    assert not app_module._is_executable_smoke()
-
-    monkeypatch.setenv("DCP_EXECUTABLE_SMOKE", "0")
-    assert not app_module._is_executable_smoke()
-
-    monkeypatch.setenv("DCP_EXECUTABLE_SMOKE", "1")
-    assert app_module._is_executable_smoke()
-
-
-def test_create_application_skips_browser_validation_in_executable_smoke(
-    monkeypatch,
-) -> None:
-    configuration = MagicMock()
-    validator = MagicMock()
-    monkeypatch.setenv("DCP_EXECUTABLE_SMOKE", "1")
-
-    with (
-        patch.object(
-            app_module.ConfigurationLoader,
-            "load",
-            return_value=configuration,
-        ),
-        patch.object(
-            app_module,
-            "StartupValidator",
-            return_value=validator,
-        ),
-        patch.object(
-            app_module.LoggingManager,
-            "configure",
-            side_effect=RuntimeError("stop after validation"),
-        ),
-        pytest.raises(RuntimeError, match="stop after validation"),
-    ):
-        app_module.create_application()
-
-    validator.validate.assert_called_once_with(
-        configuration,
-        validate_browser=False,
-    )
-
-
-def test_create_application_requires_browser_validation_normally(
-    monkeypatch,
-) -> None:
-    configuration = MagicMock()
-    validator = MagicMock()
-    monkeypatch.delenv("DCP_EXECUTABLE_SMOKE", raising=False)
-
-    with (
-        patch.object(
-            app_module.ConfigurationLoader,
-            "load",
-            return_value=configuration,
-        ),
-        patch.object(
-            app_module,
-            "StartupValidator",
-            return_value=validator,
-        ),
-        patch.object(
-            app_module.LoggingManager,
-            "configure",
-            side_effect=RuntimeError("stop after validation"),
-        ),
-        pytest.raises(RuntimeError, match="stop after validation"),
-    ):
-        app_module.create_application()
-
-    validator.validate.assert_called_once_with(
-        configuration,
-        validate_browser=True,
-    )
