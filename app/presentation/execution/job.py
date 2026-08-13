@@ -8,8 +8,10 @@ from dataclasses import dataclass
 from app.batch.batch_queue import BatchQueue
 from app.batch.models import RouteJobStatus
 from app.batch.queue_builder import QueueBuilder
+from app.exceptions.provider_exception import ProviderException
 from app.models.route_request import RouteRequest
 from app.presentation.workspace_configuration import WorkspaceConfiguration
+from app.providers.catalog import provider_definition
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,6 +35,14 @@ class CalculationJobBuilder:
 
     def build_queue(self, job: CalculationJob) -> BatchQueue:
         """Build the reusable state-aware queue for one calculation job."""
+        selected_provider = job.configuration.provider_configuration.provider
+        definition = provider_definition(selected_provider)
+        if not definition.execution_enabled:
+            raise ProviderException(
+                f"{definition.display_name} is not executable yet; "
+                f"planned for Sprint {definition.roadmap_sprint}."
+            )
+
         return self._queue_builder.build(
             job.file_path,
             job.sheet_name,

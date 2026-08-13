@@ -39,10 +39,27 @@ from app.presentation.workspace_configuration import (
     ProviderConfiguration,
     WorkspaceConfiguration,
 )
+from app.providers.catalog import (
+    PROVIDER_DEFINITIONS,
+    ProviderDefinition,
+    provider_definition,
+)
 from app.workbooks.models import WorkbookInfo, WorksheetInfo
 from app.workbooks.virtual_reader import (
     VirtualWorksheetDataSourceFactory,
 )
+
+
+def _provider_tooltip(definition: ProviderDefinition) -> str:
+    if definition.execution_enabled:
+        return "Available for calculation"
+    if definition.engine_ready:
+        return "Navigation engine ready; result parsing starts in Sprint " + str(
+            definition.roadmap_sprint
+        )
+    return "Provider foundation ready; engine starts in Sprint " + str(
+        definition.roadmap_sprint
+    )
 
 
 class HomePage(QWidget):
@@ -529,10 +546,18 @@ class HomePage(QWidget):
         provider_caption.setObjectName("lblInspectorCaption")
         self._provider_selector = QComboBox(self._provider_frame)
         self._provider_selector.setObjectName("cmbRouteProvider")
-        self._provider_selector.addItem(
-            ProviderType.GOOGLE_MAPS_WEB.value,
-            ProviderType.GOOGLE_MAPS_WEB.value,
-        )
+        for definition in PROVIDER_DEFINITIONS:
+            self._provider_selector.addItem(
+                definition.display_name,
+                definition.provider.value,
+            )
+            index = self._provider_selector.count() - 1
+            tooltip = _provider_tooltip(definition)
+            self._provider_selector.setItemData(
+                index,
+                tooltip,
+                Qt.ItemDataRole.ToolTipRole,
+            )
         provider_layout.addWidget(provider_caption, 1, 0)
         provider_layout.addWidget(self._provider_selector, 2, 0)
 
@@ -1391,24 +1416,78 @@ class HomePage(QWidget):
         self._sync_route_option_availability()
         self._validate_provider_configuration()
 
+    def _selected_provider_definition(
+        self,
+    ) -> ProviderDefinition | None:
+        provider_value = self._provider_selector.currentData()
+        if not provider_value:
+            return None
+        return provider_definition(ProviderType(str(provider_value)))
+
     def _sync_route_option_availability(self) -> None:
+        definition = self._selected_provider_definition()
+        if definition is None or not definition.execution_enabled:
+            for checkbox in (
+                self._avoid_tolls_checkbox,
+                self._avoid_highways_checkbox,
+                self._avoid_ferries_checkbox,
+            ):
+                checkbox.setEnabled(False)
+                checkbox.setChecked(False)
+            return
+
         mode = self._travel_mode_selector.currentData()
         walking = mode == TravelMode.WALKING.value
-        self._avoid_tolls_checkbox.setEnabled(not walking)
-        self._avoid_highways_checkbox.setEnabled(not walking)
-        if walking:
-            self._avoid_tolls_checkbox.setChecked(False)
-            self._avoid_highways_checkbox.setChecked(False)
+        tolls_enabled = definition.supports_avoid_tolls and not walking
+        highways_enabled = definition.supports_avoid_highways and not walking
+        ferries_enabled = definition.supports_avoid_ferries
+
+        for checkbox, enabled in (
+            (self._avoid_tolls_checkbox, tolls_enabled),
+            (self._avoid_highways_checkbox, highways_enabled),
+            (self._avoid_ferries_checkbox, ferries_enabled),
+        ):
+            checkbox.setEnabled(enabled)
+            if not enabled:
+                checkbox.setChecked(False)
 
     def _on_provider_option_toggled(self, _checked: bool) -> None:
         self._sync_route_option_availability()
         self._validate_provider_configuration()
 
+    def _current_provider_values(self) -> tuple[object, object]:
+        provider = self._provider_selector.currentData()
+        travel_mode = self._travel_mode_selector.currentData()
+        return provider, travel_mode
+
     def _validate_provider_configuration(self) -> None:
-        provider = self._provider_selector.currentData() or ""
-        travel_mode = self._travel_mode_selector.currentData() or ""
-        self._provider_valid = bool(provider and travel_mode)
-        if self._provider_valid:
+        provider, travel_mode = self._current_provider_values()
+        definition = self._selected_provider_definition()
+        if definition is None:
+            self._provider_valid = False
+            self._provider_status.setText("Select a provider and travel mode")
+            self._provider_status.setProperty("valid", False)
+        elif not travel_mode:
+            self._provider_valid = False
+            self._provider_status.setText("Select a provider and travel mode")
+            self._provider_status.setProperty("valid", False)
+        elif not definition.execution_enabled:
+            self._provider_valid = False
+            if definition.engine_ready:
+                status = (
+                    f"{definition.display_name} engine ready; "
+                    "result parsing starts in Sprint "
+                    f"{definition.roadmap_sprint}"
+                )
+            else:
+                status = (
+                    f"{definition.display_name} foundation ready; "
+                    f"engine starts in Sprint {definition.roadmap_sprint}"
+                )
+            self._provider_status.setText(status)
+            self._provider_status.setProperty("valid", False)
+        else:
+            self._provider_valid = True
             self._provider_status.setText("Provider ready")
             self._provider_status.setProperty("valid", True)
             self.provider_configuration_changed.emit(
@@ -1418,9 +1497,7 @@ class HomePage(QWidget):
                 self._avoid_highways_checkbox.isChecked(),
                 self._avoid_ferries_checkbox.isChecked(),
             )
-        else:
-            self._provider_status.setText("Select a provider and travel mode")
-            self._provider_status.setProperty("valid", False)
+
         self._refresh_style(self._provider_status)
         self._update_workspace_readiness()
 

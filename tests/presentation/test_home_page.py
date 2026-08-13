@@ -9,7 +9,15 @@ from PySide6.QtWidgets import QListWidgetItem
 
 from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
-from app.presentation.pages.home_page import HomePage
+from app.enums.provider_type import ProviderType
+from app.presentation.pages.home_page import (
+    HomePage,
+    _provider_tooltip,
+)
+from app.providers.catalog import (
+    ProviderDefinition,
+    provider_definition,
+)
 from app.workbooks.models import (
     WorkbookInfo,
     WorksheetInfo,
@@ -787,6 +795,169 @@ def test_provider_configuration_defaults_are_ready(qtbot: object) -> None:
     assert not page._avoid_ferries_checkbox.isChecked()
 
 
+def test_provider_tooltip_covers_all_readiness_states() -> None:
+    google = provider_definition(ProviderType.GOOGLE_MAPS_WEB)
+    bing = provider_definition(ProviderType.BING_MAPS_WEB)
+
+    assert _provider_tooltip(google) == "Available for calculation"
+    assert _provider_tooltip(bing) == (
+        "Navigation engine ready; result parsing starts in Sprint 3.4"
+    )
+
+    foundation = type(bing)(
+        provider=bing.provider,
+        display_name=bing.display_name,
+        supported_travel_modes=bing.supported_travel_modes,
+        engine_ready=False,
+        execution_enabled=False,
+        supports_avoid_tolls=False,
+        supports_avoid_highways=False,
+        supports_avoid_ferries=False,
+        roadmap_sprint="3.3",
+    )
+    assert _provider_tooltip(foundation) == (
+        "Provider foundation ready; engine starts in Sprint 3.3"
+    )
+
+
+def test_provider_selector_lists_v1_3_foundation_providers(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    assert page._provider_selector.count() == 3
+    assert [
+        page._provider_selector.itemText(index)
+        for index in range(page._provider_selector.count())
+    ] == [
+        "Google Maps Web",
+        "Bing Maps",
+        "OpenStreetMap",
+    ]
+
+
+def test_provider_selector_exposes_engine_readiness_tooltips(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    bing_index = page._provider_selector.findText("Bing Maps")
+    osm_index = page._provider_selector.findText("OpenStreetMap")
+
+    expected = "Navigation engine ready; result parsing starts in Sprint 3.4"
+    assert (
+        page._provider_selector.itemData(
+            bing_index,
+            Qt.ItemDataRole.ToolTipRole,
+        )
+        == expected
+    )
+    assert (
+        page._provider_selector.itemData(
+            osm_index,
+            Qt.ItemDataRole.ToolTipRole,
+        )
+        == expected
+    )
+
+
+def test_provider_validation_covers_foundation_only_branch(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    foundation = ProviderDefinition(
+        provider=ProviderType.OPENSTREETMAP_WEB,
+        display_name="Foundation Provider",
+        supported_travel_modes=(),
+        engine_ready=False,
+        execution_enabled=False,
+        supports_avoid_tolls=False,
+        supports_avoid_highways=False,
+        supports_avoid_ferries=False,
+        roadmap_sprint="3.3",
+    )
+
+    with patch.object(
+        page,
+        "_selected_provider_definition",
+        return_value=foundation,
+    ):
+        page._validate_provider_configuration()
+
+    assert not page._provider_valid
+    assert page.provider_configuration is None
+    assert page._provider_status.text() == (
+        "Foundation Provider foundation ready; " "engine starts in Sprint 3.3"
+    )
+    assert page._provider_status.property("valid") is False
+
+
+def test_bing_provider_is_visible_but_not_executable(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._avoid_tolls_checkbox.setChecked(True)
+    page._provider_selector.setCurrentText("Bing Maps")
+
+    assert not page._provider_valid
+    assert page.provider_configuration is None
+    assert page._provider_status.text() == (
+        "Bing Maps engine ready; result parsing starts in Sprint 3.4"
+    )
+    assert not page._avoid_tolls_checkbox.isChecked()
+    assert not page._avoid_tolls_checkbox.isEnabled()
+    assert not page._avoid_highways_checkbox.isEnabled()
+    assert not page._avoid_ferries_checkbox.isEnabled()
+
+
+def test_openstreetmap_provider_is_visible_but_not_executable(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._provider_selector.setCurrentText("OpenStreetMap")
+
+    assert not page._provider_valid
+    assert page.provider_configuration is None
+    assert page._provider_status.text() == (
+        "OpenStreetMap engine ready; result parsing starts in Sprint 3.4"
+    )
+
+
+def test_returning_to_google_restores_route_options(
+    qtbot: object,
+) -> None:
+    with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._provider_selector.setCurrentText("Bing Maps")
+    page._provider_selector.setCurrentText("Google Maps Web")
+
+    assert page._provider_valid
+    assert page._avoid_tolls_checkbox.isEnabled()
+    assert page._avoid_highways_checkbox.isEnabled()
+    assert page._avoid_ferries_checkbox.isEnabled()
+
+
 def test_provider_configuration_emits_selected_options(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
@@ -810,15 +981,70 @@ def test_provider_configuration_emits_selected_options(qtbot: object) -> None:
     assert page._avoid_ferries_checkbox.isEnabled()
 
 
+def test_provider_option_toggled_resyncs_and_revalidates(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    with (
+        patch.object(page, "_sync_route_option_availability") as sync,
+        patch.object(page, "_validate_provider_configuration") as validate,
+    ):
+        page._on_provider_option_toggled(False)
+
+    sync.assert_called_once_with()
+    validate.assert_called_once_with()
+
+
 def test_provider_configuration_requires_provider_and_mode(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
     qtbot.addWidget(page)  # type: ignore[attr-defined]
 
     page._provider_selector.setCurrentIndex(-1)
+    page._validate_provider_configuration()
 
     assert not page._provider_valid
     assert page._provider_status.text() == "Select a provider and travel mode"
+    assert page._provider_status.property("valid") is False
+
+
+def test_current_provider_values_returns_selector_data(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    assert page._current_provider_values() == (
+        "Google Maps Web",
+        "driving",
+    )
+
+
+def test_provider_configuration_requires_travel_mode(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._travel_mode_selector.setCurrentIndex(-1)
+
+    assert not page._provider_valid
+    assert page.provider_configuration is None
+    assert page._provider_status.text() == ("Select a provider and travel mode")
     assert page._provider_status.property("valid") is False
 
 

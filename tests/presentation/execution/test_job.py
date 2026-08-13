@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from openpyxl import Workbook
@@ -8,6 +9,7 @@ from openpyxl import Workbook
 from app.enums.provider_type import ProviderType
 from app.enums.route_preference import RoutePreference
 from app.enums.travel_mode import TravelMode
+from app.exceptions.provider_exception import ProviderException
 from app.presentation.execution.job import CalculationJob, CalculationJobBuilder
 from app.presentation.workspace_configuration import (
     ColumnMapping,
@@ -142,3 +144,25 @@ def test_build_queue_preserves_all_row_states(tmp_path: Path) -> None:
     assert queue.skipped_count == 1
     assert queue.invalid_count == 1
     assert queue.done_count == 1
+
+
+def test_build_queue_rejects_non_executable_provider() -> None:
+    configuration = WorkspaceConfiguration(
+        ColumnMapping("Origin", "Destination", "Distance", "Duration"),
+        ProviderConfiguration(
+            ProviderType.BING_MAPS_WEB,
+            TravelMode.DRIVING,
+        ),
+    )
+    job = CalculationJob(
+        "routes.xlsx",
+        "Routes",
+        configuration,
+    )
+    builder = CalculationJobBuilder(MagicMock())
+
+    with pytest.raises(
+        ProviderException,
+        match="Bing Maps is not executable yet; planned for Sprint 3.4",
+    ):
+        builder.build_queue(job)
