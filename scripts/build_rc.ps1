@@ -12,7 +12,17 @@ function Invoke-CheckedPython {
     }
 }
 
-Write-Host "== DistanceCalculatorPro RC build =="
+Write-Host "== DistanceCalculatorPro v1.3 RC build =="
+
+Write-Host "== RC release metadata gate =="
+Invoke-CheckedPython @(
+    "-m", "app.release.rc_release_gate", "."
+)
+
+Write-Host "== Automated regression gate =="
+Invoke-CheckedPython @(
+    "-m", "pytest"
+)
 
 Invoke-CheckedPython @(
     "-m", "pip", "install", "--upgrade", "pyinstaller"

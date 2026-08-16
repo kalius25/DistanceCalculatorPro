@@ -24,7 +24,7 @@ def test_about_dialog_initial_state_and_content(qtbot) -> None:
     assert version is not None and version.text() == "Version 9.9.9"
     assert description is not None and description.wordWrap() is True
     assert release is not None
-    assert "Presentation Foundation" in release.text()
+    assert release.text() == "Release channel: v1.3 · Release Candidate 1"
     assert title.alignment() == Qt.AlignmentFlag.AlignCenter
 
 

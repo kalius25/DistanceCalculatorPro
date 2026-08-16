@@ -20,7 +20,11 @@ def test_stable_release_gate_accepts_stable_metadata(
 ) -> None:
     _write_pyproject(tmp_path, STABLE_VERSION)
 
-    assert validate_stable_release(tmp_path) == ()
+    with patch(
+        "app.release.stable_release_gate.__version__",
+        STABLE_VERSION,
+    ):
+        assert validate_stable_release(tmp_path) == ()
 
 
 def test_stable_release_gate_reports_runtime_mismatch(
@@ -40,7 +44,11 @@ def test_stable_release_gate_reports_runtime_mismatch(
 def test_stable_release_gate_reports_missing_pyproject(
     tmp_path: Path,
 ) -> None:
-    issues = validate_stable_release(tmp_path)
+    with patch(
+        "app.release.stable_release_gate.__version__",
+        STABLE_VERSION,
+    ):
+        issues = validate_stable_release(tmp_path)
 
     assert issues == (f"Missing package metadata: {tmp_path / 'pyproject.toml'}",)
 
@@ -50,7 +58,11 @@ def test_stable_release_gate_reports_package_mismatch(
 ) -> None:
     _write_pyproject(tmp_path, "1.2.0rc25")
 
-    issues = validate_stable_release(tmp_path)
+    with patch(
+        "app.release.stable_release_gate.__version__",
+        STABLE_VERSION,
+    ):
+        issues = validate_stable_release(tmp_path)
 
     assert issues == ("Package version must be 1.2.0; found '1.2.0rc25'.",)
 
@@ -61,7 +73,11 @@ def test_stable_release_gate_main_passes(
 ) -> None:
     _write_pyproject(tmp_path, STABLE_VERSION)
 
-    result = main([str(tmp_path)])
+    with patch(
+        "app.release.stable_release_gate.__version__",
+        STABLE_VERSION,
+    ):
+        result = main([str(tmp_path)])
 
     assert result == 0
     assert "Stable release gate: PASS (1.2.0)" in capsys.readouterr().out
@@ -73,7 +89,11 @@ def test_stable_release_gate_main_fails(
 ) -> None:
     _write_pyproject(tmp_path, "1.2.0rc25")
 
-    result = main([str(tmp_path)])
+    with patch(
+        "app.release.stable_release_gate.__version__",
+        STABLE_VERSION,
+    ):
+        result = main([str(tmp_path)])
 
     assert result == 1
     output = capsys.readouterr().out

@@ -56,7 +56,7 @@ class AboutDialog(QDialog):
         self._separator.setObjectName("frmAboutSeparator")
 
         self._release_label = QLabel(
-            "Release channel: v1.2 · Presentation Foundation",
+            "Release channel: v1.3 · Release Candidate 1",
             self,
         )
         self._release_label.setObjectName("lblAboutRelease")
