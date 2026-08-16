@@ -16,7 +16,9 @@ def validate_stable_release(project_root: Path) -> tuple[str, ...]:
     issues: list[str] = []
 
     if __version__ != STABLE_VERSION:
-        issues.append(f"Runtime version must be {STABLE_VERSION}; found {__version__}.")
+        issues.append(
+            f"Runtime version must be {STABLE_VERSION}; found {__version__}."
+        )
 
     pyproject_path = project_root / "pyproject.toml"
     if not pyproject_path.is_file():
@@ -27,7 +29,8 @@ def validate_stable_release(project_root: Path) -> tuple[str, ...]:
     package_version = metadata.get("project", {}).get("version")
     if package_version != STABLE_VERSION:
         issues.append(
-            "Package version must be " f"{STABLE_VERSION}; found {package_version!r}."
+            "Package version must be "
+            f"{STABLE_VERSION}; found {package_version!r}."
         )
 
     return tuple(issues)

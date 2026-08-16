@@ -125,6 +125,7 @@ def test_validator_reports_browser_inspection_failure(tmp_path: Path) -> None:
         StartupValidator(fail).validate(configuration)
 
 
+
 def test_validate_can_skip_browser_check(tmp_path: Path) -> None:
     configuration = MagicMock()
     configuration.browser.timeout = 30

@@ -395,6 +395,7 @@ def test_status_counts_track_sparse_status_transitions() -> None:
     assert snapshot[PreviewRowStatus.PENDING] == 2
 
 
+
 def test_status_updates_without_visible_status_column() -> None:
     from app.models.preview_row_status import PreviewRowStatus
 
@@ -405,7 +406,6 @@ def test_status_updates_without_visible_status_column() -> None:
 
     model.reset_row_statuses()
     assert model.row_status(0) is PreviewRowStatus.PENDING
-
 
 def test_status_count_rejects_non_status() -> None:
     import pytest

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QListWidgetItem
 from app.batch.progress import ProgressSnapshot
 from app.batch.summary import BatchSummary
 from app.enums.provider_type import ProviderType
+from app.enums.travel_mode import TravelMode
 from app.presentation.pages.home_page import (
     HomePage,
     _provider_tooltip,
@@ -424,7 +425,6 @@ def test_real_csv_uses_virtual_preview_for_all_data_rows(
     page.clear_inspection()
     assert page._preview_model.rowCount() == 0
 
-
 def test_source_panels_can_be_hidden_and_shown(
     qtbot: object,
 ) -> None:
@@ -516,6 +516,7 @@ def test_workspace_guidance_stays_visible_when_source_panels_are_toggled(
     assert page._workspace_status.isVisible()
 
 
+
 def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
     from datetime import datetime
 
@@ -551,7 +552,10 @@ def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
     assert page._origin_column_selector.currentText() == "TỌA ĐỘ NƠI ĐI"
     assert page._destination_column_selector.currentText() == "TỌA ĐỘ NƠI ĐẾN"
     assert page._result_column_selector.currentText() == "KẾT QUẢ"
-    assert page._result_duration_column_selector.currentText() == "THỜI GIAN DI CHUYỂN"
+    assert (
+        page._result_duration_column_selector.currentText()
+        == "THỜI GIAN DI CHUYỂN"
+    )
     assert page._mapping_valid
     assert page._mapping_status.text() == "Mapping ready"
 
@@ -665,6 +669,7 @@ def test_preview_extends_missing_headers_and_handles_no_rows(qtbot: object) -> N
     assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Column 2"
     assert page._preview_model.headerData(3, Qt.Orientation.Horizontal) == "Column 3"
     assert page._preview_title.text() == "Data Preview (no data rows)"
+
 
 
 def test_unknown_sheet_name_is_ignored(qtbot: object) -> None:
@@ -797,26 +802,36 @@ def test_provider_configuration_defaults_are_ready(qtbot: object) -> None:
 
 def test_provider_tooltip_covers_all_readiness_states() -> None:
     google = provider_definition(ProviderType.GOOGLE_MAPS_WEB)
-    bing = provider_definition(ProviderType.BING_MAPS_WEB)
-
     assert _provider_tooltip(google) == "Available for calculation"
-    assert _provider_tooltip(bing) == (
-        "Navigation engine ready; result parsing starts in Sprint 3.4"
+
+    engine_ready = ProviderDefinition(
+        provider=ProviderType.BING_MAPS_WEB,
+        display_name="Engine Ready",
+        supported_travel_modes=(TravelMode.DRIVING,),
+        engine_ready=True,
+        execution_enabled=False,
+        supports_avoid_tolls=False,
+        supports_avoid_highways=False,
+        supports_avoid_ferries=False,
+        roadmap_sprint="9.1",
+    )
+    assert _provider_tooltip(engine_ready) == (
+        "Navigation engine ready; result parsing starts in Sprint 9.1"
     )
 
-    foundation = type(bing)(
-        provider=bing.provider,
-        display_name=bing.display_name,
-        supported_travel_modes=bing.supported_travel_modes,
+    foundation = ProviderDefinition(
+        provider=ProviderType.OPENSTREETMAP_WEB,
+        display_name="Foundation",
+        supported_travel_modes=(),
         engine_ready=False,
         execution_enabled=False,
         supports_avoid_tolls=False,
         supports_avoid_highways=False,
         supports_avoid_ferries=False,
-        roadmap_sprint="3.3",
+        roadmap_sprint="9.0",
     )
     assert _provider_tooltip(foundation) == (
-        "Provider foundation ready; engine starts in Sprint 3.3"
+        "Provider foundation ready; engine starts in Sprint 9.0"
     )
 
 
@@ -851,20 +866,50 @@ def test_provider_selector_exposes_engine_readiness_tooltips(
     bing_index = page._provider_selector.findText("Bing Maps")
     osm_index = page._provider_selector.findText("OpenStreetMap")
 
-    expected = "Navigation engine ready; result parsing starts in Sprint 3.4"
-    assert (
-        page._provider_selector.itemData(
-            bing_index,
-            Qt.ItemDataRole.ToolTipRole,
-        )
-        == expected
+    expected = "Available for calculation"
+    assert page._provider_selector.itemData(
+        bing_index,
+        Qt.ItemDataRole.ToolTipRole,
+    ) == expected
+    assert page._provider_selector.itemData(
+        osm_index,
+        Qt.ItemDataRole.ToolTipRole,
+    ) == expected
+
+
+def test_provider_validation_covers_engine_ready_non_executable_branch(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    definition = ProviderDefinition(
+        provider=ProviderType.BING_MAPS_WEB,
+        display_name="Future Provider",
+        supported_travel_modes=(TravelMode.DRIVING,),
+        engine_ready=True,
+        execution_enabled=False,
+        supports_avoid_tolls=False,
+        supports_avoid_highways=False,
+        supports_avoid_ferries=False,
+        roadmap_sprint="9.2",
     )
-    assert (
-        page._provider_selector.itemData(
-            osm_index,
-            Qt.ItemDataRole.ToolTipRole,
-        )
-        == expected
+
+    with patch.object(
+        page,
+        "_selected_provider_definition",
+        return_value=definition,
+    ):
+        page._validate_provider_configuration()
+
+    assert not page._provider_valid
+    assert page._provider_status.text() == (
+        "Future Provider engine ready; "
+        "result parsing starts in Sprint 9.2"
     )
 
 
@@ -900,12 +945,13 @@ def test_provider_validation_covers_foundation_only_branch(
     assert not page._provider_valid
     assert page.provider_configuration is None
     assert page._provider_status.text() == (
-        "Foundation Provider foundation ready; " "engine starts in Sprint 3.3"
+        "Foundation Provider foundation ready; "
+        "engine starts in Sprint 3.3"
     )
     assert page._provider_status.property("valid") is False
 
 
-def test_bing_provider_is_visible_but_not_executable(
+def test_bing_provider_is_executable_with_supported_options_only(
     qtbot: object,
 ) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
@@ -915,18 +961,18 @@ def test_bing_provider_is_visible_but_not_executable(
     page._avoid_tolls_checkbox.setChecked(True)
     page._provider_selector.setCurrentText("Bing Maps")
 
-    assert not page._provider_valid
-    assert page.provider_configuration is None
-    assert page._provider_status.text() == (
-        "Bing Maps engine ready; result parsing starts in Sprint 3.4"
-    )
+    assert page._provider_valid
+    configuration = page.provider_configuration
+    assert configuration is not None
+    assert configuration.provider is ProviderType.BING_MAPS_WEB
+    assert page._provider_status.text() == "Provider ready"
     assert not page._avoid_tolls_checkbox.isChecked()
     assert not page._avoid_tolls_checkbox.isEnabled()
     assert not page._avoid_highways_checkbox.isEnabled()
     assert not page._avoid_ferries_checkbox.isEnabled()
 
 
-def test_openstreetmap_provider_is_visible_but_not_executable(
+def test_openstreetmap_provider_is_executable(
     qtbot: object,
 ) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
@@ -935,11 +981,11 @@ def test_openstreetmap_provider_is_visible_but_not_executable(
 
     page._provider_selector.setCurrentText("OpenStreetMap")
 
-    assert not page._provider_valid
-    assert page.provider_configuration is None
-    assert page._provider_status.text() == (
-        "OpenStreetMap engine ready; result parsing starts in Sprint 3.4"
-    )
+    assert page._provider_valid
+    configuration = page.provider_configuration
+    assert configuration is not None
+    assert configuration.provider is ProviderType.OPENSTREETMAP_WEB
+    assert page._provider_status.text() == "Provider ready"
 
 
 def test_returning_to_google_restores_route_options(
@@ -1044,7 +1090,9 @@ def test_provider_configuration_requires_travel_mode(
 
     assert not page._provider_valid
     assert page.provider_configuration is None
-    assert page._provider_status.text() == ("Select a provider and travel mode")
+    assert page._provider_status.text() == (
+        "Select a provider and travel mode"
+    )
     assert page._provider_status.property("valid") is False
 
 
@@ -1052,7 +1100,6 @@ def test_workspace_configuration_is_not_ready_without_mapping(
     qtbot: object,
 ) -> None:
     from app.enums.provider_type import ProviderType
-    from app.enums.travel_mode import TravelMode
 
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
@@ -1073,7 +1120,6 @@ def test_complete_workspace_configuration_emits_ready_state(
     from datetime import datetime
 
     from app.enums.provider_type import ProviderType
-    from app.enums.travel_mode import TravelMode
     from app.presentation.workspace_configuration import WorkspaceConfiguration
     from app.workbooks.models import WorkbookInfo, WorksheetInfo
 
@@ -1361,6 +1407,7 @@ def test_batch_summary_starts_and_updates_live(
     assert "#2563EB" in text
 
 
+
 def test_live_summary_state_preserves_current_counters(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
@@ -1472,11 +1519,11 @@ def test_workbook_inspector_file_metadata_and_config_toggle(qtbot: object) -> No
         modified_at=datetime(2026, 8, 7, 8, 0),
         worksheets=(
             WorksheetInfo(
-                "Routes",
-                2,
-                4,
-                ("Origin", "Destination", "Distance", "Duration"),
-            ),
+                    "Routes",
+                    2,
+                    4,
+                    ("Origin", "Destination", "Distance", "Duration"),
+                ),
         ),
     )
     page.set_selected_file(info.file_path)
@@ -1712,6 +1759,7 @@ def test_changing_legacy_worksheet_refreshes_cached_title_and_headers(
     assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Value"
 
 
+
 def test_replacing_workbook_closes_previous_virtual_source(
     qtbot: object,
     tmp_path: Path,
@@ -1931,7 +1979,10 @@ def test_preview_status_filter_bar_filters_live_statuses(qtbot: object) -> None:
     assert page.preview_status_filter == frozenset({PreviewRowStatus.FAILED})
     assert page._preview_filter_model.rowCount() == 1
     assert (
-        page._preview_filter_model.data(page._preview_filter_model.index(0, 1)) == "C"
+        page._preview_filter_model.data(
+            page._preview_filter_model.index(0, 1)
+        )
+        == "C"
     )
 
     page._preview_status_filter.setCurrentIndex(1)
@@ -2087,6 +2138,11 @@ def test_preview_status_filter_badges_track_live_counts(qtbot: object) -> None:
 
     page.reset_preview_row_statuses()
     assert page._preview_status_filter.currentText() == "Pending (4)"
+
+
+
+
+
 
 
 def _focus_preview_test_page(qtbot: object) -> HomePage:
@@ -2331,7 +2387,10 @@ def test_mapping_keeps_legacy_ket_qua_as_result_distance(
         page._populate_column_mapping(worksheet.headers)
 
     assert page._result_column_selector.currentData() == "KẾT QUẢ"
-    assert page._result_duration_column_selector.currentData() == "THỜI GIAN DI CHUYỂN"
+    assert (
+        page._result_duration_column_selector.currentData()
+        == "THỜI GIAN DI CHUYỂN"
+    )
     assert blocker.args == [
         "TỌA ĐỘ NƠI ĐI",
         "TỌA ĐỘ NƠI ĐẾN",

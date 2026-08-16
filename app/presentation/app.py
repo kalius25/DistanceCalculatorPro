@@ -10,12 +10,20 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app.configuration.configuration_loader import ConfigurationLoader
 from app.configuration.models import AppConfig
 from app.diagnostics import DiagnosticsManager, DiagnosticsSettings
+from app.engines.bing_maps_engine import BingMapsEngine
 from app.engines.browser_manager import BrowserManager
 from app.engines.google_maps_engine import GoogleMapsEngine
 from app.engines.google_maps_locator import GoogleMapsLocator
+from app.engines.openstreetmap_engine import OpenStreetMapEngine
+from app.enums.provider_type import ProviderType
 from app.logging.logging_manager import LoggingManager
 from app.parsers.google_maps_parser import GoogleMapsParser
+from app.providers.bing_web_provider import BingWebProvider
 from app.providers.google_web_provider import GoogleWebProvider
+from app.providers.openstreetmap_web_provider import (
+    OpenStreetMapWebProvider,
+)
+from app.providers.provider_router import ProviderRouter
 from app.services.batch_calculation_service import BatchCalculationService
 from app.services.calculation_service import CalculationService
 from app.workbooks import (
@@ -49,10 +57,27 @@ def create_execution_coordinator(
         parser,
         diagnostics,
     )
-    provider = GoogleWebProvider(
+    google_provider = GoogleWebProvider(
         browser_manager,
         maps_engine,
         diagnostics=diagnostics,
+    )
+    bing_provider = BingWebProvider(
+        browser_manager,
+        BingMapsEngine(configuration.browser.timeout, diagnostics),
+        diagnostics=diagnostics,
+    )
+    osm_provider = OpenStreetMapWebProvider(
+        browser_manager,
+        OpenStreetMapEngine(configuration.browser.timeout, diagnostics),
+        diagnostics=diagnostics,
+    )
+    provider = ProviderRouter(
+        {
+            ProviderType.GOOGLE_MAPS_WEB: google_provider,
+            ProviderType.BING_MAPS_WEB: bing_provider,
+            ProviderType.OPENSTREETMAP_WEB: osm_provider,
+        }
     )
     calculation_service = CalculationService(provider)
     batch_service = BatchCalculationService(calculation_service)
@@ -132,6 +157,7 @@ def create_application() -> tuple[
     return application, main_window, exception_handler, splash_screen
 
 
+
 def _write_smoke_stage(stage: str) -> None:
     status_file = os.getenv("DCP_SMOKE_STATUS_FILE", "").strip()
     if not status_file:
@@ -141,7 +167,6 @@ def _write_smoke_stage(stage: str) -> None:
         Path(status_file).write_text(stage, encoding="utf-8")
     except OSError:
         pass
-
 
 def _schedule_smoke_exit(application: QApplication) -> None:
     raw_delay = os.getenv("DCP_SMOKE_EXIT_MS", "").strip()

@@ -45,7 +45,10 @@ def test_mapper_resolves_indexes_and_maps_route_options() -> None:
     assert job.toll_preference is RoutePreference.AVOID
     assert job.highway_preference is RoutePreference.AVOID
     assert job.ferry_preference is RoutePreference.AVOID
-    assert job.metadata == {"source_row": 7}
+    assert job.metadata == {
+        "source_row": 7,
+        "provider": ProviderType.GOOGLE_MAPS_WEB,
+    }
 
 
 def test_mapper_handles_short_rows_and_validation_outcome() -> None:

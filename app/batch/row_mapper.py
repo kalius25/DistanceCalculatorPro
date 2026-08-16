@@ -64,7 +64,10 @@ class RowMapper:
         )
         status = validation.status
         distance_km = validation.distance_km
-        metadata: dict[str, object] = {"source_row": row.row_number}
+        metadata: dict[str, object] = {
+            "source_row": row.row_number,
+            "provider": provider.provider,
+        }
         if status.value == "pending" and resume.should_skip:
             status = resume.status
             distance_km = resume.distance_km

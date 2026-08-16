@@ -182,7 +182,9 @@ class CsvVirtualWorksheetDataSource:
             reader = csv.reader(stream)
             next(reader, None)
             rows = islice(reader, start, start + count)
-            return tuple(_normalize_row(tuple(row), self._column_count) for row in rows)
+            return tuple(
+                _normalize_row(tuple(row), self._column_count) for row in rows
+            )
 
     def close(self) -> None:
         self._closed = True

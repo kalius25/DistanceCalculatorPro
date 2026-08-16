@@ -349,6 +349,7 @@ def test_open_recent_file_ignores_non_action_sender(
     select_workbook.assert_not_called()
 
 
+
 def test_open_recent_file_removes_missing_path(
     window: MainWindow,
     settings_manager: MagicMock,
@@ -367,7 +368,6 @@ def test_open_recent_file_removes_missing_path(
     assert window._home_page._recent_files.item(0).text() == "No recent workbooks"
     assert window._status_label.text() == "Ready · recent workbook unavailable"
     warning.assert_called_once()
-
 
 def test_clear_recent_files_updates_manager_and_menu(
     window: MainWindow,
@@ -1053,6 +1053,7 @@ def test_retry_failed_action_uses_theme_specific_icon(
 
     assert light_redo_calls[0].kwargs["color_disabled"] == "#9CA3AF"
     assert dark_redo_calls[0].kwargs["color_disabled"] == "#9CA3AF"
+
 
 
 def test_close_event_releases_home_page_resources_after_shutdown(
@@ -2299,6 +2300,7 @@ def test_row_event_updates_exact_preview_row_status(
     set_status.assert_called_once_with(5, preview_status)
 
 
+
 def test_row_event_updates_preview_without_live_text(window: MainWindow) -> None:
     window._home_page._preview_model.set_data(
         ["Origin", "Destination"],
@@ -2336,7 +2338,9 @@ def test_row_event_updates_preview_without_live_text(window: MainWindow) -> None
 
 def test_pause_resume_and_stop_update_live_summary_state(window: MainWindow) -> None:
     window._execution_state = ExecutionState.RUNNING
-    with patch.object(window._home_page, "set_batch_summary_state") as summary_state:
+    with patch.object(
+        window._home_page, "set_batch_summary_state"
+    ) as summary_state:
         window._toggle_pause()
         summary_state.assert_called_with("Paused")
         assert window._execution_status_label.text() == "[Paused]"
@@ -2363,7 +2367,9 @@ def test_row_event_ignores_unknown_payload(window: MainWindow) -> None:
 def test_row_event_completed_duration_does_not_create_live_text(
     window: MainWindow,
 ) -> None:
-    window._home_page._preview_model.set_data(["Origin", "Destination"], [["A", "B"]])
+    window._home_page._preview_model.set_data(
+        ["Origin", "Destination"], [["A", "B"]]
+    )
     event = RouteJobEvent(
         row_index=2,
         preview_row_index=0,
@@ -2406,7 +2412,9 @@ def test_result_completion_prompt_can_open_with_default_application(
             "question",
             return_value=QMessageBox.StandardButton.No,
         ) as question,
-        patch("app.presentation.main_window.QDesktopServices.openUrl") as open_url,
+        patch(
+            "app.presentation.main_window.QDesktopServices.openUrl"
+        ) as open_url,
     ):
         window._prompt_open_result_file(summary)
     question.assert_called_once()
@@ -2481,7 +2489,9 @@ def test_remove_recent_path_refreshes_history(
 
     window._remove_recent_path("C:/tmp/removed.xlsx")
 
-    settings_manager.remove_recent_file.assert_called_once_with("C:/tmp/removed.xlsx")
+    settings_manager.remove_recent_file.assert_called_once_with(
+        "C:/tmp/removed.xlsx"
+    )
     assert window._history_page.recent_files == ["C:/tmp/remaining.xlsx"]
 
 
@@ -2582,8 +2592,12 @@ def test_primary_actions_have_release_ready_labels_and_status_tips(
     assert window._action_start.statusTip() == (
         "Start the configured route calculation"
     )
-    assert window._action_pause.statusTip() == ("Pause the active calculation")
-    assert window._action_stop.statusTip() == ("Stop the active calculation safely")
+    assert window._action_pause.statusTip() == (
+        "Pause the active calculation"
+    )
+    assert window._action_stop.statusTip() == (
+        "Stop the active calculation safely"
+    )
     assert window._action_settings.statusTip() == "Open application settings"
     assert window._action_about.statusTip() == "Show application information"
 

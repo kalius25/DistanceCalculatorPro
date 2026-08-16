@@ -7,7 +7,9 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-_BUNDLED_BROWSER_RELATIVE_PATH = Path("app/browser/chromium/chrome.exe")
+_BUNDLED_BROWSER_RELATIVE_PATH = Path(
+    "app/browser/chromium/chrome.exe"
+)
 
 
 def bundled_browser_executable() -> Path | None:
@@ -16,7 +18,9 @@ def bundled_browser_executable() -> Path | None:
     if not isinstance(frozen_root, str) or not frozen_root:
         return None
 
-    executable = (Path(frozen_root) / _BUNDLED_BROWSER_RELATIVE_PATH).resolve()
+    executable = (
+        Path(frozen_root) / _BUNDLED_BROWSER_RELATIVE_PATH
+    ).resolve()
     if executable.is_file():
         return executable
     return None

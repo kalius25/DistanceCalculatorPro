@@ -65,7 +65,9 @@ class SettingsPage(QWidget):
         diagnostics_layout.addWidget(self._save_screenshot)
         diagnostics_layout.addWidget(self._save_json)
 
-        note = QLabel("Diagnostic captures are disabled unless Debug Mode is enabled.")
+        note = QLabel(
+            "Diagnostic captures are disabled unless Debug Mode is enabled."
+        )
         note.setObjectName("lblSettingsDiagnosticsNote")
         note.setWordWrap(True)
         diagnostics_layout.addWidget(note)

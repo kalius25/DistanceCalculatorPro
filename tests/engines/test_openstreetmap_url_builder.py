@@ -30,15 +30,15 @@ def test_build_walking_url() -> None:
     )
 
     assert OpenStreetMapUrlBuilder.build(request).startswith(
-        "https://www.openstreetmap.org/directions" "?engine=fossgis_osrm_foot&route="
+        "https://www.openstreetmap.org/directions"
+        "?engine=fossgis_osrm_foot&route="
     )
 
 
 def test_coordinate_removes_whitespace() -> None:
-    assert (
-        OpenStreetMapUrlBuilder.coordinate(" 10.113922624804262 , 105.69436247381175 ")
-        == "10.113922624804262,105.69436247381175"
-    )
+    assert OpenStreetMapUrlBuilder.coordinate(
+        " 10.113922624804262 , 105.69436247381175 "
+    ) == "10.113922624804262,105.69436247381175"
 
 
 @pytest.mark.parametrize(

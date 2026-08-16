@@ -57,6 +57,7 @@ def test_excel_writer_writes_and_flushes_result(tmp_path: Path) -> None:
     saved.close()
 
 
+
 def test_excel_writer_loads_source_from_memory_snapshot(tmp_path: Path) -> None:
     source = tmp_path / "routes.result.xlsx"
     workbook = Workbook()
@@ -83,7 +84,6 @@ def test_excel_writer_loads_source_from_memory_snapshot(tmp_path: Path) -> None:
     saved = load_workbook(source, data_only=True)
     assert saved["Routes"]["C2"].value == 8.6
     saved.close()
-
 
 def test_excel_writer_preserves_errors_and_validates_inputs(
     tmp_path: Path,
@@ -650,6 +650,7 @@ def test_writers_validate_result_duration_column(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="Result duration column not found"):
         csv_writer.write(job)
     csv_writer.close()
+
 
 
 def test_csv_writer_extends_short_row_for_duration_column(tmp_path: Path) -> None:

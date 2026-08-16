@@ -119,6 +119,7 @@ def test_executable_smoke_main_reports_fail(
     assert "Executable smoke: FAIL" in capsys.readouterr().out
 
 
+
 def test_read_smoke_stage_reads_marker(tmp_path: Path) -> None:
     from app.release.executable_smoke import _read_smoke_stage
 

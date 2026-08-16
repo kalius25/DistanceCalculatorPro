@@ -9,9 +9,9 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
 
 from app.diagnostics import DiagnosticsManager
+from app.engines.base_engine import BaseEngine
 from app.engines.browser_manager import BrowserManager
 from app.engines.browser_recovery import BrowserRecoveryManager
-from app.engines.google_maps_engine import GoogleMapsEngine
 from app.engines.performance_models import (
     ProviderPerformanceMetrics,
     ProviderPerformancePolicy,
@@ -40,7 +40,7 @@ class GoogleWebProvider(BaseProvider):
     def __init__(
         self,
         browser: BrowserManager,
-        engine: GoogleMapsEngine,
+        engine: BaseEngine,
         recovery: BrowserRecoveryManager | None = None,
         diagnostics: DiagnosticsManager | None = None,
         performance_policy: ProviderPerformancePolicy | None = None,

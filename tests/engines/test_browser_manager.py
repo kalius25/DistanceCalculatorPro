@@ -492,3 +492,38 @@ def test_close_ignores_playwright_cleanup_errors(
     assert manager._context is None
     assert manager._browser is None
     assert manager._playwright is None
+
+
+def test_start_resolves_executable_before_starting_playwright(
+    browser_config: BrowserConfig,
+) -> None:
+    calls: list[str] = []
+    playwright = MagicMock()
+    browser = MagicMock()
+    context = MagicMock()
+    starter = MagicMock()
+    starter.start.return_value = playwright
+    playwright.chromium.launch.return_value = browser
+    browser.new_context.return_value = context
+
+    def resolve() -> Path:
+        calls.append("resolve")
+        return Path("bundled/chrome.exe")
+
+    def create_playwright() -> MagicMock:
+        calls.append("sync")
+        return starter
+
+    with (
+        patch(
+            "app.engines.browser_manager.resolve_browser_executable",
+            side_effect=resolve,
+        ),
+        patch(
+            "app.engines.browser_manager.sync_playwright",
+            side_effect=create_playwright,
+        ),
+    ):
+        BrowserManager(browser_config).start()
+
+    assert calls == ["resolve", "sync"]

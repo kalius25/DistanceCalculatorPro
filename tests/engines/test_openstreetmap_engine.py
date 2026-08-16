@@ -91,3 +91,115 @@ def test_default_diagnostics_manager_is_created() -> None:
         engine = OpenStreetMapEngine(15_000)
 
     assert engine._diagnostics is diagnostics
+
+
+def test_find_routes_waits_and_parses(
+    route_request: RouteRequest,
+) -> None:
+    page = MagicMock()
+    engine = OpenStreetMapEngine(15_000, MagicMock())
+    routes = [MagicMock()]
+
+    with (
+        patch(
+            "app.engines.openstreetmap_engine."
+            "OpenStreetMapLocator.route_distance",
+            return_value=page.locator.return_value,
+        ),
+        patch(
+            "app.engines.openstreetmap_engine."
+            "OpenStreetMapParser.parse",
+            return_value=routes,
+        ) as parser,
+    ):
+        result = engine.find_routes(page, route_request)
+
+    assert result == routes
+    page.locator.return_value.wait_for.assert_called_once_with(
+        state="visible",
+        timeout=15_000,
+    )
+    parser.assert_called_once_with(page, engine._diagnostics)
+
+
+def test_find_routes_rejects_empty_parse(
+    route_request: RouteRequest,
+) -> None:
+    page = MagicMock()
+    engine = OpenStreetMapEngine(15_000, MagicMock())
+
+    with (
+        patch(
+            "app.engines.openstreetmap_engine."
+            "OpenStreetMapLocator.route_distance",
+            return_value=page.locator.return_value,
+        ),
+        patch(
+            "app.engines.openstreetmap_engine."
+            "OpenStreetMapParser.parse",
+            return_value=[],
+        ),
+    ):
+        with pytest.raises(
+            EngineException,
+            match="OpenStreetMap returned no parseable routes",
+        ):
+            engine.find_routes(page, route_request)
+
+
+def test_find_routes_wraps_result_timeout(
+    route_request: RouteRequest,
+) -> None:
+    page = MagicMock()
+    page.locator.return_value.wait_for.side_effect = (
+        PlaywrightTimeoutError("results")
+    )
+    engine = OpenStreetMapEngine(15_000, MagicMock())
+
+    with patch(
+        "app.engines.openstreetmap_engine."
+        "OpenStreetMapLocator.route_distance",
+        return_value=page.locator.return_value,
+    ):
+        with pytest.raises(
+            EngineException,
+            match="OpenStreetMap route results timed out",
+        ):
+            engine.find_routes(page, route_request)
+
+
+def test_find_routes_wraps_result_playwright_error(
+    route_request: RouteRequest,
+) -> None:
+    page = MagicMock()
+    page.locator.return_value.wait_for.side_effect = (
+        PlaywrightError("results")
+    )
+    engine = OpenStreetMapEngine(15_000, MagicMock())
+
+    with patch(
+        "app.engines.openstreetmap_engine."
+        "OpenStreetMapLocator.route_distance",
+        return_value=page.locator.return_value,
+    ):
+        with pytest.raises(
+            EngineException,
+            match="OpenStreetMap result extraction failed",
+        ):
+            engine.find_routes(page, route_request)
+
+
+def test_context_contains_route_identity(
+    route_request: RouteRequest,
+) -> None:
+    context = OpenStreetMapEngine._context(
+        route_request,
+        "https://example.test",
+    )
+
+    assert context == {
+        "origin": route_request.origin,
+        "destination": route_request.destination,
+        "travel_mode": route_request.travel_mode.value,
+        "url": "https://example.test",
+    }

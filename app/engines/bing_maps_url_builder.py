@@ -22,7 +22,9 @@ class BingMapsUrlBuilder:
     def build(request: RouteRequest) -> str:
         """Build a Bing Maps directions URL for one route request."""
         origin = BingMapsUrlBuilder.coordinate(request.origin)
-        destination = BingMapsUrlBuilder.coordinate(request.destination)
+        destination = BingMapsUrlBuilder.coordinate(
+            request.destination
+        )
         mode = BingMapsUrlBuilder.mode(request.travel_mode)
 
         return (
@@ -53,9 +55,13 @@ class BingMapsUrlBuilder:
             ) from error
 
         if not -90 <= latitude <= 90:
-            raise ValueError("Bing Maps latitude must be between -90 and 90.")
+            raise ValueError(
+                "Bing Maps latitude must be between -90 and 90."
+            )
         if not -180 <= longitude <= 180:
-            raise ValueError("Bing Maps longitude must be between -180 and 180.")
+            raise ValueError(
+                "Bing Maps longitude must be between -180 and 180."
+            )
 
         return f"{parts[0]}_{parts[1]}"
 
@@ -66,7 +72,8 @@ class BingMapsUrlBuilder:
             return _MODE_BY_TRAVEL_MODE[travel_mode]
         except KeyError as error:
             raise ValueError(
-                "Unsupported Bing Maps travel mode: " f"{travel_mode.value}"
+                "Unsupported Bing Maps travel mode: "
+                f"{travel_mode.value}"
             ) from error
 
 

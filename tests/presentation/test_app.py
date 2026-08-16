@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from app.enums.provider_type import ProviderType
 from app.presentation import app as app_module
 
 
@@ -296,11 +297,17 @@ def test_main_cleans_up_when_event_loop_raises() -> None:
 
 def test_create_execution_coordinator_composes_calculation_tree() -> None:
     configuration = MagicMock()
+    configuration.browser.timeout = 30_000
     browser = MagicMock()
     locator = MagicMock()
     parser = MagicMock()
-    engine = MagicMock()
-    provider = MagicMock()
+    google_engine = MagicMock()
+    bing_engine = MagicMock()
+    osm_engine = MagicMock()
+    google_provider = MagicMock()
+    bing_provider = MagicMock()
+    osm_provider = MagicMock()
+    router = MagicMock()
     calculation_service = MagicMock()
     batch_service = MagicMock()
     builder = MagicMock()
@@ -318,13 +325,38 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
         patch.object(
             app_module,
             "GoogleMapsEngine",
-            return_value=engine,
-        ) as engine_type,
+            return_value=google_engine,
+        ) as google_engine_type,
+        patch.object(
+            app_module,
+            "BingMapsEngine",
+            return_value=bing_engine,
+        ) as bing_engine_type,
+        patch.object(
+            app_module,
+            "OpenStreetMapEngine",
+            return_value=osm_engine,
+        ) as osm_engine_type,
         patch.object(
             app_module,
             "GoogleWebProvider",
-            return_value=provider,
-        ) as provider_type,
+            return_value=google_provider,
+        ) as google_provider_type,
+        patch.object(
+            app_module,
+            "BingWebProvider",
+            return_value=bing_provider,
+        ) as bing_provider_type,
+        patch.object(
+            app_module,
+            "OpenStreetMapWebProvider",
+            return_value=osm_provider,
+        ) as osm_provider_type,
+        patch.object(
+            app_module,
+            "ProviderRouter",
+            return_value=router,
+        ) as router_type,
         patch.object(
             app_module,
             "CalculationService",
@@ -342,18 +374,43 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
             return_value=coordinator,
         ) as coordinator_type,
     ):
-        result = app_module.create_execution_coordinator(configuration, diagnostics)
+        result = app_module.create_execution_coordinator(
+            configuration,
+            diagnostics,
+        )
 
     browser_type.assert_called_once_with(configuration.browser)
-    engine_type.assert_called_once_with(
-        configuration.google_maps, locator, parser, diagnostics
+    google_engine_type.assert_called_once_with(
+        configuration.google_maps,
+        locator,
+        parser,
+        diagnostics,
     )
-    provider_type.assert_called_once_with(
+    bing_engine_type.assert_called_once_with(30_000, diagnostics)
+    osm_engine_type.assert_called_once_with(30_000, diagnostics)
+    google_provider_type.assert_called_once_with(
         browser,
-        engine,
+        google_engine,
         diagnostics=diagnostics,
     )
-    calculation_type.assert_called_once_with(provider)
+    bing_provider_type.assert_called_once_with(
+        browser,
+        bing_engine,
+        diagnostics=diagnostics,
+    )
+    osm_provider_type.assert_called_once_with(
+        browser,
+        osm_engine,
+        diagnostics=diagnostics,
+    )
+    router_type.assert_called_once()
+    providers = router_type.call_args.args[0]
+    assert providers == {
+        ProviderType.GOOGLE_MAPS_WEB: google_provider,
+        ProviderType.BING_MAPS_WEB: bing_provider,
+        ProviderType.OPENSTREETMAP_WEB: osm_provider,
+    }
+    calculation_type.assert_called_once_with(router)
     batch_type.assert_called_once_with(calculation_service)
     coordinator_type.assert_called_once_with(
         builder,
@@ -522,6 +579,7 @@ def test_main_schedules_smoke_exit_before_event_loop() -> None:
 
     assert result == 0
     schedule.assert_called_once_with(application)
+
 
 
 def test_write_smoke_stage_ignores_missing_status_file(monkeypatch) -> None:

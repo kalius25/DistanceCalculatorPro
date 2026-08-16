@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from openpyxl import Workbook
@@ -60,6 +60,8 @@ def test_build_excel_requests_with_route_options(tmp_path: Path) -> None:
     assert request.highway_preference is RoutePreference.AVOID
     assert request.ferry_preference is RoutePreference.AVOID
     assert request.metadata == {
+        "source_row": 2,
+        "provider": ProviderType.GOOGLE_MAPS_WEB,
         "row_number": 2,
         "result_column": "Distance",
     }
@@ -146,6 +148,7 @@ def test_build_queue_preserves_all_row_states(tmp_path: Path) -> None:
     assert queue.done_count == 1
 
 
+
 def test_build_queue_rejects_non_executable_provider() -> None:
     configuration = WorkspaceConfiguration(
         ColumnMapping("Origin", "Destination", "Distance", "Duration"),
@@ -160,9 +163,19 @@ def test_build_queue_rejects_non_executable_provider() -> None:
         configuration,
     )
     builder = CalculationJobBuilder(MagicMock())
+    definition = MagicMock()
+    definition.execution_enabled = False
+    definition.display_name = "Future Maps"
+    definition.roadmap_sprint = "9.9"
 
-    with pytest.raises(
-        ProviderException,
-        match="Bing Maps is not executable yet; planned for Sprint 3.4",
+    with (
+        patch(
+            "app.presentation.execution.job.provider_definition",
+            return_value=definition,
+        ),
+        pytest.raises(
+            ProviderException,
+            match="Future Maps is not executable yet; planned for Sprint 9.9",
+        ),
     ):
         builder.build_queue(job)

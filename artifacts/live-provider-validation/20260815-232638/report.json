@@ -1,0 +1,795 @@
+[
+  {
+    "provider": "Bing Maps",
+    "url": "https://www.bing.com/maps/directions?style=r&rtp=pos.10.113922624804262_105.69436247381175~pos.10.892645_105.041044&mode=d",
+    "navigation_ok": true,
+    "engine_ok": false,
+    "engine_error": "EngineException: Bing Maps route results timed out.",
+    "route_count": 0,
+    "candidates": [
+      {
+        "selector": "[data-tag='directions-route']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".directionsRoute",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".routeCard",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[class*='routeCard']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[role='main']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      }
+    ],
+    "dom_probes": [
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "bnp_content_desc",
+        "role": "",
+        "text": "Microsoft và các nhà cung cấp bên thứ ba của chúng tôi sử dụng cookie và các công nghệ tương tự để phân phối, duy trì và cải thiện các dịch vụ và quảng cáo của chúng tôi. Nếu bạn đồng ý, chúng tôi sẽ sử dụng dữ liệu này để cá nhân hóa quảng cáo và thực hiện các phân tích liên quan.\nBạn có thể chọn ‘Chấp nhận’ để đồng ý với các mục đích sử dụng này, ‘Từ chối’ để từ chối các mục đích sử dụng này hoặc nhấp vào ‘Tùy chọn khác’ để xem xét các tùy chọn của bạn. Bạn có thể thay đổi lựa chọn của mình trong phần ‘Quản lý Tùy chọn Cookie’ ở cuối trang này.  Điều khoản về quyền riêng tư"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "bnp_desc_left",
+        "role": "",
+        "text": "Microsoft và các nhà cung cấp bên thứ ba của chúng tôi sử dụng cookie và các công nghệ tương tự để phân phối, duy trì và cải thiện các dịch vụ và quảng cáo của chúng tôi. Nếu bạn đồng ý, chúng tôi sẽ sử dụng dữ liệu này để cá nhân hóa quảng cáo và thực hiện các phân tích liên quan."
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Phân tích:Chúng tôi có thể cho phép các bên thứ ba sử dụng cookie phân tích để hiểu cách bạn sử dụng các trang web của chúng tôi để chúng tôi có thể làm cho chúng tốt hơn và các bên thứ ba có thể phát triển và cải thiện sản phẩm của họ, mà họ có thể sử dụng trên các trang web không do Microsoft sở hữu hoặc điều hành.Tắt"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "mcp_row mcp_row_analytics",
+        "role": "",
+        "text": "Phân tích:Chúng tôi có thể cho phép các bên thứ ba sử dụng cookie phân tích để hiểu cách bạn sử dụng các trang web của chúng tôi để chúng tôi có thể làm cho chúng tốt hơn và các bên thứ ba có thể phát triển và cải thiện sản phẩm của họ, mà họ có thể sử dụng trên các trang web không do Microsoft sở hữu hoặc điều hành.Tắt"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "mcp_analytics_desc",
+        "role": "",
+        "text": "Chúng tôi có thể cho phép các bên thứ ba sử dụng cookie phân tích để hiểu cách bạn sử dụng các trang web của chúng tôi để chúng tôi có thể làm cho chúng tốt hơn và các bên thứ ba có thể phát triển và cải thiện sản phẩm của họ, mà họ có thể sử dụng trên các trang web không do Microsoft sở hữu hoặc điều hành.Tắt"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "mcp_row_desctext",
+        "role": "",
+        "text": "Chúng tôi có thể cho phép các bên thứ ba sử dụng cookie phân tích để hiểu cách bạn sử dụng các trang web của chúng tôi để chúng tôi có thể làm cho chúng tốt hơn và các bên thứ ba có thể phát triển và cải thiện sản phẩm của họ, mà họ có thể sử dụng trên các trang web không do Microsoft sở hữu hoặc điều hành."
+      },
+      {
+        "tag": "div",
+        "element_id": "appShellRoot",
+        "class_name": "root",
+        "role": "",
+        "text": "Chỉ đường\nChỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km\n2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap\nPhản hồi"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "pageContentContainer_CZpp0",
+        "role": "",
+        "text": "Chỉ đường\nChỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km\n2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap\nPhản hồi"
+      },
+      {
+        "tag": "div",
+        "element_id": "pageNonHeader",
+        "class_name": "pageNonHeader_piySA",
+        "role": "",
+        "text": "Chỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km\n2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap\nPhản hồi"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "pageNonNav_if3Am withoutNav_XdWn8",
+        "role": "",
+        "text": "Chỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km\n2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap\nPhản hồi"
+      },
+      {
+        "tag": "aside",
+        "element_id": "contentPane",
+        "class_name": "contentPane_DBp6Q",
+        "role": "",
+        "text": "Chỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "directionsRoot",
+        "class_name": "directionsRoot_qHyg3 hideFlyoverButton3d_OFu9J",
+        "role": "",
+        "text": "Chỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "section",
+        "element_id": "",
+        "class_name": "directionsContent_kJtIl",
+        "role": "",
+        "text": "Chỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "directionsContentBody_s3kvo",
+        "role": "",
+        "text": "A\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Qua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeResultListItemContainer_XiqXI",
+        "role": "",
+        "text": "Qua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeResultListItem_InMO1 selected__e06y",
+        "role": "button",
+        "text": "Qua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeInfo_na7IG",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "topRouteInfo_jelrv",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "routeDistance_:r1:",
+        "class_name": "routeDistance_Hmphx",
+        "role": "",
+        "text": "127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeResultListItemContainer_XiqXI",
+        "role": "",
+        "text": "Qua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeResultListItem_InMO1 ",
+        "role": "button",
+        "text": "Qua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeInfo_na7IG",
+        "role": "",
+        "text": "3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "topRouteInfo_jelrv",
+        "role": "",
+        "text": "3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "routeDistance_:r2:",
+        "class_name": "routeDistance_Hmphx",
+        "role": "",
+        "text": "176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeResultListItemContainer_XiqXI",
+        "role": "",
+        "text": "Qua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeResultListItem_InMO1 ",
+        "role": "button",
+        "text": "Qua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeInfo_na7IG",
+        "role": "",
+        "text": "4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "topRouteInfo_jelrv",
+        "role": "",
+        "text": "4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "routeDistance_:r3:",
+        "class_name": "routeDistance_Hmphx",
+        "role": "",
+        "text": "209.3 km"
+      },
+      {
+        "tag": "main",
+        "element_id": "",
+        "class_name": "mapPane_JbIYk",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap"
+      },
+      {
+        "tag": "div",
+        "element_id": "mapContainer",
+        "class_name": "mapControl_h84hQ bmc-map",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "sub-map-control maplibregl-map",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "maplibregl-canvas-container maplibregl-interactive maplibregl-touch-drag-pan maplibregl-touch-zoom-rotate",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "InfoboxCustom marker-container maplibregl-marker maplibregl-marker-anchor-bottom-left",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "MapsInfoboxContainer",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "button",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeInfobox_IW1Tu selected_FM5gd bottomleft_Bhdeq",
+        "role": "",
+        "text": "2 giờ 46 phút\n127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeDistance_jerW5",
+        "role": "",
+        "text": "127.2 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "InfoboxCustom marker-container maplibregl-marker maplibregl-marker-anchor-top-left",
+        "role": "",
+        "text": "3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "MapsInfoboxContainer",
+        "role": "",
+        "text": "3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "button",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeInfobox_IW1Tu  topleft_E4njF",
+        "role": "",
+        "text": "3 giờ 57 phút\n176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeDistance_jerW5",
+        "role": "",
+        "text": "176.8 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "InfoboxCustom marker-container maplibregl-marker maplibregl-marker-anchor-bottom-left",
+        "role": "",
+        "text": "4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "MapsInfoboxContainer",
+        "role": "",
+        "text": "4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "button",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeInfobox_IW1Tu  bottomleft_Bhdeq",
+        "role": "",
+        "text": "4 giờ 48 phút\n209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "routeDistance_jerW5",
+        "role": "",
+        "text": "209.3 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "bmc-widgets",
+        "role": "",
+        "text": "Việt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "sub br",
+        "role": "",
+        "text": "5 mi\n10 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "scalebar-widget bmc-wgt",
+        "role": "",
+        "text": "5 mi"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "scalebar light",
+        "role": "",
+        "text": "5 mi"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "scalebar-widget bmc-wgt",
+        "role": "",
+        "text": "10 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "scalebar light",
+        "role": "",
+        "text": "10 km"
+      },
+      {
+        "tag": "script",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "//<![CDATA[\n\"use strict\";\n_G!==undefined&&_G.EF!==undefined&&_G.EF.bmasynctrigger===1&&window.requestAnimationFrame!==undefined&&document.visibilityState!==undefined&&document.visibilityState===\"visible\"?requestAnimationFrame(function(){_G.EF.bmasynctrigger2===1?requestAnimationFrame(function(){BM.trigger()}):_G.EF.bmasynctrigger3===1?requestAnimationFrame(function(){setTimeout(function(){BM.trigger()},0)}):setTimeout(function(){BM.trigger()},0)}):BM.trigger();\n//]]>"
+      }
+    ],
+    "interesting_lines": [
+      "127.2 km",
+      "176.8 km",
+      "209.3 km",
+      "127.2 km",
+      "176.8 km",
+      "209.3 km",
+      "10 km"
+    ],
+    "body_excerpt": "Microsoft và các nhà cung cấp bên thứ ba của chúng tôi sử dụng cookie và các công nghệ tương tự để phân phối, duy trì và cải thiện các dịch vụ và quảng cáo của chúng tôi. Nếu bạn đồng ý, chúng tôi sẽ sử dụng dữ liệu này để cá nhân hóa quảng cáo và thực hiện các phân tích liên quan.\nBạn có thể chọn ‘Chấp nhận’ để đồng ý với các mục đích sử dụng này, ‘Từ chối’ để từ chối các mục đích sử dụng này hoặc nhấp vào ‘Tùy chọn khác’ để xem xét các tùy chọn của bạn. Bạn có thể thay đổi lựa chọn của mình trong phần ‘Quản lý Tùy chọn Cookie’ ở cuối trang này.  Điều khoản về quyền riêng tư\nChấp nhận\nTừ chối\nCác lựa chọn khác\nĐăng nhập\nChỉ đường\nChỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 46 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km\n2 giờ 46 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap\nPhản hồi",
+    "html_path": "artifacts\\live-provider-validation\\20260815-232638\\bing_maps_web.html",
+    "screenshot": "artifacts\\live-provider-validation\\20260815-232638\\bing_maps_web.png"
+  },
+  {
+    "provider": "OpenStreetMap",
+    "url": "https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=10.113922624804262,105.69436247381175;10.892645,105.041044",
+    "navigation_ok": true,
+    "engine_ok": false,
+    "engine_error": "EngineException: OpenStreetMap route results timed out.",
+    "route_count": 0,
+    "candidates": [
+      {
+        "selector": "#sidebar_content .routing_summary",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".directions_form .routing_summary",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".routing_summary",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "#sidebar_content",
+        "count": 1,
+        "parseable": 0,
+        "samples": [
+          "Chỉ đường\nTầm xa: 131 km. Thời gian: 1:57.\n\t\nĐặt Đơn vị Đo Chiều dài\n\n\n\t1. Bắt đầu đi theo không tên\t50 m\n\n\t2. Chạy tiếp trên không tên\t170 m\n\n\t3. Quẹo phải vào không tên\t200 m\n\n\t4. Chạy tiếp trên không tên\t200 m\n\n\t5. Quẹo trái vào Đường tỉnh 920 (ĐT.920)\t900 m\n\n\t6. Quẹo trái vào Trương Văn Diễn (ĐT.920C)\t2.4 km\n\n\t7. Quẹo phải vào Tôn Đức Thắng (QL.91)\t15 km\n\n\t8. Chạy tiếp trên Quốc lộ 91 (QL.91)\t10 km\n\n\t9. Chạy tiếp trên Quốc lộ 91 - Đường tránh Thốt Nốt (QL.91)\t10 km\n\n\t10. Quẹo trái vào không tên\t200 m\n\n\t11. Chạy tiếp trên Đường gom cao tốc\t1.6 km\n\n\t12. Quẹo phải vào đường nhánh về Đi Long Xuyên\t300 m\n\n\t13. Chạy tiếp trên Quốc lộ N2B (QL.N2B)\t800 m\n\n\t14. Chạy tiếp trên Đường tránh Long Xuyên\t16 km\n\n\t15. Tới cuối đường quẹo trái vào Trần Hưng Đạo (QL.91)\t400 m\n\n\t16. Chạy tiếp trên Đường T"
+        ]
+      }
+    ],
+    "dom_probes": [
+      {
+        "tag": "thead",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tầm xa: 131 km. Thời gian: 1:57.\n\t\nĐặt Đơn vị Đo Chiều dài"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tầm xa: 131 km. Thời gian: 1:57.\n\t\nĐặt Đơn vị Đo Chiều dài"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "ps-3",
+        "role": "",
+        "text": "Tầm xa: 131 km. Thời gian: 1:57."
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tầm xa: 131 km. Thời gian: 1:57."
+      },
+      {
+        "tag": "output",
+        "element_id": "directions_route_distance",
+        "class_name": "",
+        "role": "",
+        "text": "131 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "6. Quẹo trái vào Trương Văn Diễn (ĐT.920C)\t2.4 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "2.4 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "7. Quẹo phải vào Tôn Đức Thắng (QL.91)\t15 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "15 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "8. Chạy tiếp trên Quốc lộ 91 (QL.91)\t10 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "10 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "9. Chạy tiếp trên Quốc lộ 91 - Đường tránh Thốt Nốt (QL.91)\t10 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "11. Chạy tiếp trên Đường gom cao tốc\t1.6 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "1.6 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "14. Chạy tiếp trên Đường tránh Long Xuyên\t16 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "16 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "16. Chạy tiếp trên Đường Trần Hưng Đạo (QL.91)\t1.6 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "17. Chạy tiếp trên Lê Lợi (QL.91)\t4.1 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "4.1 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "18. Chạy tiếp trên Quốc lộ 91 (QL.91)\t2.2 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "2.2 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "19. Quẹo phải vào Quốc lộ 91 (QL.91)\t5.0 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "5.0 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "21. Chạy tiếp trên Quốc lộ 91 (QL.91)\t6 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "6 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "22. Chạy tiếp trên Quốc lộ 91 (QL.91)\t25 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "25 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "23. Chạy tiếp trên Tôn Đức Thắng (QL.91)\t2.8 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "2.8 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "24. Chạy tiếp trên Lê Lợi\t1.6 km"
+      },
+      {
+        "tag": "tr",
+        "element_id": "",
+        "class_name": "turn",
+        "role": "",
+        "text": "31. Quay trở lại vào QL.91C; ĐT.957\t22 km"
+      },
+      {
+        "tag": "td",
+        "element_id": "",
+        "class_name": "pe-3 distance text-body-secondary text-end",
+        "role": "",
+        "text": "22 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "map",
+        "class_name": "bg-body-secondary flex-grow-1 z-0 leaflet-container leaflet-touch leaflet-retina leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom",
+        "role": "",
+        "text": "10 km\n5 mi\n© Người đóng góp vào OpenStreetMap ♥️ Quyên góp. Điều khoản trang và API"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "leaflet-control-container",
+        "role": "",
+        "text": "10 km\n5 mi\n© Người đóng góp vào OpenStreetMap ♥️ Quyên góp. Điều khoản trang và API"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "leaflet-bottom leaflet-left",
+        "role": "",
+        "text": "10 km\n5 mi"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "leaflet-control-scale leaflet-control",
+        "role": "",
+        "text": "10 km\n5 mi"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "leaflet-control-scale-line",
+        "role": "",
+        "text": "10 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "leaflet-control-scale-line",
+        "role": "",
+        "text": "5 mi"
+      }
+    ],
+    "interesting_lines": [
+      "Tầm xa: 131 km. Thời gian: 1:57.",
+      "6. Quẹo trái vào Trương Văn Diễn (ĐT.920C)\t2.4 km",
+      "7. Quẹo phải vào Tôn Đức Thắng (QL.91)\t15 km",
+      "8. Chạy tiếp trên Quốc lộ 91 (QL.91)\t10 km",
+      "9. Chạy tiếp trên Quốc lộ 91 - Đường tránh Thốt Nốt (QL.91)\t10 km",
+      "11. Chạy tiếp trên Đường gom cao tốc\t1.6 km",
+      "14. Chạy tiếp trên Đường tránh Long Xuyên\t16 km",
+      "16. Chạy tiếp trên Đường Trần Hưng Đạo (QL.91)\t1.6 km",
+      "17. Chạy tiếp trên Lê Lợi (QL.91)\t4.1 km",
+      "18. Chạy tiếp trên Quốc lộ 91 (QL.91)\t2.2 km",
+      "19. Quẹo phải vào Quốc lộ 91 (QL.91)\t5.0 km",
+      "21. Chạy tiếp trên Quốc lộ 91 (QL.91)\t6 km",
+      "22. Chạy tiếp trên Quốc lộ 91 (QL.91)\t25 km",
+      "23. Chạy tiếp trên Tôn Đức Thắng (QL.91)\t2.8 km",
+      "24. Chạy tiếp trên Lê Lợi\t1.6 km",
+      "31. Quay trở lại vào QL.91C; ĐT.957\t22 km",
+      "10 km"
+    ],
+    "body_excerpt": "OpenStreetMap\nSửa đổi\nLịch sử\nXuất\nTuyến GPS\nNhật ký\nCộng đồng\nBản quyền\nTrợ giúp\nQuyên góp\nGiới thiệu\nĐăng nhập\nMở Tài khoản\nGraphHopper\nOSRM\nValhalla\nChỉ đường\nTầm xa: 131 km. Thời gian: 1:57.\n\t\nĐặt Đơn vị Đo Chiều dài\n\n\n\t1. Bắt đầu đi theo không tên\t50 m\n\n\t2. Chạy tiếp trên không tên\t170 m\n\n\t3. Quẹo phải vào không tên\t200 m\n\n\t4. Chạy tiếp trên không tên\t200 m\n\n\t5. Quẹo trái vào Đường tỉnh 920 (ĐT.920)\t900 m\n\n\t6. Quẹo trái vào Trương Văn Diễn (ĐT.920C)\t2.4 km\n\n\t7. Quẹo phải vào Tôn Đức Thắng (QL.91)\t15 km\n\n\t8. Chạy tiếp trên Quốc lộ 91 (QL.91)\t10 km\n\n\t9. Chạy tiếp trên Quốc lộ 91 - Đường tránh Thốt Nốt (QL.91)\t10 km\n\n\t10. Quẹo trái vào không tên\t200 m\n\n\t11. Chạy tiếp trên Đường gom cao tốc\t1.6 km\n\n\t12. Quẹo phải vào đường nhánh về Đi Long Xuyên\t300 m\n\n\t13. Chạy tiếp trên Quốc lộ N2B (QL.N2B)\t800 m\n\n\t14. Chạy tiếp trên Đường tránh Long Xuyên\t16 km\n\n\t15. Tới cuối đường quẹo trái vào Trần Hưng Đạo (QL.91)\t400 m\n\n\t16. Chạy tiếp trên Đường Trần Hưng Đạo (QL.91)\t1.6 km\n\n\t17. Chạy tiếp trên Lê Lợi (QL.91)\t4.1 km\n\n\t18. Chạy tiếp trên Quốc lộ 91 (QL.91)\t2.2 km\n\n\t19. Quẹo phải vào Quốc lộ 91 (QL.91)\t5.0 km\n\n\t20. Chạy tiếp trên QL 91 (QL.91)\t600 m\n\n\t21. Chạy tiếp trên Quốc lộ 91 (QL.91)\t6 km\n\n\t22. Chạy tiếp trên Quốc lộ 91 (QL.91)\t25 km\n\n\t23. Chạy tiếp trên Tôn Đức Thắng (QL.91)\t2.8 km\n\n\t24. Chạy tiếp trên Lê Lợi\t1.6 km\n\n\t25. Chạy tiếp trên Trần Hưng Đạo\t800 m\n\n\t26. Quẹo trái vào không tên\t200 m\n\n\t27. Quẹo gắt bên trái vào Doãn Uẩn (QL.91C)\t120 m\n\n\t28. Chạy tiếp trên Cầu Cồn Tiên (QL.91C)\t500 m\n\n\t29. Quẹo phải vào QL.91C; ĐT.957\t\n\n\t30. Quẹo trái vào QL.91C; ĐT.957\t\n\n\t31. Quay trở lại vào QL.91C; ĐT.957\t22 km\n\n\t32. Tới nơi\t\n\nTải về tuyến đường dưới dạng GeoJSON\n\nChỉ đường do OSRM (FOSSGIS) cung cấp\n\nXem thêm chi tiết tại OSRM (FOSSGIS)\n\n10 km\n5 mi\n© Người đóng góp vào OpenStreetMap ♥️ Quyên góp. Điều khoản trang và API",
+    "html_path": "artifacts\\live-provider-validation\\20260815-232638\\openstreetmap_web.html",
+    "screenshot": "artifacts\\live-provider-validation\\20260815-232638\\openstreetmap_web.png"
+  }
+]

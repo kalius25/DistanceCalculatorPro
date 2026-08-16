@@ -22,26 +22,20 @@ def test_about_page_uses_application_metadata(qtbot) -> None:
         page.findChild(QLabel, "lblAboutPageOrganization").text()
         == "Organization: Test Org"
     )
-    assert (
-        page.findChild(
-            QLabel,
-            "lblAboutPageRelease",
-        ).text()
-        == "Release channel: v1.2 · Stable"
-    )
+    assert page.findChild(
+        QLabel,
+        "lblAboutPageRelease",
+    ).text() == "Release channel: v1.2 · Stable"
 
 
 def test_about_page_defaults_to_application_metadata(qtbot) -> None:
     page = AboutPage()
     qtbot.addWidget(page)
 
-    assert (
-        page.findChild(
-            QLabel,
-            "lblAboutPageProduct",
-        ).text()
-        == "DistanceCalculatorPro"
-    )
+    assert page.findChild(
+        QLabel,
+        "lblAboutPageProduct",
+    ).text() == "DistanceCalculatorPro"
 
 
 def test_about_page_details_button_emits_signal(qtbot) -> None:

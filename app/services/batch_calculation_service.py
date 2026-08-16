@@ -135,7 +135,9 @@ class BatchCalculationService:
                     duration_text = (
                         best_route.duration_text if best_route is not None else None
                     )
-                    queue.mark_done(job, distance_km, duration_minutes, duration_text)
+                    queue.mark_done(
+                        job, distance_km, duration_minutes, duration_text
+                    )
                 else:
                     message = result.error or "Unknown error."
                     job.last_error = message
@@ -244,6 +246,7 @@ class BatchCalculationService:
         queue.resume_retry(job)
         self._emit_row_event(job, row_event_callback)
         return True
+
 
     @staticmethod
     def _emit_row_event(

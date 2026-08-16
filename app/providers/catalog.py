@@ -45,11 +45,10 @@ PROVIDER_DEFINITIONS = (
             TravelMode.WALKING,
         ),
         engine_ready=True,
-        execution_enabled=False,
+        execution_enabled=True,
         supports_avoid_tolls=False,
         supports_avoid_highways=False,
         supports_avoid_ferries=False,
-        roadmap_sprint="3.4",
     ),
     ProviderDefinition(
         provider=ProviderType.OPENSTREETMAP_WEB,
@@ -59,16 +58,16 @@ PROVIDER_DEFINITIONS = (
             TravelMode.WALKING,
         ),
         engine_ready=True,
-        execution_enabled=False,
+        execution_enabled=True,
         supports_avoid_tolls=False,
         supports_avoid_highways=False,
         supports_avoid_ferries=False,
-        roadmap_sprint="3.4",
     ),
 )
 
 _PROVIDER_DEFINITIONS_BY_TYPE = {
-    definition.provider: definition for definition in PROVIDER_DEFINITIONS
+    definition.provider: definition
+    for definition in PROVIDER_DEFINITIONS
 }
 
 

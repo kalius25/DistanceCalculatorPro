@@ -35,7 +35,9 @@ class CalculationJobBuilder:
 
     def build_queue(self, job: CalculationJob) -> BatchQueue:
         """Build the reusable state-aware queue for one calculation job."""
-        selected_provider = job.configuration.provider_configuration.provider
+        selected_provider = (
+            job.configuration.provider_configuration.provider
+        )
         definition = provider_definition(selected_provider)
         if not definition.execution_enabled:
             raise ProviderException(
@@ -60,6 +62,7 @@ class CalculationJobBuilder:
                 ferry_preference=item.ferry_preference,
                 highway_preference=item.highway_preference,
                 metadata={
+                    **item.metadata,
                     "row_number": item.row_index,
                     "result_column": item.result_column,
                 },

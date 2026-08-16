@@ -7,26 +7,21 @@ from app.providers.catalog import (
 
 
 def test_provider_catalog_contains_v1_3_providers() -> None:
-    assert tuple(definition.provider for definition in PROVIDER_DEFINITIONS) == (
+    assert tuple(
+        definition.provider
+        for definition in PROVIDER_DEFINITIONS
+    ) == (
         ProviderType.GOOGLE_MAPS_WEB,
         ProviderType.BING_MAPS_WEB,
         ProviderType.OPENSTREETMAP_WEB,
     )
 
 
-def test_google_maps_is_the_only_executable_provider_in_sprint_3_3() -> None:
-    google = provider_definition(ProviderType.GOOGLE_MAPS_WEB)
-    bing = provider_definition(ProviderType.BING_MAPS_WEB)
-    osm = provider_definition(ProviderType.OPENSTREETMAP_WEB)
-
-    assert google.engine_ready
-    assert google.execution_enabled
-    assert bing.engine_ready
-    assert not bing.execution_enabled
-    assert osm.engine_ready
-    assert not osm.execution_enabled
-    assert bing.roadmap_sprint == "3.4"
-    assert osm.roadmap_sprint == "3.4"
+def test_all_v1_3_providers_are_executable_in_sprint_3_5() -> None:
+    for definition in PROVIDER_DEFINITIONS:
+        assert definition.engine_ready
+        assert definition.execution_enabled
+        assert definition.roadmap_sprint is None
 
 
 def test_provider_foundation_supports_driving_and_walking() -> None:

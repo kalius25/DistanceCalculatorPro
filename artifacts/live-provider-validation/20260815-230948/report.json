@@ -1,0 +1,82 @@
+[
+  {
+    "provider": "Bing Maps",
+    "url": "https://www.bing.com/maps/directions?style=r&rtp=pos.10.113922624804262_105.69436247381175~pos.10.892645_105.041044&mode=d",
+    "navigation_ok": true,
+    "engine_ok": false,
+    "engine_error": "EngineException: Bing Maps route results timed out.",
+    "route_count": 0,
+    "candidates": [
+      {
+        "selector": "[data-tag='directions-route']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".directionsRoute",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".routeCard",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[class*='routeCard']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[role='main']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      }
+    ],
+    "body_excerpt": "Microsoft và các nhà cung cấp bên thứ ba của chúng tôi sử dụng cookie và các công nghệ tương tự để phân phối, duy trì và cải thiện các dịch vụ và quảng cáo của chúng tôi. Nếu bạn đồng ý, chúng tôi sẽ sử dụng dữ liệu này để cá nhân hóa quảng cáo và thực hiện các phân tích liên quan.\nBạn có thể chọn ‘Chấp nhận’ để đồng ý với các mục đích sử dụng này, ‘Từ chối’ để từ chối các mục đích sử dụng này hoặc nhấp vào ‘Tùy chọn khác’ để xem xét các tùy chọn của bạn. Bạn có thể thay đổi lựa chọn của mình trong phần ‘Quản lý Tùy chọn Cookie’ ở cuối trang này.  Điều khoản về quyền riêng tư\nChấp nhận\nTừ chối\nCác lựa chọn khác\nĐăng nhập\nChỉ đường\nChỉ đường\nLái xe\nA\nB\nThêm trạm dừng chân\nRời ngay\nQua QL 91\nTuyến đường nhanh nhất\n·\nKhông chậm trễ\n·\nĐường không trải nhựa\nChi tiết\n2 giờ 45 phút\n127.2 km\nQua TL 922, QL 91\nKhông chậm trễ\nChi tiết\n3 giờ 57 phút\n176.8 km\nQua CT.01, QL.30\nKhông chậm trễ\n·\nTrạm thu phí trên đường\nChi tiết\n4 giờ 48 phút\n209.3 km\n2 giờ 45 phút\n127.2 km\n3 giờ 57 phút\n176.8 km\n4 giờ 48 phút\n209.3 km\nViệt NamTỉnh An GiangXã Long Kiến\n5 mi\n10 km\n© 2026 TomTom, © 2026 GrabTaxi, © OpenStreetMap\nPhản hồi",
+    "screenshot": "artifacts\\live-provider-validation\\20260815-230948\\bing_maps_web.png"
+  },
+  {
+    "provider": "OpenStreetMap",
+    "url": "https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=10.113922624804262,105.69436247381175;10.892645,105.041044",
+    "navigation_ok": true,
+    "engine_ok": false,
+    "engine_error": "EngineException: OpenStreetMap route results timed out.",
+    "route_count": 0,
+    "candidates": [
+      {
+        "selector": "#sidebar_content .routing_summary",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".directions_form .routing_summary",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": ".routing_summary",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "#sidebar_content",
+        "count": 1,
+        "parseable": 0,
+        "samples": [
+          "Chỉ đường\nTầm xa: 131 km. Thời gian: 1:57.\n\t\nĐặt Đơn vị Đo Chiều dài\n\n\n\t1. Bắt đầu đi theo không tên\t50 m\n\n\t2. Chạy tiếp trên không tên\t170 m\n\n\t3. Quẹo phải vào không tên\t200 m\n\n\t4. Chạy tiếp trên không tên\t200 m\n\n\t5. Quẹo trái vào Đường tỉnh 920 (ĐT.920)\t900 m\n\n\t6. Quẹo trái vào Trương Văn Diễn (ĐT.920C)\t2.4 km\n\n\t7. Quẹo phải vào Tôn Đức Thắng (QL.91)\t15 km\n\n\t8. Chạy tiếp trên Quốc lộ 91 (QL.91)\t10 km\n\n\t9. Chạy tiếp trên Quốc lộ 91 - Đường tránh Thốt Nốt (QL.91)\t10 km\n\n\t10. Quẹo trái vào không tên\t200 m\n\n\t11. Chạy tiếp trên Đường gom cao tốc\t1.6 km\n\n\t12. Quẹo phải vào đường nhánh về Đi Long Xuyên\t300 m\n\n\t13. Chạy tiếp trên Quốc lộ N2B (QL.N2B)\t800 m\n\n\t14. Chạy tiếp trên Đường tránh Long Xuyên\t16 km\n\n\t15. Tới cuối đường quẹo trái vào Trần Hưng Đạo (QL.91)\t400 m\n\n\t16. Chạy tiếp trên Đường T"
+        ]
+      }
+    ],
+    "body_excerpt": "OpenStreetMap\nSửa đổi\nLịch sử\nXuất\nTuyến GPS\nNhật ký\nCộng đồng\nBản quyền\nTrợ giúp\nQuyên góp\nGiới thiệu\nĐăng nhập\nMở Tài khoản\nGraphHopper\nOSRM\nValhalla\nChỉ đường\nTầm xa: 131 km. Thời gian: 1:57.\n\t\nĐặt Đơn vị Đo Chiều dài\n\n\n\t1. Bắt đầu đi theo không tên\t50 m\n\n\t2. Chạy tiếp trên không tên\t170 m\n\n\t3. Quẹo phải vào không tên\t200 m\n\n\t4. Chạy tiếp trên không tên\t200 m\n\n\t5. Quẹo trái vào Đường tỉnh 920 (ĐT.920)\t900 m\n\n\t6. Quẹo trái vào Trương Văn Diễn (ĐT.920C)\t2.4 km\n\n\t7. Quẹo phải vào Tôn Đức Thắng (QL.91)\t15 km\n\n\t8. Chạy tiếp trên Quốc lộ 91 (QL.91)\t10 km\n\n\t9. Chạy tiếp trên Quốc lộ 91 - Đường tránh Thốt Nốt (QL.91)\t10 km\n\n\t10. Quẹo trái vào không tên\t200 m\n\n\t11. Chạy tiếp trên Đường gom cao tốc\t1.6 km\n\n\t12. Quẹo phải vào đường nhánh về Đi Long Xuyên\t300 m\n\n\t13. Chạy tiếp trên Quốc lộ N2B (QL.N2B)\t800 m\n\n\t14. Chạy tiếp trên Đường tránh Long Xuyên\t16 km\n\n\t15. Tới cuối đường quẹo trái vào Trần Hưng Đạo (QL.91)\t400 m\n\n\t16. Chạy tiếp trên Đường Trần Hưng Đạo (QL.91)\t1.6 km\n\n\t17. Chạy tiếp trên Lê Lợi (QL.91)\t4.1 km\n\n\t18. Chạy tiếp trên Quốc lộ 91 (QL.91)\t2.2 km\n\n\t19. Quẹo phải vào Quốc lộ 91 (QL.91)\t5.0 km\n\n\t20. Chạy tiếp trên QL 91 (QL.91)\t600 m\n\n\t21. Chạy tiếp trên Quốc lộ 91 (QL.91)\t6 km\n\n\t22. Chạy tiếp trên Quốc lộ 91 (QL.91)\t25 km\n\n\t23. Chạy tiếp trên Tôn Đức Thắng (QL.91)\t2.8 km\n\n\t24. Chạy tiếp trên Lê Lợi\t1.6 km\n\n\t25. Chạy tiếp trên Trần Hưng Đạo\t800 m\n\n\t26. Quẹo trái vào không tên\t200 m\n\n\t27. Quẹo gắt bên trái vào Doãn Uẩn (QL.91C)\t120 m\n\n\t28. Chạy tiếp trên Cầu Cồn Tiên (QL.91C)\t500 m\n\n\t29. Quẹo phải vào QL.91C; ĐT.957\t\n\n\t30. Quẹo trái vào QL.91C; ĐT.957\t\n\n\t31. Quay trở lại vào QL.91C; ĐT.957\t22 km\n\n\t32. Tới nơi\t\n\nTải về tuyến đường dưới dạng GeoJSON\n\nChỉ đường do OSRM (FOSSGIS) cung cấp\n\nXem thêm chi tiết tại OSRM (FOSSGIS)\n\n10 km\n5 mi\n© Người đóng góp vào OpenStreetMap ♥️ Quyên góp. Điều khoản trang và API",
+    "screenshot": "artifacts\\live-provider-validation\\20260815-230948\\openstreetmap_web.png"
+  }
+]

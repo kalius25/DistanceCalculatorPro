@@ -86,6 +86,7 @@ class ExcelTableModel(QAbstractTableModel):
         self._status_counts.clear()
         self.endResetModel()
 
+
     def row_status(self, row: int) -> PreviewRowStatus:
         """Return the processing status for a zero-based data row."""
         if row < 0 or row >= self.rowCount():

@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -134,13 +134,9 @@ def test_calculate_closes_owned_browser_when_page_creation_fails():
 def test_constructor_uses_injected_dependencies_only():
     browser = MagicMock()
     engine = MagicMock()
-    with (
-        patch("app.providers.google_web_provider.BrowserManager") as browser_type,
-        patch("app.providers.google_web_provider.GoogleMapsEngine") as engine_type,
-    ):
-        provider = GoogleWebProvider(browser, engine)
-    browser_type.assert_not_called()
-    engine_type.assert_not_called()
+
+    provider = GoogleWebProvider(browser, engine)
+
     assert provider._browser is browser
     assert provider._engine is engine
 

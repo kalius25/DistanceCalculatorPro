@@ -65,9 +65,9 @@ class BrowserManager:
         if self._browser is not None:
             return
 
+        executable = resolve_browser_executable()
         self._playwright = sync_playwright().start()
 
-        executable = resolve_browser_executable()
         self._browser = self._playwright.chromium.launch(
             executable_path=str(executable),
             headless=self._config.headless,
