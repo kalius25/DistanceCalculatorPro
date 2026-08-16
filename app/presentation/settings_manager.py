@@ -91,9 +91,7 @@ class SettingsManager:
         normalized_path = file_path.strip()
         if not normalized_path:
             return
-        recent_files = [
-            item for item in self.recent_files() if item != normalized_path
-        ]
+        recent_files = [item for item in self.recent_files() if item != normalized_path]
         if recent_files:
             self._settings.setValue(self.RECENT_FILES_KEY, recent_files)
         else:

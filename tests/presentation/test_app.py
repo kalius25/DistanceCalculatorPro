@@ -581,7 +581,6 @@ def test_main_schedules_smoke_exit_before_event_loop() -> None:
     schedule.assert_called_once_with(application)
 
 
-
 def test_write_smoke_stage_ignores_missing_status_file(monkeypatch) -> None:
     monkeypatch.delenv("DCP_SMOKE_STATUS_FILE", raising=False)
 

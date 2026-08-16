@@ -129,9 +129,7 @@ class MainWindow(QMainWindow):
         self._action_open = QAction("Open Workbook...", self)
         self._action_open.setShortcut(QKeySequence.StandardKey.Open)
         self._action_open.setToolTip("Open a workbook (Ctrl+O)")
-        self._action_open.setStatusTip(
-            "Open an XLSX, XLSM, or CSV workbook"
-        )
+        self._action_open.setStatusTip("Open an XLSX, XLSM, or CSV workbook")
 
         self._action_exit = QAction("Exit", self)
         self._action_exit.setStatusTip("Exit DistanceCalculatorPro")
@@ -183,9 +181,7 @@ class MainWindow(QMainWindow):
         )
         self._action_trace_browser = QAction("Trace Browser", self)
         self._action_trace_browser.setCheckable(True)
-        self._action_trace_browser.setStatusTip(
-            "Record browser navigation diagnostics"
-        )
+        self._action_trace_browser.setStatusTip("Record browser navigation diagnostics")
         self._action_parser_diagnostics = QAction("Parser Diagnostics", self)
         self._action_parser_diagnostics.setCheckable(True)
         self._action_parser_diagnostics.setStatusTip(

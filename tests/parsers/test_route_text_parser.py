@@ -33,17 +33,23 @@ def test_parse_route_text_supports_vietnamese_flags() -> None:
 
 
 def test_parse_route_text_returns_none_without_distance() -> None:
-    assert parse_route_text(
-        "Route\n20 min",
-        provider="sample",
-    ) is None
+    assert (
+        parse_route_text(
+            "Route\n20 min",
+            provider="sample",
+        )
+        is None
+    )
 
 
 def test_parse_route_text_returns_none_without_duration() -> None:
-    assert parse_route_text(
-        "Route\n10 km",
-        provider="sample",
-    ) is None
+    assert (
+        parse_route_text(
+            "Route\n10 km",
+            provider="sample",
+        )
+        is None
+    )
 
 
 def test_parse_route_text_returns_none_for_bad_distance_conversion() -> None:
@@ -52,10 +58,13 @@ def test_parse_route_text_returns_none_for_bad_distance_conversion() -> None:
         "distance_to_km",
         return_value=None,
     ):
-        assert parse_route_text(
-            "Route\n10 km\n20 min",
-            provider="sample",
-        ) is None
+        assert (
+            parse_route_text(
+                "Route\n10 km\n20 min",
+                provider="sample",
+            )
+            is None
+        )
 
 
 def test_parse_route_text_returns_none_for_bad_duration_conversion() -> None:
@@ -64,10 +73,13 @@ def test_parse_route_text_returns_none_for_bad_duration_conversion() -> None:
         "duration_to_minutes",
         return_value=None,
     ):
-        assert parse_route_text(
-            "Route\n10 km\n20 min",
-            provider="sample",
-        ) is None
+        assert (
+            parse_route_text(
+                "Route\n10 km\n20 min",
+                provider="sample",
+            )
+            is None
+        )
 
 
 def test_parse_route_text_allows_empty_summary() -> None:

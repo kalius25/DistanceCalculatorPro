@@ -66,8 +66,7 @@ PROVIDER_DEFINITIONS = (
 )
 
 _PROVIDER_DEFINITIONS_BY_TYPE = {
-    definition.provider: definition
-    for definition in PROVIDER_DEFINITIONS
+    definition.provider: definition for definition in PROVIDER_DEFINITIONS
 }
 
 

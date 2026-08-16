@@ -1,0 +1,24 @@
+[
+  {
+    "provider": "Bing Maps",
+    "travel_mode": "walking",
+    "success": true,
+    "route_count": 3,
+    "selected_route": 0,
+    "distance_km": 126.2,
+    "duration_minutes": 1513,
+    "duration_text": "25 giờ 13 phút",
+    "error": null
+  },
+  {
+    "provider": "OpenStreetMap",
+    "travel_mode": "walking",
+    "success": true,
+    "route_count": 1,
+    "selected_route": 0,
+    "distance_km": 227.0,
+    "duration_minutes": 3031,
+    "duration_text": "50:31",
+    "error": null
+  }
+]

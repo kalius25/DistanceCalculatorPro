@@ -37,7 +37,6 @@ class PreviewStatusFilterProxyModel(QSortFilterProxyModel):
         self._statuses = normalized
         self.endFilterChange()
 
-
     def refresh_filter(self) -> None:
         """Re-evaluate the active filter after source statuses change."""
         self.beginFilterChange()

@@ -425,6 +425,7 @@ def test_real_csv_uses_virtual_preview_for_all_data_rows(
     page.clear_inspection()
     assert page._preview_model.rowCount() == 0
 
+
 def test_source_panels_can_be_hidden_and_shown(
     qtbot: object,
 ) -> None:
@@ -516,7 +517,6 @@ def test_workspace_guidance_stays_visible_when_source_panels_are_toggled(
     assert page._workspace_status.isVisible()
 
 
-
 def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
     from datetime import datetime
 
@@ -552,10 +552,7 @@ def test_column_mapping_auto_detects_common_headers(qtbot: object) -> None:
     assert page._origin_column_selector.currentText() == "TỌA ĐỘ NƠI ĐI"
     assert page._destination_column_selector.currentText() == "TỌA ĐỘ NƠI ĐẾN"
     assert page._result_column_selector.currentText() == "KẾT QUẢ"
-    assert (
-        page._result_duration_column_selector.currentText()
-        == "THỜI GIAN DI CHUYỂN"
-    )
+    assert page._result_duration_column_selector.currentText() == "THỜI GIAN DI CHUYỂN"
     assert page._mapping_valid
     assert page._mapping_status.text() == "Mapping ready"
 
@@ -669,7 +666,6 @@ def test_preview_extends_missing_headers_and_handles_no_rows(qtbot: object) -> N
     assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Column 2"
     assert page._preview_model.headerData(3, Qt.Orientation.Horizontal) == "Column 3"
     assert page._preview_title.text() == "Data Preview (no data rows)"
-
 
 
 def test_unknown_sheet_name_is_ignored(qtbot: object) -> None:
@@ -867,14 +863,20 @@ def test_provider_selector_exposes_engine_readiness_tooltips(
     osm_index = page._provider_selector.findText("OpenStreetMap")
 
     expected = "Available for calculation"
-    assert page._provider_selector.itemData(
-        bing_index,
-        Qt.ItemDataRole.ToolTipRole,
-    ) == expected
-    assert page._provider_selector.itemData(
-        osm_index,
-        Qt.ItemDataRole.ToolTipRole,
-    ) == expected
+    assert (
+        page._provider_selector.itemData(
+            bing_index,
+            Qt.ItemDataRole.ToolTipRole,
+        )
+        == expected
+    )
+    assert (
+        page._provider_selector.itemData(
+            osm_index,
+            Qt.ItemDataRole.ToolTipRole,
+        )
+        == expected
+    )
 
 
 def test_provider_validation_covers_engine_ready_non_executable_branch(
@@ -908,8 +910,7 @@ def test_provider_validation_covers_engine_ready_non_executable_branch(
 
     assert not page._provider_valid
     assert page._provider_status.text() == (
-        "Future Provider engine ready; "
-        "result parsing starts in Sprint 9.2"
+        "Future Provider engine ready; " "result parsing starts in Sprint 9.2"
     )
 
 
@@ -945,8 +946,7 @@ def test_provider_validation_covers_foundation_only_branch(
     assert not page._provider_valid
     assert page.provider_configuration is None
     assert page._provider_status.text() == (
-        "Foundation Provider foundation ready; "
-        "engine starts in Sprint 3.3"
+        "Foundation Provider foundation ready; " "engine starts in Sprint 3.3"
     )
     assert page._provider_status.property("valid") is False
 
@@ -1090,9 +1090,7 @@ def test_provider_configuration_requires_travel_mode(
 
     assert not page._provider_valid
     assert page.provider_configuration is None
-    assert page._provider_status.text() == (
-        "Select a provider and travel mode"
-    )
+    assert page._provider_status.text() == ("Select a provider and travel mode")
     assert page._provider_status.property("valid") is False
 
 
@@ -1407,7 +1405,6 @@ def test_batch_summary_starts_and_updates_live(
     assert "#2563EB" in text
 
 
-
 def test_live_summary_state_preserves_current_counters(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
@@ -1519,11 +1516,11 @@ def test_workbook_inspector_file_metadata_and_config_toggle(qtbot: object) -> No
         modified_at=datetime(2026, 8, 7, 8, 0),
         worksheets=(
             WorksheetInfo(
-                    "Routes",
-                    2,
-                    4,
-                    ("Origin", "Destination", "Distance", "Duration"),
-                ),
+                "Routes",
+                2,
+                4,
+                ("Origin", "Destination", "Distance", "Duration"),
+            ),
         ),
     )
     page.set_selected_file(info.file_path)
@@ -1759,7 +1756,6 @@ def test_changing_legacy_worksheet_refreshes_cached_title_and_headers(
     assert page._preview_model.headerData(2, Qt.Orientation.Horizontal) == "Value"
 
 
-
 def test_replacing_workbook_closes_previous_virtual_source(
     qtbot: object,
     tmp_path: Path,
@@ -1979,10 +1975,7 @@ def test_preview_status_filter_bar_filters_live_statuses(qtbot: object) -> None:
     assert page.preview_status_filter == frozenset({PreviewRowStatus.FAILED})
     assert page._preview_filter_model.rowCount() == 1
     assert (
-        page._preview_filter_model.data(
-            page._preview_filter_model.index(0, 1)
-        )
-        == "C"
+        page._preview_filter_model.data(page._preview_filter_model.index(0, 1)) == "C"
     )
 
     page._preview_status_filter.setCurrentIndex(1)
@@ -2138,11 +2131,6 @@ def test_preview_status_filter_badges_track_live_counts(qtbot: object) -> None:
 
     page.reset_preview_row_statuses()
     assert page._preview_status_filter.currentText() == "Pending (4)"
-
-
-
-
-
 
 
 def _focus_preview_test_page(qtbot: object) -> HomePage:
@@ -2387,10 +2375,7 @@ def test_mapping_keeps_legacy_ket_qua_as_result_distance(
         page._populate_column_mapping(worksheet.headers)
 
     assert page._result_column_selector.currentData() == "KẾT QUẢ"
-    assert (
-        page._result_duration_column_selector.currentData()
-        == "THỜI GIAN DI CHUYỂN"
-    )
+    assert page._result_duration_column_selector.currentData() == "THỜI GIAN DI CHUYỂN"
     assert blocker.args == [
         "TỌA ĐỘ NƠI ĐI",
         "TỌA ĐỘ NƠI ĐẾN",

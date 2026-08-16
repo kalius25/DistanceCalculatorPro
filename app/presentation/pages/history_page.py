@@ -77,9 +77,7 @@ class HistoryPage(QWidget):
         has_items = bool(recent_files)
         if not has_items:
             empty_item = QListWidgetItem("No recent workbooks")
-            empty_item.setFlags(
-                empty_item.flags() & ~Qt.ItemFlag.ItemIsEnabled
-            )
+            empty_item.setFlags(empty_item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
             self._recent_files.addItem(empty_item)
 
         self._clear_button.setEnabled(has_items)

@@ -148,7 +148,6 @@ def test_build_queue_preserves_all_row_states(tmp_path: Path) -> None:
     assert queue.done_count == 1
 
 
-
 def test_build_queue_rejects_non_executable_provider() -> None:
     configuration = WorkspaceConfiguration(
         ColumnMapping("Origin", "Destination", "Distance", "Duration"),

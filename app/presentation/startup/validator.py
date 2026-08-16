@@ -111,4 +111,3 @@ class StartupValidator:
                     "Browser executable is missing. Run: playwright install chromium",
                 )
             )
-

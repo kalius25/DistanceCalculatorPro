@@ -20,17 +20,12 @@ def test_bundled_browser_returns_packaged_executable(
 ) -> None:
     import sys
 
-    executable = (
-        tmp_path / "app" / "browser" / "chromium" / "chrome.exe"
-    )
+    executable = tmp_path / "app" / "browser" / "chromium" / "chrome.exe"
     executable.parent.mkdir(parents=True)
     executable.write_bytes(b"chrome")
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
 
-    assert (
-        browser_executable.bundled_browser_executable()
-        == executable.resolve()
-    )
+    assert browser_executable.bundled_browser_executable() == executable.resolve()
 
 
 def test_bundled_browser_returns_none_when_packaged_file_missing(
@@ -105,7 +100,6 @@ def test_resolve_browser_executable_falls_back_to_playwright(
         result = browser_executable.resolve_browser_executable()
 
     assert result == playwright_executable
-
 
 
 def test_bundled_browser_ignores_empty_meipass(monkeypatch) -> None:

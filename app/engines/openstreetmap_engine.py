@@ -32,9 +32,7 @@ class OpenStreetMapEngine(BaseEngine):
         diagnostics: DiagnosticsManager | None = None,
     ) -> None:
         if action_timeout <= 0:
-            raise ValueError(
-                "OpenStreetMap action timeout must be greater than zero."
-            )
+            raise ValueError("OpenStreetMap action timeout must be greater than zero.")
         self._action_timeout = action_timeout
         self._diagnostics = diagnostics or DiagnosticsManager()
 

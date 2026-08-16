@@ -1,0 +1,15 @@
+[
+  {
+    "provider": "Bing Maps",
+    "travel_mode": "driving",
+    "passed": true,
+    "workspace_ready": true,
+    "calculation_completed": true,
+    "calculation_failed": false,
+    "output_exists": true,
+    "distance_value": 172.3,
+    "duration_value": 25,
+    "final_status": "Ready to calculate",
+    "error": ""
+  }
+]

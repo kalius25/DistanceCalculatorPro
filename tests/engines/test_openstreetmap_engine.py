@@ -102,13 +102,11 @@ def test_find_routes_waits_and_parses(
 
     with (
         patch(
-            "app.engines.openstreetmap_engine."
-            "OpenStreetMapLocator.route_distance",
+            "app.engines.openstreetmap_engine." "OpenStreetMapLocator.route_distance",
             return_value=page.locator.return_value,
         ),
         patch(
-            "app.engines.openstreetmap_engine."
-            "OpenStreetMapParser.parse",
+            "app.engines.openstreetmap_engine." "OpenStreetMapParser.parse",
             return_value=routes,
         ) as parser,
     ):
@@ -130,13 +128,11 @@ def test_find_routes_rejects_empty_parse(
 
     with (
         patch(
-            "app.engines.openstreetmap_engine."
-            "OpenStreetMapLocator.route_distance",
+            "app.engines.openstreetmap_engine." "OpenStreetMapLocator.route_distance",
             return_value=page.locator.return_value,
         ),
         patch(
-            "app.engines.openstreetmap_engine."
-            "OpenStreetMapParser.parse",
+            "app.engines.openstreetmap_engine." "OpenStreetMapParser.parse",
             return_value=[],
         ),
     ):
@@ -151,14 +147,11 @@ def test_find_routes_wraps_result_timeout(
     route_request: RouteRequest,
 ) -> None:
     page = MagicMock()
-    page.locator.return_value.wait_for.side_effect = (
-        PlaywrightTimeoutError("results")
-    )
+    page.locator.return_value.wait_for.side_effect = PlaywrightTimeoutError("results")
     engine = OpenStreetMapEngine(15_000, MagicMock())
 
     with patch(
-        "app.engines.openstreetmap_engine."
-        "OpenStreetMapLocator.route_distance",
+        "app.engines.openstreetmap_engine." "OpenStreetMapLocator.route_distance",
         return_value=page.locator.return_value,
     ):
         with pytest.raises(
@@ -172,14 +165,11 @@ def test_find_routes_wraps_result_playwright_error(
     route_request: RouteRequest,
 ) -> None:
     page = MagicMock()
-    page.locator.return_value.wait_for.side_effect = (
-        PlaywrightError("results")
-    )
+    page.locator.return_value.wait_for.side_effect = PlaywrightError("results")
     engine = OpenStreetMapEngine(15_000, MagicMock())
 
     with patch(
-        "app.engines.openstreetmap_engine."
-        "OpenStreetMapLocator.route_distance",
+        "app.engines.openstreetmap_engine." "OpenStreetMapLocator.route_distance",
         return_value=page.locator.return_value,
     ):
         with pytest.raises(

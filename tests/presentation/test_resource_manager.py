@@ -31,6 +31,7 @@ def test_resource_manager_uses_pyinstaller_meipass(
 
     manager = ResourceManager(Path("ignored"))
 
-    assert manager.styles_directory == (
-        tmp_path / "app" / "presentation" / "styles"
-    ).resolve()
+    assert (
+        manager.styles_directory
+        == (tmp_path / "app" / "presentation" / "styles").resolve()
+    )

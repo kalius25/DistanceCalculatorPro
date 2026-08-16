@@ -68,9 +68,7 @@ class ProviderRouter(BaseProvider):
             try:
                 return ProviderType(value)
             except ValueError as exc:
-                raise ProviderException(
-                    f"Unknown route provider: {value}."
-                ) from exc
+                raise ProviderException(f"Unknown route provider: {value}.") from exc
         raise ProviderException("Route request does not specify a provider.")
 
 

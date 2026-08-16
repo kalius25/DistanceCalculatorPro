@@ -32,9 +32,7 @@ class BingMapsEngine(BaseEngine):
         diagnostics: DiagnosticsManager | None = None,
     ) -> None:
         if action_timeout <= 0:
-            raise ValueError(
-                "Bing Maps action timeout must be greater than zero."
-            )
+            raise ValueError("Bing Maps action timeout must be greater than zero.")
         self._action_timeout = action_timeout
         self._diagnostics = diagnostics or DiagnosticsManager()
 

@@ -32,15 +32,17 @@ def test_build_walking_url() -> None:
 
 
 def test_coordinate_removes_whitespace() -> None:
-    assert BingMapsUrlBuilder.coordinate(
-        " 10.113922624804262 , 105.69436247381175 "
-    ) == "10.113922624804262_105.69436247381175"
+    assert (
+        BingMapsUrlBuilder.coordinate(" 10.113922624804262 , 105.69436247381175 ")
+        == "10.113922624804262_105.69436247381175"
+    )
 
 
 def test_coordinate_accepts_bing_underscore_format() -> None:
-    assert BingMapsUrlBuilder.coordinate(
-        "10.113922624804262_105.69436247381175"
-    ) == "10.113922624804262_105.69436247381175"
+    assert (
+        BingMapsUrlBuilder.coordinate("10.113922624804262_105.69436247381175")
+        == "10.113922624804262_105.69436247381175"
+    )
 
 
 @pytest.mark.parametrize(

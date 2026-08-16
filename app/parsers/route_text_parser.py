@@ -59,11 +59,7 @@ def parse_route_text(
         duration_minutes=duration_minutes,
         has_toll="toll" in lower or "thu phí" in lower,
         has_ferry="ferry" in lower or "phà" in lower,
-        has_highway=(
-            "highway" in lower
-            or "expressway" in lower
-            or "cao tốc" in lower
-        ),
+        has_highway=("highway" in lower or "expressway" in lower or "cao tốc" in lower),
         raw={
             "provider": provider,
             "text": text,

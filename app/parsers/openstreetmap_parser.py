@@ -40,12 +40,8 @@ class OpenStreetMapParser:
         diagnostics: DiagnosticsManager | None = None,
     ) -> list[RouteOption]:
         """Parse the live OSM total Distance and Time outputs."""
-        distance_text = OpenStreetMapLocator.route_distance(
-            page
-        ).inner_text().strip()
-        duration_text = OpenStreetMapLocator.route_duration(
-            page
-        ).inner_text().strip()
+        distance_text = OpenStreetMapLocator.route_distance(page).inner_text().strip()
+        duration_text = OpenStreetMapLocator.route_duration(page).inner_text().strip()
 
         distance_km = TextConverter.distance_to_km(distance_text)
         duration_minutes = _duration_to_minutes(duration_text)

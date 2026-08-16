@@ -6,9 +6,7 @@ class ResourceManager:
     """Resolves presentation resources from one centralized location."""
 
     def __init__(self, package_directory: Path) -> None:
-        self._package_directory = self._resolve_package_directory(
-            package_directory
-        )
+        self._package_directory = self._resolve_package_directory(package_directory)
 
     @staticmethod
     def _resolve_package_directory(package_directory: Path) -> Path:

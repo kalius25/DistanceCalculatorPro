@@ -157,7 +157,6 @@ def create_application() -> tuple[
     return application, main_window, exception_handler, splash_screen
 
 
-
 def _write_smoke_stage(stage: str) -> None:
     status_file = os.getenv("DCP_SMOKE_STATUS_FILE", "").strip()
     if not status_file:
@@ -167,6 +166,7 @@ def _write_smoke_stage(stage: str) -> None:
         Path(status_file).write_text(stage, encoding="utf-8")
     except OSError:
         pass
+
 
 def _schedule_smoke_exit(application: QApplication) -> None:
     raw_delay = os.getenv("DCP_SMOKE_EXIT_MS", "").strip()

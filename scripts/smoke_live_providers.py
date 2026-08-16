@@ -116,8 +116,7 @@ def _candidate_results(
 def _probe_metric_elements(page: Page) -> list[DomProbe]:
     """Find small DOM elements that look like route metric containers."""
     try:
-        raw = page.locator("body *").evaluate_all(
-            """
+        raw = page.locator("body *").evaluate_all("""
         (elements) => {
           const metric = new RegExp(
             [
@@ -174,8 +173,7 @@ def _probe_metric_elements(page: Page) -> list[DomProbe]:
           }
           return out;
         }
-            """
-        )
+            """)
     except Exception:
         return []
     return [DomProbe(**item) for item in raw]

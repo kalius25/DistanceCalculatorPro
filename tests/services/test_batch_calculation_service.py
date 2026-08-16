@@ -759,11 +759,14 @@ def test_calculate_queue_emits_pending_when_stopped_during_retry() -> None:
         sleep_callback=MagicMock(),
     )
 
-    assert service.calculate_queue(
-        queue,
-        should_stop=lambda: next(checks),
-        row_event_callback=events.append,
-    ) == []
+    assert (
+        service.calculate_queue(
+            queue,
+            should_stop=lambda: next(checks),
+            row_event_callback=events.append,
+        )
+        == []
+    )
 
     assert [event.status for event in events] == [
         RouteJobStatus.RUNNING,

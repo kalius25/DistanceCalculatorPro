@@ -15,6 +15,7 @@ def _read_smoke_stage(marker: Path) -> str:
         return "no startup marker written"
     return value or "empty startup marker"
 
+
 def run_executable_smoke(
     executable: Path,
     *,
@@ -48,8 +49,7 @@ def run_executable_smoke(
 
     if completed.returncode != 0:
         return False, (
-            "Executable exited with non-zero code "
-            f"{completed.returncode}"
+            "Executable exited with non-zero code " f"{completed.returncode}"
         )
 
     return True, "Executable startup/shutdown smoke passed"
@@ -63,9 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         "executable",
         nargs="?",
         type=Path,
-        default=Path(
-            "dist/DistanceCalculatorPro/DistanceCalculatorPro.exe"
-        ),
+        default=Path("dist/DistanceCalculatorPro/DistanceCalculatorPro.exe"),
     )
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--auto-exit-ms", type=int, default=1500)

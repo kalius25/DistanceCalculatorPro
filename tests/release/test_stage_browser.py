@@ -78,7 +78,6 @@ def test_stage_browser_main_reports_staged_executable(
     assert "Bundled Chromium staged:" in capsys.readouterr().out
 
 
-
 def test_stage_browser_rejects_missing_staged_executable(
     tmp_path: Path,
 ) -> None:

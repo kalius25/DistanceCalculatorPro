@@ -1,0 +1,13 @@
+[
+  {
+    "provider": "Bing Maps",
+    "travel_mode": "driving",
+    "success": true,
+    "route_count": 3,
+    "selected_route": 1,
+    "distance_km": 175.0,
+    "duration_minutes": 26,
+    "duration_text": "26 phút",
+    "error": null
+  }
+]

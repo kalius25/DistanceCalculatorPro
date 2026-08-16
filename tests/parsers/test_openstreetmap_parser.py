@@ -35,13 +35,11 @@ def test_parse_reads_live_osm_total_outputs() -> None:
 
     with (
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_distance",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_distance",
             return_value=distance,
         ),
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_duration",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_duration",
             return_value=duration,
         ),
     ):
@@ -66,13 +64,11 @@ def test_parse_logs_live_osm_route() -> None:
 
     with (
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_distance",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_distance",
             return_value=distance,
         ),
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_duration",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_duration",
             return_value=duration,
         ),
     ):
@@ -91,13 +87,11 @@ def test_parse_returns_empty_when_distance_is_invalid() -> None:
 
     with (
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_distance",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_distance",
             return_value=distance,
         ),
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_duration",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_duration",
             return_value=duration,
         ),
     ):
@@ -113,13 +107,11 @@ def test_parse_returns_empty_when_duration_is_invalid() -> None:
 
     with (
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_distance",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_distance",
             return_value=distance,
         ),
         patch(
-            "app.parsers.openstreetmap_parser."
-            "OpenStreetMapLocator.route_duration",
+            "app.parsers.openstreetmap_parser." "OpenStreetMapLocator.route_duration",
             return_value=duration,
         ),
     ):

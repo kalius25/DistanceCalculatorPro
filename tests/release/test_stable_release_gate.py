@@ -10,9 +10,7 @@ from app.release.stable_release_gate import (
 
 def _write_pyproject(root: Path, version: str) -> None:
     (root / "pyproject.toml").write_text(
-        "[project]\n"
-        'name = "DistanceCalculatorPro"\n'
-        f'version = "{version}"\n',
+        "[project]\n" 'name = "DistanceCalculatorPro"\n' f'version = "{version}"\n',
         encoding="utf-8",
     )
 
@@ -36,9 +34,7 @@ def test_stable_release_gate_reports_runtime_mismatch(
     ):
         issues = validate_stable_release(tmp_path)
 
-    assert issues == (
-        "Runtime version must be 1.2.0; found 1.2.0-rc25.",
-    )
+    assert issues == ("Runtime version must be 1.2.0; found 1.2.0-rc25.",)
 
 
 def test_stable_release_gate_reports_missing_pyproject(
@@ -46,9 +42,7 @@ def test_stable_release_gate_reports_missing_pyproject(
 ) -> None:
     issues = validate_stable_release(tmp_path)
 
-    assert issues == (
-        f"Missing package metadata: {tmp_path / 'pyproject.toml'}",
-    )
+    assert issues == (f"Missing package metadata: {tmp_path / 'pyproject.toml'}",)
 
 
 def test_stable_release_gate_reports_package_mismatch(
@@ -58,9 +52,7 @@ def test_stable_release_gate_reports_package_mismatch(
 
     issues = validate_stable_release(tmp_path)
 
-    assert issues == (
-        "Package version must be 1.2.0; found '1.2.0rc25'.",
-    )
+    assert issues == ("Package version must be 1.2.0; found '1.2.0rc25'.",)
 
 
 def test_stable_release_gate_main_passes(

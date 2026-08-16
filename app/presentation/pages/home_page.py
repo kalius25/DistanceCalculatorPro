@@ -54,13 +54,11 @@ def _provider_tooltip(definition: ProviderDefinition) -> str:
     if definition.execution_enabled:
         return "Available for calculation"
     if definition.engine_ready:
-        return (
-            "Navigation engine ready; result parsing starts in Sprint "
-            + str(definition.roadmap_sprint)
+        return "Navigation engine ready; result parsing starts in Sprint " + str(
+            definition.roadmap_sprint
         )
-    return (
-        "Provider foundation ready; engine starts in Sprint "
-        + str(definition.roadmap_sprint)
+    return "Provider foundation ready; engine starts in Sprint " + str(
+        definition.roadmap_sprint
     )
 
 
@@ -464,9 +462,7 @@ class HomePage(QWidget):
         self._toggle_config_button = QPushButton("Hide Config", self._inspector_frame)
         self._toggle_config_button.setObjectName("btnToggleConfig")
         self._toggle_config_button.setCheckable(True)
-        self._toggle_config_button.setIcon(
-            qta.icon("fa5s.chevron-up", color="#111827")
-        )
+        self._toggle_config_button.setIcon(qta.icon("fa5s.chevron-up", color="#111827"))
         self._toggle_config_button.setToolTip(
             "Hide Column Mapping and Route Provider configuration"
         )
@@ -501,7 +497,6 @@ class HomePage(QWidget):
         worksheet_layout.addWidget(worksheet_caption)
         worksheet_layout.addWidget(self._sheet_selector)
         summary_layout.addLayout(worksheet_layout, 3)
-
 
         self._row_count_value = self._summary_value("Rows", summary_layout)
         self._column_count_value = self._summary_value("Columns", summary_layout)
@@ -1092,14 +1087,10 @@ class HomePage(QWidget):
         self._toggle_source_panels_button.setIcon(
             qta.icon(source_icon, color=control_color)
         )
-        self._toggle_config_button.setIcon(
-            qta.icon(config_icon, color=control_color)
-        )
+        self._toggle_config_button.setIcon(qta.icon(config_icon, color=control_color))
 
     def _set_drop_icon_color(self, color: str) -> None:
-        self._drop_icon.setPixmap(
-            qta.icon("fa5s.upload", color=color).pixmap(36, 36)
-        )
+        self._drop_icon.setPixmap(qta.icon("fa5s.upload", color=color).pixmap(36, 36))
 
     @property
     def source_panels_visible(self) -> bool:
@@ -1143,9 +1134,7 @@ class HomePage(QWidget):
         )
         icon_name = "fa5s.chevron-right" if hidden else "fa5s.chevron-left"
         icon_color = "#111827" if self._theme_name == "light" else "#F9FAFB"
-        self._toggle_source_panels_button.setIcon(
-            qta.icon(icon_name, color=icon_color)
-        )
+        self._toggle_source_panels_button.setIcon(qta.icon(icon_name, color=icon_color))
         if emit_signal:
             self.source_panels_visibility_changed.emit(not hidden)
 
@@ -1175,7 +1164,6 @@ class HomePage(QWidget):
 
     def _on_workspace_splitter_moved(self, _position: int, _index: int) -> None:
         self.workspace_splitter_state_changed.emit(self._workspace_splitter.saveState())
-
 
     def _resize_preview_columns(self) -> None:
         header = self._preview_table.horizontalHeader()
@@ -1369,9 +1357,7 @@ class HomePage(QWidget):
             if display_name in used_columns:
                 continue
             blank_count = sum(
-                self._is_blank_preview_value(
-                    row[index] if index < len(row) else ""
-                )
+                self._is_blank_preview_value(row[index] if index < len(row) else "")
                 for row in worksheet.preview_rows
             )
             ranked_columns.append((-blank_count, index, display_name))
@@ -1403,9 +1389,7 @@ class HomePage(QWidget):
         destination = self._destination_column_selector.currentData() or ""
         result = self._result_column_selector.currentData() or ""
         duration = self._result_duration_column_selector.currentData() or ""
-        selected = [
-            value for value in (origin, destination, result, duration) if value
-        ]
+        selected = [value for value in (origin, destination, result, duration) if value]
         self._mapping_valid = len(selected) == 4 and len(set(selected)) == 4
         if self._mapping_valid:
             self._mapping_status.setText("Mapping ready")
@@ -1455,9 +1439,7 @@ class HomePage(QWidget):
         mode = self._travel_mode_selector.currentData()
         walking = mode == TravelMode.WALKING.value
         tolls_enabled = definition.supports_avoid_tolls and not walking
-        highways_enabled = (
-            definition.supports_avoid_highways and not walking
-        )
+        highways_enabled = definition.supports_avoid_highways and not walking
         ferries_enabled = definition.supports_avoid_ferries
 
         for checkbox, enabled in (
@@ -1483,15 +1465,11 @@ class HomePage(QWidget):
         definition = self._selected_provider_definition()
         if definition is None:
             self._provider_valid = False
-            self._provider_status.setText(
-                "Select a provider and travel mode"
-            )
+            self._provider_status.setText("Select a provider and travel mode")
             self._provider_status.setProperty("valid", False)
         elif not travel_mode:
             self._provider_valid = False
-            self._provider_status.setText(
-                "Select a provider and travel mode"
-            )
+            self._provider_status.setText("Select a provider and travel mode")
             self._provider_status.setProperty("valid", False)
         elif not definition.execution_enabled:
             self._provider_valid = False

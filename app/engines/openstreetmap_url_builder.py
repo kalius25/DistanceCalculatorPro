@@ -22,9 +22,7 @@ class OpenStreetMapUrlBuilder:
     def build(request: RouteRequest) -> str:
         """Build an OpenStreetMap directions URL for one request."""
         origin = OpenStreetMapUrlBuilder.coordinate(request.origin)
-        destination = OpenStreetMapUrlBuilder.coordinate(
-            request.destination
-        )
+        destination = OpenStreetMapUrlBuilder.coordinate(request.destination)
         engine = OpenStreetMapUrlBuilder.engine(request.travel_mode)
 
         return (
@@ -41,8 +39,7 @@ class OpenStreetMapUrlBuilder:
 
         if len(parts) != 2 or not all(parts):
             raise ValueError(
-                "OpenStreetMap coordinates must contain latitude "
-                "and longitude."
+                "OpenStreetMap coordinates must contain latitude " "and longitude."
             )
 
         try:
@@ -54,13 +51,9 @@ class OpenStreetMapUrlBuilder:
             ) from error
 
         if not -90 <= latitude <= 90:
-            raise ValueError(
-                "OpenStreetMap latitude must be between -90 and 90."
-            )
+            raise ValueError("OpenStreetMap latitude must be between -90 and 90.")
         if not -180 <= longitude <= 180:
-            raise ValueError(
-                "OpenStreetMap longitude must be between -180 and 180."
-            )
+            raise ValueError("OpenStreetMap longitude must be between -180 and 180.")
 
         return f"{parts[0]},{parts[1]}"
 
@@ -71,8 +64,7 @@ class OpenStreetMapUrlBuilder:
             return _ENGINE_BY_TRAVEL_MODE[travel_mode]
         except KeyError as error:
             raise ValueError(
-                "Unsupported OpenStreetMap travel mode: "
-                f"{travel_mode.value}"
+                "Unsupported OpenStreetMap travel mode: " f"{travel_mode.value}"
             ) from error
 
 

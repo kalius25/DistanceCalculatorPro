@@ -7,10 +7,7 @@ from app.providers.catalog import (
 
 
 def test_provider_catalog_contains_v1_3_providers() -> None:
-    assert tuple(
-        definition.provider
-        for definition in PROVIDER_DEFINITIONS
-    ) == (
+    assert tuple(definition.provider for definition in PROVIDER_DEFINITIONS) == (
         ProviderType.GOOGLE_MAPS_WEB,
         ProviderType.BING_MAPS_WEB,
         ProviderType.OPENSTREETMAP_WEB,

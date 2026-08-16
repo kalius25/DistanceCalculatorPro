@@ -9,6 +9,4 @@ def test_route_results_uses_live_route_card_prefix_selector() -> None:
     result = BingMapsLocator.route_results(page)
 
     assert result is page.locator.return_value
-    page.locator.assert_called_once_with(
-        "[class*='routeResultListItemContainer_']"
-    )
+    page.locator.assert_called_once_with("[class*='routeResultListItemContainer_']")

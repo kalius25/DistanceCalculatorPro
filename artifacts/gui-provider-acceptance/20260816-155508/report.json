@@ -1,0 +1,15 @@
+[
+  {
+    "provider": "OpenStreetMap",
+    "travel_mode": "driving",
+    "passed": true,
+    "workspace_ready": true,
+    "calculation_completed": true,
+    "calculation_failed": false,
+    "output_exists": true,
+    "distance_value": 131,
+    "duration_value": 117,
+    "final_status": "Ready to calculate",
+    "error": ""
+  }
+]
