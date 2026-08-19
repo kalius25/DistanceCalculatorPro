@@ -15,6 +15,7 @@ from app.engines.browser_manager import BrowserManager
 from app.engines.google_maps_engine import GoogleMapsEngine
 from app.engines.google_maps_locator import GoogleMapsLocator
 from app.engines.openstreetmap_engine import OpenStreetMapEngine
+from app.engines.vietbando_engine import VietBanDoEngine
 from app.enums.provider_type import ProviderType
 from app.logging.logging_manager import LoggingManager
 from app.parsers.google_maps_parser import GoogleMapsParser
@@ -24,6 +25,7 @@ from app.providers.openstreetmap_web_provider import (
     OpenStreetMapWebProvider,
 )
 from app.providers.provider_router import ProviderRouter
+from app.providers.vietbando_web_provider import VietBanDoWebProvider
 from app.services.batch_calculation_service import BatchCalculationService
 from app.services.calculation_service import CalculationService
 from app.workbooks import (
@@ -72,11 +74,17 @@ def create_execution_coordinator(
         OpenStreetMapEngine(configuration.browser.timeout, diagnostics),
         diagnostics=diagnostics,
     )
+    vietbando_provider = VietBanDoWebProvider(
+        browser_manager,
+        VietBanDoEngine(configuration.browser.timeout, diagnostics),
+        diagnostics=diagnostics,
+    )
     provider = ProviderRouter(
         {
             ProviderType.GOOGLE_MAPS_WEB: google_provider,
             ProviderType.BING_MAPS_WEB: bing_provider,
             ProviderType.OPENSTREETMAP_WEB: osm_provider,
+            ProviderType.VIETBANDO_WEB: vietbando_provider,
         }
     )
     calculation_service = CalculationService(provider)

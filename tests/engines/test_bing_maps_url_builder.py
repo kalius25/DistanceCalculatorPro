@@ -68,6 +68,7 @@ def test_coordinate_rejects_invalid_values(
     [
         TravelMode.BICYCLING,
         TravelMode.TRANSIT,
+        TravelMode.TRUCK,
     ],
 )
 def test_mode_rejects_unsupported_modes(

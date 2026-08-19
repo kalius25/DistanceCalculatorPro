@@ -12,5 +12,6 @@ class TravelMode(StrEnum):
 
     DRIVING = "driving"
     WALKING = "walking"
+    TRUCK = "truck"
     BICYCLING = "bicycling"
     TRANSIT = "transit"

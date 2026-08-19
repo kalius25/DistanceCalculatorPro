@@ -1,0 +1,963 @@
+[
+  {
+    "mode": "walking",
+    "url": "https://maps.vietbando.com/maps/?fp=10.113922624804262,105.69436247381175|10.892645,105.041044;5;0;0,0",
+    "navigation_ok": true,
+    "candidate_results": [
+      {
+        "selector": "[class*='route']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[id*='route']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[class*='direction']",
+        "count": 9,
+        "parseable": 0,
+        "samples": [
+          "HẺM\nKẸT XE\nĐi bộ\nXe máy\nÔ tô\nXe tải\nXe buýt",
+          "$order$\n                                                    \n                                                    \n                                                    \n                                                        Xóa \n                                                            \n                                                                Tìm",
+          "A\nXóa\nTìm\nẨn\nTìm dịch vụ trên đoạn này\n1\nĐi thẳng Đường Số 6\n221 m\n2\nRẽ trái vào Đường Số 8\n342 m\n3\nRẽ phải vào Đường Số 7\n474 m\n4\nRẽ trái vào Đường Không Tên\n63 m\n5\nRẽ phải vào Đường Không Tên\n166 m\n6\nRẽ trái vào Đường Không Tên\n1.654 km\n7\nRẽ phải vào Đường Tôn Đức Thắng\n594 m\n8\nRẽ trái vào Đường Tôn Đức Thắng\n2.752 km\n9\nRẽ trái vào Đường Tôn Đức Thắng\n1.138 km\n10\nRẽ trái vào Đường Tôn Đức Thắng\n722 m\n11\nRẽ trái vào Đường Tôn Đức Thắng\n1.896 km\n12\nRẽ trái vào Đường Tôn Đức Thắng\n434 m\n13\nRẽ trái vào Đường Tôn Đức Thắng\n15.707 km\n14\nRẽ phải vào Quốc Lộ 91\n2.629 km\n15\nRẽ phải vào Quốc Lộ 91\n2.699 km\n16\nRẽ phải vào Lộ Mới\n2.169 km\n17\nRẽ phải vào Quốc Lộ 91\n2.122 km\n18\nRẽ phải vào Quốc Lộ 91\n16 m\n19\nRẽ trái vào Quốc Lộ 91\n3.282 km\n20\nRẽ phải vào Quốc Lộ 91\n981 m\n21\nRẽ trái vào Quốc Lộ 91\n4.569 km\n22\nRẽ phải vào Đường Trần Hưng Đạo\n872 m\n23\nRẽ phải vào Đường Trần Hưng Đạo\n1.593 km\n24\nRẽ phải vào Đường Trần Hưng Đạo\n1.311 km\n25\nRẽ phải vào Vòng Xoay Đèn Bốn Ngọn\n38 m\n26\nRẽ trái vào Vòng Xoa"
+        ]
+      },
+      {
+        "selector": "[id*='direction']",
+        "count": 5,
+        "parseable": 0,
+        "samples": [
+          "HẺM\nKẸT XE\nĐi bộ\nXe máy\nÔ tô\nXe tải\nXe buýt",
+          "$order$\n                                                    \n                                                    \n                                                    \n                                                        Xóa \n                                                            \n                                                                Tìm",
+          "A\nXóa\nTìm\nẨn\nTìm dịch vụ trên đoạn này\n1\nĐi thẳng Đường Số 6\n221 m\n2\nRẽ trái vào Đường Số 8\n342 m\n3\nRẽ phải vào Đường Số 7\n474 m\n4\nRẽ trái vào Đường Không Tên\n63 m\n5\nRẽ phải vào Đường Không Tên\n166 m\n6\nRẽ trái vào Đường Không Tên\n1.654 km\n7\nRẽ phải vào Đường Tôn Đức Thắng\n594 m\n8\nRẽ trái vào Đường Tôn Đức Thắng\n2.752 km\n9\nRẽ trái vào Đường Tôn Đức Thắng\n1.138 km\n10\nRẽ trái vào Đường Tôn Đức Thắng\n722 m\n11\nRẽ trái vào Đường Tôn Đức Thắng\n1.896 km\n12\nRẽ trái vào Đường Tôn Đức Thắng\n434 m\n13\nRẽ trái vào Đường Tôn Đức Thắng\n15.707 km\n14\nRẽ phải vào Quốc Lộ 91\n2.629 km\n15\nRẽ phải vào Quốc Lộ 91\n2.699 km\n16\nRẽ phải vào Lộ Mới\n2.169 km\n17\nRẽ phải vào Quốc Lộ 91\n2.122 km\n18\nRẽ phải vào Quốc Lộ 91\n16 m\n19\nRẽ trái vào Quốc Lộ 91\n3.282 km\n20\nRẽ phải vào Quốc Lộ 91\n981 m\n21\nRẽ trái vào Quốc Lộ 91\n4.569 km\n22\nRẽ phải vào Đường Trần Hưng Đạo\n872 m\n23\nRẽ phải vào Đường Trần Hưng Đạo\n1.593 km\n24\nRẽ phải vào Đường Trần Hưng Đạo\n1.311 km\n25\nRẽ phải vào Vòng Xoay Đèn Bốn Ngọn\n38 m\n26\nRẽ trái vào Vòng Xoa"
+        ]
+      },
+      {
+        "selector": "[class*='distance']",
+        "count": 53,
+        "parseable": 0,
+        "samples": [
+          "221 m",
+          "342 m",
+          "474 m"
+        ]
+      },
+      {
+        "selector": "[id*='distance']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[class*='duration']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[id*='duration']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[class*='time']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      },
+      {
+        "selector": "[id*='time']",
+        "count": 0,
+        "parseable": 0,
+        "samples": []
+      }
+    ],
+    "dom_probes": [
+      {
+        "tag": "div",
+        "element_id": "tags",
+        "class_name": "",
+        "role": "",
+        "text": "Vietbando, Việt bản đồ, Bản đồ, Bản đồ số, Bản đồ trực tuyến, Bản đồ online, Bản đồ thế giới, Bản đồ việt nam, Bản đồ 63 tỉnh thành, Bản đồ hà nội, Bản đồ tphcm, Bản đồ thành phố hồ chí minh, Bản đồ rào chắn, lô cốt, ranh giới, Tìm đường, địa chỉ, địa điểm, điện thoại, doanh nghiệp, máy ATM, trạm xăng, đường đi ngắn nhất, Vietnam map, map online, GIS, locations, businesses, addresses, phones, Windows Mobile map, Blackberry map, Symbian map, Android map, iPhone map, Vietnam map Wap"
+      },
+      {
+        "tag": "p",
+        "element_id": "shortdesc",
+        "class_name": "",
+        "role": "",
+        "text": "Xem bản đồ 63 tỉnh thành, tìm điểm dịch vụ, địa chỉ, điện thoại và đường đi ở Việt Nam, See map, find locations, businesses, addresses, phones and directions in Vietnam.\n    Vietbando - Bản đồ Việt Nam | Tìm đường đi | Địa chỉ | Địa điểm | Điện thoại | Doanh nghiệp | Máy ATM | Trạm xăng | Đường đi ngắn nhất | Bản đồ số | Bản đồ trực tuyến | Bản đồ online | Bản đồ thế giới | Bản đồ 63 tỉnh thành | Bản đồ hà nội | Bản đồ tphcm | Bản đồ thành phố hồ chí minh | Bản đồ rào chắn | lô cốt | ranh giới"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "kb-first kb-line1",
+        "role": "",
+        "text": "Z\n            \n            \n                X\n            \n            \n                C\n            \n            \n                V\n            \n            \n                B\n            \n            \n                N\n            \n            \n                M\n            \n            \n                Enter\n            \n            \n                1\n            \n            \n                2\n            \n            \n                3"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "M"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "M"
+      },
+      {
+        "tag": "div",
+        "element_id": "SelectPlace",
+        "class_name": "SelectPlace",
+        "role": "",
+        "text": "Tắt\n            \n                \n                    \n                        Hãy chọn vị trí cho điểm\n                    \n                        a"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "SelectPlaceDiv",
+        "role": "",
+        "text": "Hãy chọn vị trí cho điểm\n                    \n                        a"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "SelectPlaceTitle",
+        "role": "",
+        "text": "Hãy chọn vị trí cho điểm\n                    \n                        a"
+      },
+      {
+        "tag": "h3",
+        "element_id": "",
+        "class_name": "SPTitText",
+        "role": "",
+        "text": "Hãy chọn vị trí cho điểm"
+      },
+      {
+        "tag": "ul",
+        "element_id": "SelectSearchType",
+        "class_name": "MapOptions",
+        "role": "",
+        "text": "Tìm vị trí \n            \n                Tìm sản phẩm"
+      },
+      {
+        "tag": "li",
+        "element_id": "stloc",
+        "class_name": "topradius",
+        "role": "",
+        "text": "Tìm vị trí"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm vị trí"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm vị trí"
+      },
+      {
+        "tag": "li",
+        "element_id": "stproc",
+        "class_name": "botradius",
+        "role": "",
+        "text": "Tìm sản phẩm"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm sản phẩm"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm sản phẩm"
+      },
+      {
+        "tag": "div",
+        "element_id": "sbwnormal",
+        "class_name": "SearchBoxWrap",
+        "role": "",
+        "text": "XEM\nViệt Nam"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "SearchBoxBor",
+        "role": "",
+        "text": "XEM\nViệt Nam"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "SearchView",
+        "role": "",
+        "text": "XEM\nViệt Nam"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "SearchViewBtn btns red",
+        "role": "",
+        "text": "XEM"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "XEM"
+      },
+      {
+        "tag": "ul",
+        "element_id": "TreeFilter",
+        "class_name": "SearchViewTree",
+        "role": "",
+        "text": "Việt Nam"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Việt Nam"
+      },
+      {
+        "tag": "a",
+        "element_id": "treenav0",
+        "class_name": "",
+        "role": "",
+        "text": "Việt Nam"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "boundTree",
+        "role": "",
+        "text": "Thành Phố Cần ThơThành Phố Đà NẵngThành Phố Đồng NaiThành Phố Hà NộiThành Phố Hải PhòngThành Phố Hồ Chí MinhThành Phố HuếTỉnh An GiangTỉnh Bắc NinhTỉnh Cà MauTỉnh Cao BằngTỉnh Đắk LắkTỉnh Điện BiênTỉnh Đồng ThápTỉnh Gia LaiTỉnh Hà TĩnhTỉnh Hưng YênTỉnh Khánh HòaTỉnh Lai ChâuTỉnh Lâm ĐồngTỉnh Lạng SơnTỉnh Lào CaiTỉnh Nghệ AnTỉnh Ninh BìnhTỉnh Phú ThọTỉnh Quảng NgãiTỉnh Quảng NinhTỉnh Quảng TrịTỉnh Sơn LaTỉnh Tây NinhTỉnh Thái NguyênTỉnh Thanh HóaTỉnh Tuyên QuangTỉnh Vĩnh Long\n                    \n                    \n                        Đóng"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "TreeBor",
+        "role": "",
+        "text": "Thành Phố Cần ThơThành Phố Đà NẵngThành Phố Đồng NaiThành Phố Hà NộiThành Phố Hải PhòngThành Phố Hồ Chí MinhThành Phố HuếTỉnh An GiangTỉnh Bắc NinhTỉnh Cà MauTỉnh Cao BằngTỉnh Đắk LắkTỉnh Điện BiênTỉnh Đồng ThápTỉnh Gia LaiTỉnh Hà TĩnhTỉnh Hưng YênTỉnh Khánh HòaTỉnh Lai ChâuTỉnh Lâm ĐồngTỉnh Lạng SơnTỉnh Lào CaiTỉnh Nghệ AnTỉnh Ninh BìnhTỉnh Phú ThọTỉnh Quảng NgãiTỉnh Quảng NinhTỉnh Quảng TrịTỉnh Sơn LaTỉnh Tây NinhTỉnh Thái NguyênTỉnh Thanh HóaTỉnh Tuyên QuangTỉnh Vĩnh Long"
+      },
+      {
+        "tag": "div",
+        "element_id": "Tree",
+        "class_name": "Tree",
+        "role": "",
+        "text": "Thành Phố Cần ThơThành Phố Đà NẵngThành Phố Đồng NaiThành Phố Hà NộiThành Phố Hải PhòngThành Phố Hồ Chí MinhThành Phố HuếTỉnh An GiangTỉnh Bắc NinhTỉnh Cà MauTỉnh Cao BằngTỉnh Đắk LắkTỉnh Điện BiênTỉnh Đồng ThápTỉnh Gia LaiTỉnh Hà TĩnhTỉnh Hưng YênTỉnh Khánh HòaTỉnh Lai ChâuTỉnh Lâm ĐồngTỉnh Lạng SơnTỉnh Lào CaiTỉnh Nghệ AnTỉnh Ninh BìnhTỉnh Phú ThọTỉnh Quảng NgãiTỉnh Quảng NinhTỉnh Quảng TrịTỉnh Sơn LaTỉnh Tây NinhTỉnh Thái NguyênTỉnh Thanh HóaTỉnh Tuyên QuangTỉnh Vĩnh Long"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Thành Phố Cần ThơThành Phố Đà NẵngThành Phố Đồng NaiThành Phố Hà NộiThành Phố Hải PhòngThành Phố Hồ Chí MinhThành Phố HuếTỉnh An GiangTỉnh Bắc NinhTỉnh Cà MauTỉnh Cao BằngTỉnh Đắk LắkTỉnh Điện BiênTỉnh Đồng ThápTỉnh Gia LaiTỉnh Hà TĩnhTỉnh Hưng YênTỉnh Khánh HòaTỉnh Lai ChâuTỉnh Lâm ĐồngTỉnh Lạng SơnTỉnh Lào CaiTỉnh Nghệ AnTỉnh Ninh BìnhTỉnh Phú ThọTỉnh Quảng NgãiTỉnh Quảng NinhTỉnh Quảng TrịTỉnh Sơn LaTỉnh Tây NinhTỉnh Thái NguyênTỉnh Thanh HóaTỉnh Tuyên QuangTỉnh Vĩnh Long"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tỉnh Lâm Đồng"
+      },
+      {
+        "tag": "a",
+        "element_id": "tree10",
+        "class_name": "",
+        "role": "",
+        "text": "Tỉnh Lâm Đồng"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tỉnh Lâm Đồng"
+      },
+      {
+        "tag": "style",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": ".AdminTool{-moz-border-radius:5px 5px 0 0;background-color:#EFEFEF;border:1px solid#CCCCCC;bottom:0;right:20px;padding:2px 7px;position:fixed;border-bottom:0;z-index:2000}"
+      },
+      {
+        "tag": "script",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "function CheckURL() {\n        $('.log').attr('href', $('.log').attr('href') + encodeURIComponent(window.location.href));\n        return true;\n    }\n\n    function __doPostBack(eventTarget, eventArgument) {\n        if (!theForm.onsubmit || (theForm.onsubmit() != false)) {\n            theForm.__EVENTTARGET.value = eventTarget;\n            theForm.__EVENTARGUMENT.value = eventArgument;\n            //Fix change url\n            theForm.action = window.location.href;\n            //End \n            theForm.submit();\n        }\n    }"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Sản phẩm"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Sản phẩm"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Hướng dẫn sử dụng Web\n                                        \n                                            \n                                                Tìm thông tin, vị trí\n                                            \n                                                Tìm đường đi\n                                            \n                                                Cá nhân"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "WebHelp",
+        "role": "",
+        "text": "Tìm thông tin, vị trí\n                                            \n                                                Tìm đường đi\n                                            \n                                                Cá nhân"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "current topradius",
+        "role": "",
+        "text": "Tìm thông tin, vị trí"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm thông tin, vị trí"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm đường đi"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm đường đi"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Hướng dẫn sử dụng Wap\n                                        \n                                            \n                                                Tìm thông tin, vị trí\n                                            \n                                                Tìm đường đi"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "WapHelp",
+        "role": "",
+        "text": "Tìm thông tin, vị trí\n                                            \n                                                Tìm đường đi"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "botradius",
+        "role": "",
+        "text": "Tìm đường đi"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm vị trí\n                                \n                                    \n                                        Số điện thoại\n                                    \n                                        Địa chỉ‚\n                                    \n                                        Doanh nghiệp‚"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "main",
+        "role": "",
+        "text": "Tìm vị trí"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm đường\n                                \n                                    \n                                    \n                                        Xe tải\n                                    \n                                        Ô tô‚\n                                    \n                                        Xe máy‚\n                                    \n                                        Đi bộ‚"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "main",
+        "role": "",
+        "text": "Tìm đường"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "MapFeatures-sub",
+        "role": "",
+        "text": "Xe tải\n                                    \n                                        Ô tô‚\n                                    \n                                        Xe máy‚\n                                    \n                                        Đi bộ‚"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Xe máy‚"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Xe máy"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "AddPlaceWrap",
+        "role": "",
+        "text": "Hướng dẫn thêm vị trí\n        Nhấp chuột trái lên bản đồ để thêm điểm. Hệ thống sẽ tự động điền các thành phần địa chỉ có thể dùm bạn.\n        Kéo marker  đến vị trí bạn muốn trên bản đồ để thay đổi vị trí.\n        Nhập thông tin của vị trí và bấm vào nút Lưu.\n        Lưu ý: nếu vị trí có nhiều số điện thoại, bạn hãy nhập dấu \" - \" để phân cách và vui lòng nhập thông tin bằng tiếng Việt có dấu để việc tìm kiếm được chính xác.\n        \n        « Quay lại"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "MapHelp",
+        "role": "",
+        "text": "Hướng dẫn thêm vị trí\n        Nhấp chuột trái lên bản đồ để thêm điểm. Hệ thống sẽ tự động điền các thành phần địa chỉ có thể dùm bạn.\n        Kéo marker  đến vị trí bạn muốn trên bản đồ để thay đổi vị trí.\n        Nhập thông tin của vị trí và bấm vào nút Lưu.\n        Lưu ý: nếu vị trí có nhiều số điện thoại, bạn hãy nhập dấu \" - \" để phân cách và vui lòng nhập thông tin bằng tiếng Việt có dấu để việc tìm kiếm được chính xác.\n        \n        « Quay lại"
+      },
+      {
+        "tag": "h3",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Hướng dẫn thêm vị trí"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Nhấp chuột trái lên bản đồ để thêm điểm. Hệ thống sẽ tự động điền các thành phần địa chỉ có thể dùm bạn.\n        Kéo marker  đến vị trí bạn muốn trên bản đồ để thay đổi vị trí.\n        Nhập thông tin của vị trí và bấm vào nút Lưu.\n        Lưu ý: nếu vị trí có nhiều số điện thoại, bạn hãy nhập dấu \" - \" để phân cách và vui lòng nhập thông tin bằng tiếng Việt có dấu để việc tìm kiếm được chính xác."
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Nhấp chuột trái lên bản đồ để thêm điểm. Hệ thống sẽ tự động điền các thành phần địa chỉ có thể dùm bạn."
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Nhập thông tin của vị trí và bấm vào nút Lưu."
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Lưu ý: nếu vị trí có nhiều số điện thoại, bạn hãy nhập dấu \" - \" để phân cách và vui lòng nhập thông tin bằng tiếng Việt có dấu để việc tìm kiếm được chính xác."
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "MapTabsWrap tabs",
+        "role": "",
+        "text": "X\nTìm vị trí\nTìm đường\nCá nhân"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "X\nTìm vị trí\nTìm đường\nCá nhân"
+      },
+      {
+        "tag": "li",
+        "element_id": "searchtab",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm vị trí"
+      },
+      {
+        "tag": "li",
+        "element_id": "findpathtab",
+        "class_name": "selected",
+        "role": "",
+        "text": "Tìm đường"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm đường"
+      },
+      {
+        "tag": "div",
+        "element_id": "topLeftSearchResult",
+        "class_name": "topLeftPanel",
+        "role": "",
+        "text": "Kết quả tìm kiếm\n                                            \n                                                \n                                                    Lớp kẹt xe\n                                            \n                                                \n                                                    Lớp lô cốt\n                                            \n                                        \n                                        \n                                            Xóa kết quả"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "topLeftPanel-inside",
+        "role": "",
+        "text": "Kết quả tìm kiếm\n                                            \n                                                \n                                                    Lớp kẹt xe\n                                            \n                                                \n                                                    Lớp lô cốt\n                                            \n                                        \n                                        \n                                            Xóa kết quả"
+      },
+      {
+        "tag": "ul",
+        "element_id": "searchsubtab",
+        "class_name": "mymapsubtab tabs",
+        "role": "",
+        "text": "Kết quả tìm kiếm\n                                            \n                                                \n                                                    Lớp kẹt xe\n                                            \n                                                \n                                                    Lớp lô cốt"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "selected",
+        "role": "",
+        "text": "Kết quả tìm kiếm"
+      },
+      {
+        "tag": "a",
+        "element_id": "search_layer",
+        "class_name": "VBDButton",
+        "role": "",
+        "text": "Kết quả tìm kiếm"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Kết quả tìm kiếm"
+      },
+      {
+        "tag": "div",
+        "element_id": "searchresult_div",
+        "class_name": "bodyLeftPanel",
+        "role": "",
+        "text": "Hướng dẫn tìm kiếm\n\n  - Điền từ khóa bạn muốn tìm vào khung tìm kiếm cạnh logo của Vietbando. Bấm phím Enter hoặc nhấp chuột vào nút  để bắt đầu quá trình tìm kiếm.\n\n- Ví dụ các cú pháp từ khóa cụ thể.\n\n  Tìm vị trí:\n    \n      Hà Nội\n      Quận 1, TPHCM\n      \n      Giao lộ Cách Mạng Tháng Tám & Nguyễn Đình Chiểu\n      10.775659, 106.702351\n      10°46'32.376\", 106°42'8.4672\"\n      \n  \n  Tìm xung quanh:\n  \n    Nhà hàng gần Khách sạn Caravelle\n  \n  \n  Tìm địa chỉ:\n  \n    329 - 331 Lý Thường Kiệt, Quận Tân Bình, TPHCM\n  \n  \n  Tìm số điện thoại:\n  \n    Vietbando: 38639079\n    Khách sạn Rex: 38293115\n  \n  \n  \n  Lưu ý: Nhấn vào nút  để bật/tắt bộ gõ tiếng Việt."
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "SHelpDiv-div",
+        "role": "",
+        "text": "Hướng dẫn tìm kiếm\n\n  - Điền từ khóa bạn muốn tìm vào khung tìm kiếm cạnh logo của Vietbando. Bấm phím Enter hoặc nhấp chuột vào nút  để bắt đầu quá trình tìm kiếm.\n\n- Ví dụ các cú pháp từ khóa cụ thể.\n\n  Tìm vị trí:\n    \n      Hà Nội\n      Quận 1, TPHCM\n      \n      Giao lộ Cách Mạng Tháng Tám & Nguyễn Đình Chiểu\n      10.775659, 106.702351\n      10°46'32.376\", 106°42'8.4672\"\n      \n  \n  Tìm xung quanh:\n  \n    Nhà hàng gần Khách sạn Caravelle\n  \n  \n  Tìm địa chỉ:\n  \n    329 - 331 Lý Thường Kiệt, Quận Tân Bình, TPHCM\n  \n  \n  Tìm số điện thoại:\n  \n    Vietbando: 38639079\n    Khách sạn Rex: 38293115\n  \n  \n  \n  Lưu ý: Nhấn vào nút  để bật/tắt bộ gõ tiếng Việt."
+      },
+      {
+        "tag": "h3",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Hướng dẫn tìm kiếm"
+      },
+      {
+        "tag": "p",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "- Điền từ khóa bạn muốn tìm vào khung tìm kiếm cạnh logo của Vietbando. Bấm phím Enter hoặc nhấp chuột vào nút  để bắt đầu quá trình tìm kiếm."
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm vị trí:\n    \n      Hà Nội\n      Quận 1, TPHCM\n      \n      Giao lộ Cách Mạng Tháng Tám & Nguyễn Đình Chiểu\n      10.775659, 106.702351\n      10°46'32.376\", 106°42'8.4672\"\n      \n  \n  Tìm xung quanh:\n  \n    Nhà hàng gần Khách sạn Caravelle\n  \n  \n  Tìm địa chỉ:\n  \n    329 - 331 Lý Thường Kiệt, Quận Tân Bình, TPHCM\n  \n  \n  Tìm số điện thoại:\n  \n    Vietbando: 38639079\n    Khách sạn Rex: 38293115"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm vị trí:\n    \n      Hà Nội\n      Quận 1, TPHCM\n      \n      Giao lộ Cách Mạng Tháng Tám & Nguyễn Đình Chiểu\n      10.775659, 106.702351\n      10°46'32.376\", 106°42'8.4672\""
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Hà Nội\n      Quận 1, TPHCM\n      \n      Giao lộ Cách Mạng Tháng Tám & Nguyễn Đình Chiểu\n      10.775659, 106.702351\n      10°46'32.376\", 106°42'8.4672\""
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Quận 1, TPHCM"
+      },
+      {
+        "tag": "a",
+        "element_id": "q1",
+        "class_name": "",
+        "role": "",
+        "text": "Quận 1, TPHCM"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Giao lộ Cách Mạng Tháng Tám & Nguyễn Đình Chiểu"
+      },
+      {
+        "tag": "a",
+        "element_id": "gl",
+        "class_name": "",
+        "role": "",
+        "text": "Giao lộ Cách Mạng Tháng Tám & Nguyễn Đình Chiểu"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm xung quanh:\n  \n    Nhà hàng gần Khách sạn Caravelle"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm địa chỉ:\n  \n    329 - 331 Lý Thường Kiệt, Quận Tân Bình, TPHCM"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "329 - 331 Lý Thường Kiệt, Quận Tân Bình, TPHCM"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "329 - 331 Lý Thường Kiệt, Quận Tân Bình, TPHCM"
+      },
+      {
+        "tag": "a",
+        "element_id": "hvb",
+        "class_name": "",
+        "role": "",
+        "text": "329 - 331 Lý Thường Kiệt, Quận Tân Bình, TPHCM"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm số điện thoại:\n  \n    Vietbando: 38639079\n    Khách sạn Rex: 38293115"
+      },
+      {
+        "tag": "div",
+        "element_id": "directionoptions",
+        "class_name": "",
+        "role": "",
+        "text": "HẺM\nKẸT XE\nĐi bộ\nXe máy\nÔ tô\nXe tải\nXe buýt"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "directionoptions btns",
+        "role": "",
+        "text": "HẺM\nKẸT XE\nĐi bộ\nXe máy\nÔ tô\nXe tải\nXe buýt"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "tranhhemlocot GroupBtn",
+        "role": "",
+        "text": "HẺM\nKẸT XE"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "lifirst selected",
+        "role": "",
+        "text": "HẺM"
+      },
+      {
+        "tag": "a",
+        "element_id": "avoidalley",
+        "class_name": "NotAlley-Off NotAlley-On",
+        "role": "",
+        "text": "HẺM"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "HẺM"
+      },
+      {
+        "tag": "ul",
+        "element_id": "",
+        "class_name": "phuongtiendichuyen GroupBtn",
+        "role": "",
+        "text": "Đi bộ\nXe máy\nÔ tô\nXe tải\nXe buýt"
+      },
+      {
+        "tag": "li",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Xe máy"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "motor motor-enable",
+        "role": "",
+        "text": "Xe máy"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Xe máy"
+      },
+      {
+        "tag": "div",
+        "element_id": "topLeftPathResult",
+        "class_name": "topLeftPanel",
+        "role": "",
+        "text": "Tổng chiều dài: 126.774 km\nXóa kết quả\nChiều ngược lại\nIn lộ trình"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "topLeftPanel-inside",
+        "role": "",
+        "text": "Tổng chiều dài: 126.774 km\nXóa kết quả\nChiều ngược lại\nIn lộ trình"
+      },
+      {
+        "tag": "span",
+        "element_id": "FindPathStatus",
+        "class_name": "FindPathStatus",
+        "role": "",
+        "text": "Tổng chiều dài: 126.774 km"
+      },
+      {
+        "tag": "div",
+        "element_id": "dirInputTemplate",
+        "class_name": "",
+        "role": "",
+        "text": "$order$\n                                                    \n                                                    \n                                                    \n                                                        Xóa \n                                                            \n                                                                Tìm"
+      },
+      {
+        "tag": "div",
+        "element_id": "direction$section$",
+        "class_name": "direction-item",
+        "role": "",
+        "text": "$order$\n                                                    \n                                                    \n                                                    \n                                                        Xóa \n                                                            \n                                                                Tìm"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "swrap-timduong",
+        "role": "",
+        "text": "$order$\n                                                    \n                                                    \n                                                    \n                                                        Xóa \n                                                            \n                                                                Tìm"
+      },
+      {
+        "tag": "a",
+        "element_id": "btnSearchPlace$section$",
+        "class_name": "btn-timduong VBDButton btns",
+        "role": "",
+        "text": "Tìm"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "",
+        "role": "",
+        "text": "Tìm"
+      },
+      {
+        "tag": "div",
+        "element_id": "",
+        "class_name": "swrap-timduong background",
+        "role": "",
+        "text": "A\nXóa\nTìm"
+      },
+      {
+        "tag": "a",
+        "element_id": "btnSearchPlace0",
+        "class_name": "btn-timduong VBDButton btns",
+        "role": "",
+        "text": "Tìm"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "options background",
+        "role": "",
+        "text": "Ẩn\nTìm dịch vụ trên đoạn này"
+      },
+      {
+        "tag": "a",
+        "element_id": "",
+        "class_name": "s-service",
+        "role": "",
+        "text": "Tìm dịch vụ trên đoạn này"
+      },
+      {
+        "tag": "li",
+        "element_id": "105.694158_10.113601",
+        "class_name": "",
+        "role": "",
+        "text": "1\nĐi thẳng Đường Số 6\n221 m"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "distance",
+        "role": "",
+        "text": "221 m"
+      },
+      {
+        "tag": "li",
+        "element_id": "105.692444_10.114652",
+        "class_name": "",
+        "role": "",
+        "text": "2\nRẽ trái vào Đường Số 8\n342 m"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "distance",
+        "role": "",
+        "text": "342 m"
+      },
+      {
+        "tag": "li",
+        "element_id": "105.690824_10.112017",
+        "class_name": "",
+        "role": "",
+        "text": "3\nRẽ phải vào Đường Số 7\n474 m"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "distance",
+        "role": "",
+        "text": "474 m"
+      },
+      {
+        "tag": "li",
+        "element_id": "105.687131_10.114222",
+        "class_name": "",
+        "role": "",
+        "text": "4\nRẽ trái vào Đường Không Tên\n63 m"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "distance",
+        "role": "",
+        "text": "63 m"
+      },
+      {
+        "tag": "li",
+        "element_id": "105.686902_10.113729",
+        "class_name": "",
+        "role": "",
+        "text": "5\nRẽ phải vào Đường Không Tên\n166 m"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "distance",
+        "role": "",
+        "text": "166 m"
+      },
+      {
+        "tag": "li",
+        "element_id": "105.685941_10.114523",
+        "class_name": "",
+        "role": "",
+        "text": "6\nRẽ trái vào Đường Không Tên\n1.654 km"
+      },
+      {
+        "tag": "span",
+        "element_id": "",
+        "class_name": "distance",
+        "role": "",
+        "text": "1.654 km"
+      }
+    ],
+    "interesting_lines": [
+      "Tổng chiều dài: 126.774 km",
+      "1.654 km",
+      "2.752 km",
+      "1.138 km",
+      "1.896 km",
+      "15.707 km",
+      "2.629 km",
+      "2.699 km",
+      "2.169 km",
+      "2.122 km",
+      "3.282 km",
+      "4.569 km",
+      "1.593 km",
+      "1.311 km",
+      "1.187 km",
+      "2.266 km",
+      "3.694 km",
+      "1.329 km",
+      "3.741 km",
+      "2.153 km",
+      "7.565 km",
+      "1.964 km",
+      "4.868 km",
+      "2.802 km",
+      "5.506 km",
+      "8.037 km",
+      "7.269 km",
+      "1.499 km",
+      "10.225 km",
+      "8.965 km",
+      "1.79 km",
+      "Chiều dài: 126.774km",
+      "Đo khoảng cách",
+      "10 km"
+    ],
+    "body_excerpt": "XEM\nViệt Nam\nEnglish\nĐăng ký\nĐăng nhập\nX\nTìm vị trí\nTìm đường\nCá nhân\nHẺM\nKẸT XE\nĐi bộ\nXe máy\nÔ tô\nXe tải\nXe buýt\nTổng chiều dài: 126.774 km\nXóa kết quả\nChiều ngược lại\nIn lộ trình\nA\nXóa\nTìm\nẨn\nTìm dịch vụ trên đoạn này\n1\nĐi thẳng Đường Số 6\n221 m\n2\nRẽ trái vào Đường Số 8\n342 m\n3\nRẽ phải vào Đường Số 7\n474 m\n4\nRẽ trái vào Đường Không Tên\n63 m\n5\nRẽ phải vào Đường Không Tên\n166 m\n6\nRẽ trái vào Đường Không Tên\n1.654 km\n7\nRẽ phải vào Đường Tôn Đức Thắng\n594 m\n8\nRẽ trái vào Đường Tôn Đức Thắng\n2.752 km\n9\nRẽ trái vào Đường Tôn Đức Thắng\n1.138 km\n10\nRẽ trái vào Đường Tôn Đức Thắng\n722 m\n11\nRẽ trái vào Đường Tôn Đức Thắng\n1.896 km\n12\nRẽ trái vào Đường Tôn Đức Thắng\n434 m\n13\nRẽ trái vào Đường Tôn Đức Thắng\n15.707 km\n14\nRẽ phải vào Quốc Lộ 91\n2.629 km\n15\nRẽ phải vào Quốc Lộ 91\n2.699 km\n16\nRẽ phải vào Lộ Mới\n2.169 km\n17\nRẽ phải vào Quốc Lộ 91\n2.122 km\n18\nRẽ phải vào Quốc Lộ 91\n16 m\n19\nRẽ trái vào Quốc Lộ 91\n3.282 km\n20\nRẽ phải vào Quốc Lộ 91\n981 m\n21\nRẽ trái vào Quốc Lộ 91\n4.569 km\n22\nRẽ phải vào Đường Trần Hưng Đạo\n872 m\n23\nRẽ phải vào Đường Trần Hưng Đạo\n1.593 km\n24\nRẽ phải vào Đường Trần Hưng Đạo\n1.311 km\n25\nRẽ phải vào Vòng Xoay Đèn Bốn Ngọn\n38 m\n26\nRẽ trái vào Vòng Xoay Đèn Bốn Ngọn\n22 m\n27\nRẽ phải vào Đường Trần Hưng Đạo\n450 m\n28\nRẽ trái vào Đường Trần Hưng Đạo\n1.187 km\n29\nRẽ phải vào Đường Trần Hưng Đạo\n168 m\n30\nRẽ trái vào Đường Trần Hưng Đạo\n2.266 km\n31\nRẽ trái vào Đường Trần Hưng Đạo\n3.694 km\n32\nRẽ trái vào Đường Lê Lợi\n1.329 km\n33\nRẽ phải vào Đường Lê Lợi\n3.741 km\n34\nRẽ phải vào Quốc Lộ 91\n740 m\n35\nRẽ phải vào Quốc Lộ 91\n9 m\n36\nRẽ phải vào Quốc Lộ 91\n2.153 km\n37\nRẽ phải vào Quốc Lộ 91\n42 m\n38\nRẽ trái vào Quốc Lộ 91\n7.565 km\n39\nRẽ phải vào Quốc Lộ 91\n1.964 km\n40\nRẽ trái vào Đường Tránh Quốc Lộ 91\n4.868 km\n41\nĐi thẳng Quốc Lộ 91\n2.802 km\n42\nRẽ phải vào Quốc Lộ 91\n5.506 km\n43\nRẽ phải vào Quốc Lộ 91\n8.037 km\n44\nRẽ phải vào Đường Lê Văn Cường\n24 m\n45\nRẽ trái vào Đường Lê Văn Cường\n7.269 km\n46\nRẽ phải vào Đường Lê Lợi\n1.499 km\n47\nRẽ trái vào Đường Trần Hưng Đạo\n411 m\n48\nRẽ trái vào Đường Đi Cầu Cồn Tiên\n174 m\n49\nRẽ phải vào Đường Dẫn Cầu Cồn Tiên\n578 m\n50\nRẽ trái vào Tỉnh Lộ 957\n10.225 km\n51\nRẽ phải vào Tỉnh Lộ 957\n842 m\n52\nRẽ trái vào Tỉnh Lộ 957\n8.965 km\n53\nRẽ phải vào Tỉnh Lộ 957\n1.79 km\nChiều dài: 126.774km\nB\nXóa\nTìm\nC\nTìm\nShow\nThêm vị trí\nPhiên bản Vietbando trên thiết bị cảm ứng\nĐo khoảng cách\n© 2011 Vietbando. All Rights Reserved\nA\nB\n10 km\n",
+    "html_path": "artifacts\\vietbando-dom-probe\\20260818-005744\\vietbando_walking.html",
+    "screenshot_path": "artifacts\\vietbando-dom-probe\\20260818-005744\\vietbando_walking.png",
+    "error": null
+  }
+]

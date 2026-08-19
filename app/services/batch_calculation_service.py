@@ -129,11 +129,19 @@ class BatchCalculationService:
                     distance_km = (
                         best_route.distance_km if best_route is not None else None
                     )
+                    duration_available = (
+                        best_route is not None
+                        and best_route.raw.get("duration_available", True) is not False
+                    )
                     duration_minutes = (
-                        best_route.duration_minutes if best_route is not None else None
+                        best_route.duration_minutes
+                        if duration_available and best_route is not None
+                        else None
                     )
                     duration_text = (
-                        best_route.duration_text if best_route is not None else None
+                        best_route.duration_text
+                        if duration_available and best_route is not None
+                        else None
                     )
                     queue.mark_done(job, distance_km, duration_minutes, duration_text)
                 else:

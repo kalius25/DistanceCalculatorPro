@@ -1,42 +1,39 @@
 import pytest
 
-from app.engines.openstreetmap_url_builder import (
-    OpenStreetMapUrlBuilder,
-)
+from app.engines.vietbando_url_builder import VietBanDoUrlBuilder
 from app.enums.travel_mode import TravelMode
 from app.models.route_request import RouteRequest
 
 
-def test_build_driving_url() -> None:
+@pytest.mark.parametrize(
+    ("travel_mode", "mode"),
+    [
+        (TravelMode.DRIVING, "2"),
+        (TravelMode.TRUCK, "3"),
+        (TravelMode.WALKING, "5"),
+    ],
+)
+def test_build_url_for_supported_modes(
+    travel_mode: TravelMode,
+    mode: str,
+) -> None:
     request = RouteRequest(
         origin="10.113922624804262,105.69436247381175",
         destination="10.892645,105.041044",
-        travel_mode=TravelMode.DRIVING,
+        travel_mode=travel_mode,
     )
 
-    assert OpenStreetMapUrlBuilder.build(request) == (
-        "https://www.openstreetmap.org/directions"
-        "?engine=fossgis_osrm_car"
-        "&route=10.113922624804262,105.69436247381175"
-        ";10.892645,105.041044"
-    )
-
-
-def test_build_walking_url() -> None:
-    request = RouteRequest(
-        origin="10.113922624804262,105.69436247381175",
-        destination="10.892645,105.041044",
-        travel_mode=TravelMode.WALKING,
-    )
-
-    assert OpenStreetMapUrlBuilder.build(request).startswith(
-        "https://www.openstreetmap.org/directions" "?engine=fossgis_osrm_foot&route="
+    assert VietBanDoUrlBuilder.build(request) == (
+        "https://maps.vietbando.com/maps/"
+        "?fp=10.113922624804262,105.69436247381175"
+        "|10.892645,105.041044"
+        f";{mode};0;0,0"
     )
 
 
 def test_coordinate_removes_whitespace() -> None:
     assert (
-        OpenStreetMapUrlBuilder.coordinate(" 10.113922624804262 , 105.69436247381175 ")
+        VietBanDoUrlBuilder.coordinate(" 10.113922624804262 , 105.69436247381175 ")
         == "10.113922624804262,105.69436247381175"
     )
 
@@ -56,7 +53,7 @@ def test_coordinate_rejects_invalid_values(
     message: str,
 ) -> None:
     with pytest.raises(ValueError, match=message):
-        OpenStreetMapUrlBuilder.coordinate(value)
+        VietBanDoUrlBuilder.coordinate(value)
 
 
 @pytest.mark.parametrize(
@@ -64,14 +61,13 @@ def test_coordinate_rejects_invalid_values(
     [
         TravelMode.BICYCLING,
         TravelMode.TRANSIT,
-        TravelMode.TRUCK,
     ],
 )
-def test_engine_rejects_unsupported_modes(
+def test_mode_rejects_unsupported_modes(
     travel_mode: TravelMode,
 ) -> None:
     with pytest.raises(
         ValueError,
-        match="Unsupported OpenStreetMap travel mode",
+        match="Unsupported VietBanDo travel mode",
     ):
-        OpenStreetMapUrlBuilder.engine(travel_mode)
+        VietBanDoUrlBuilder.mode(travel_mode)

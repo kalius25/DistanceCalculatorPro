@@ -565,11 +565,12 @@ class HomePage(QWidget):
         travel_caption.setObjectName("lblInspectorCaption")
         self._travel_mode_selector = QComboBox(self._provider_frame)
         self._travel_mode_selector.setObjectName("cmbTravelMode")
-        for label, mode in (
-            ("Driving", TravelMode.DRIVING),
-            ("Walking", TravelMode.WALKING),
-        ):
-            self._travel_mode_selector.addItem(label, mode.value)
+        self._populate_travel_modes(
+            (
+                TravelMode.DRIVING,
+                TravelMode.WALKING,
+            )
+        )
         provider_layout.addWidget(travel_caption, 1, 1)
         provider_layout.addWidget(self._travel_mode_selector, 2, 1)
 
@@ -1412,7 +1413,42 @@ class HomePage(QWidget):
     def _on_resume_option_toggled(self, _checked: bool) -> None:
         self._update_workspace_readiness()
 
+    @staticmethod
+    def _travel_mode_label(mode: TravelMode) -> str:
+        labels = {
+            TravelMode.DRIVING: "Driving",
+            TravelMode.TRUCK: "Truck",
+            TravelMode.WALKING: "Walking",
+            TravelMode.BICYCLING: "Bicycling",
+            TravelMode.TRANSIT: "Transit",
+        }
+        return labels[mode]
+
+    def _populate_travel_modes(
+        self,
+        modes: tuple[TravelMode, ...],
+    ) -> None:
+        current = self._travel_mode_selector.currentData()
+        self._travel_mode_selector.blockSignals(True)
+        self._travel_mode_selector.clear()
+        for mode in modes:
+            self._travel_mode_selector.addItem(
+                self._travel_mode_label(mode),
+                mode.value,
+            )
+        if current is not None:
+            index = self._travel_mode_selector.findData(current)
+            if index >= 0:
+                self._travel_mode_selector.setCurrentIndex(index)
+        self._travel_mode_selector.blockSignals(False)
+
+    def _sync_provider_travel_modes(self) -> None:
+        definition = self._selected_provider_definition()
+        modes = definition.supported_travel_modes if definition is not None else ()
+        self._populate_travel_modes(modes)
+
     def _on_provider_configuration_changed(self, _value: str) -> None:
+        self._sync_provider_travel_modes()
         self._sync_route_option_availability()
         self._validate_provider_configuration()
 
@@ -1470,6 +1506,12 @@ class HomePage(QWidget):
         elif not travel_mode:
             self._provider_valid = False
             self._provider_status.setText("Select a provider and travel mode")
+            self._provider_status.setProperty("valid", False)
+        elif TravelMode(str(travel_mode)) not in (definition.supported_travel_modes):
+            self._provider_valid = False
+            self._provider_status.setText(
+                "Selected travel mode is not supported by this provider"
+            )
             self._provider_status.setProperty("valid", False)
         elif not definition.execution_enabled:
             self._provider_valid = False

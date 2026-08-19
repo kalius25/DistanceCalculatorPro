@@ -818,7 +818,7 @@ def test_provider_tooltip_covers_all_readiness_states() -> None:
     foundation = ProviderDefinition(
         provider=ProviderType.OPENSTREETMAP_WEB,
         display_name="Foundation",
-        supported_travel_modes=(),
+        supported_travel_modes=(TravelMode.DRIVING,),
         engine_ready=False,
         execution_enabled=False,
         supports_avoid_tolls=False,
@@ -838,7 +838,7 @@ def test_provider_selector_lists_v1_3_foundation_providers(
         page = HomePage()
     qtbot.addWidget(page)  # type: ignore[attr-defined]
 
-    assert page._provider_selector.count() == 3
+    assert page._provider_selector.count() == 4
     assert [
         page._provider_selector.itemText(index)
         for index in range(page._provider_selector.count())
@@ -846,6 +846,7 @@ def test_provider_selector_lists_v1_3_foundation_providers(
         "Google Maps Web",
         "Bing Maps",
         "OpenStreetMap",
+        "VietBanDo",
     ]
 
 
@@ -877,6 +878,44 @@ def test_provider_selector_exposes_engine_readiness_tooltips(
         )
         == expected
     )
+
+
+def test_provider_validation_rejects_unsupported_travel_mode_branch(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    assert page._travel_mode_selector.currentData() == TravelMode.DRIVING.value
+
+    definition = ProviderDefinition(
+        provider=ProviderType.VIETBANDO_WEB,
+        display_name="Walking Only Provider",
+        supported_travel_modes=(TravelMode.WALKING,),
+        engine_ready=True,
+        execution_enabled=True,
+        supports_avoid_tolls=False,
+        supports_avoid_highways=False,
+        supports_avoid_ferries=False,
+    )
+
+    with patch.object(
+        page,
+        "_selected_provider_definition",
+        return_value=definition,
+    ):
+        page._validate_provider_configuration()
+
+    assert not page._provider_valid
+    assert page.provider_configuration is None
+    assert page._provider_status.text() == (
+        "Selected travel mode is not supported by this provider"
+    )
+    assert page._provider_status.property("valid") is False
 
 
 def test_provider_validation_covers_engine_ready_non_executable_branch(
@@ -927,7 +966,7 @@ def test_provider_validation_covers_foundation_only_branch(
     foundation = ProviderDefinition(
         provider=ProviderType.OPENSTREETMAP_WEB,
         display_name="Foundation Provider",
-        supported_travel_modes=(),
+        supported_travel_modes=(TravelMode.DRIVING,),
         engine_ready=False,
         execution_enabled=False,
         supports_avoid_tolls=False,
@@ -1047,6 +1086,51 @@ def test_provider_option_toggled_resyncs_and_revalidates(
     validate.assert_called_once_with()
 
 
+def test_provider_option_toggled_signal_runs_real_handler(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    assert page._provider_selector.currentText() == "Google Maps Web"
+    assert page._travel_mode_selector.currentText() == "Driving"
+    assert page._avoid_tolls_checkbox.isEnabled()
+    assert not page._avoid_tolls_checkbox.isChecked()
+    assert page._provider_valid
+
+    page._avoid_tolls_checkbox.setChecked(True)
+
+    assert page._avoid_tolls_checkbox.isChecked()
+    assert page._provider_valid
+    configuration = page.provider_configuration
+    assert configuration is not None
+    assert configuration.avoid_tolls
+
+
+def test_provider_option_toggled_descriptor_executes_handler_body(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    with (
+        patch.object(page, "_sync_route_option_availability") as sync,
+        patch.object(page, "_validate_provider_configuration") as validate,
+    ):
+        HomePage._on_provider_option_toggled(page, True)
+
+    sync.assert_called_once_with()
+    validate.assert_called_once_with()
+
+
 def test_provider_configuration_requires_provider_and_mode(qtbot: object) -> None:
     with patch("app.presentation.pages.home_page.qta.icon", return_value=QIcon()):
         page = HomePage()
@@ -1086,7 +1170,10 @@ def test_provider_configuration_requires_travel_mode(
         page = HomePage()
     qtbot.addWidget(page)  # type: ignore[attr-defined]
 
+    page._travel_mode_selector.blockSignals(True)
     page._travel_mode_selector.setCurrentIndex(-1)
+    page._travel_mode_selector.blockSignals(False)
+    page._validate_provider_configuration()
 
     assert not page._provider_valid
     assert page.provider_configuration is None
@@ -2382,3 +2469,58 @@ def test_mapping_keeps_legacy_ket_qua_as_result_distance(
         "KẾT QUẢ",
         "THỜI GIAN DI CHUYỂN",
     ]
+
+
+def test_vietbando_shows_driving_truck_and_walking_modes(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._provider_selector.setCurrentText("VietBanDo")
+
+    modes = tuple(
+        page._travel_mode_selector.itemData(index)
+        for index in range(page._travel_mode_selector.count())
+    )
+    assert modes == (
+        TravelMode.DRIVING.value,
+        TravelMode.TRUCK.value,
+        TravelMode.WALKING.value,
+    )
+    assert page._provider_valid
+    configuration = page.provider_configuration
+    assert configuration is not None
+    assert configuration.provider is ProviderType.VIETBANDO_WEB
+    assert page._provider_status.text() == "Provider ready"
+
+
+def test_switching_from_vietbando_removes_truck_mode(
+    qtbot: object,
+) -> None:
+    with patch(
+        "app.presentation.pages.home_page.qta.icon",
+        return_value=QIcon(),
+    ):
+        page = HomePage()
+    qtbot.addWidget(page)  # type: ignore[attr-defined]
+
+    page._provider_selector.setCurrentText("VietBanDo")
+    page._travel_mode_selector.setCurrentText("Truck")
+    assert page._travel_mode_selector.currentData() == TravelMode.TRUCK.value
+
+    page._provider_selector.setCurrentText("Bing Maps")
+
+    modes = tuple(
+        page._travel_mode_selector.itemData(index)
+        for index in range(page._travel_mode_selector.count())
+    )
+    assert TravelMode.TRUCK.value not in modes
+    assert modes == (
+        TravelMode.DRIVING.value,
+        TravelMode.WALKING.value,
+    )

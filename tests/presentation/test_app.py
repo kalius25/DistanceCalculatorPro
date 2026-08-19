@@ -304,9 +304,11 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
     google_engine = MagicMock()
     bing_engine = MagicMock()
     osm_engine = MagicMock()
+    vietbando_engine = MagicMock()
     google_provider = MagicMock()
     bing_provider = MagicMock()
     osm_provider = MagicMock()
+    vietbando_provider = MagicMock()
     router = MagicMock()
     calculation_service = MagicMock()
     batch_service = MagicMock()
@@ -339,6 +341,11 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
         ) as osm_engine_type,
         patch.object(
             app_module,
+            "VietBanDoEngine",
+            return_value=vietbando_engine,
+        ) as vietbando_engine_type,
+        patch.object(
+            app_module,
             "GoogleWebProvider",
             return_value=google_provider,
         ) as google_provider_type,
@@ -352,6 +359,11 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
             "OpenStreetMapWebProvider",
             return_value=osm_provider,
         ) as osm_provider_type,
+        patch.object(
+            app_module,
+            "VietBanDoWebProvider",
+            return_value=vietbando_provider,
+        ) as vietbando_provider_type,
         patch.object(
             app_module,
             "ProviderRouter",
@@ -388,6 +400,10 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
     )
     bing_engine_type.assert_called_once_with(30_000, diagnostics)
     osm_engine_type.assert_called_once_with(30_000, diagnostics)
+    vietbando_engine_type.assert_called_once_with(
+        30_000,
+        diagnostics,
+    )
     google_provider_type.assert_called_once_with(
         browser,
         google_engine,
@@ -403,12 +419,18 @@ def test_create_execution_coordinator_composes_calculation_tree() -> None:
         osm_engine,
         diagnostics=diagnostics,
     )
+    vietbando_provider_type.assert_called_once_with(
+        browser,
+        vietbando_engine,
+        diagnostics=diagnostics,
+    )
     router_type.assert_called_once()
     providers = router_type.call_args.args[0]
     assert providers == {
         ProviderType.GOOGLE_MAPS_WEB: google_provider,
         ProviderType.BING_MAPS_WEB: bing_provider,
         ProviderType.OPENSTREETMAP_WEB: osm_provider,
+        ProviderType.VIETBANDO_WEB: vietbando_provider,
     }
     calculation_type.assert_called_once_with(router)
     batch_type.assert_called_once_with(calculation_service)

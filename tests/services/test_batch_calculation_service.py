@@ -773,3 +773,42 @@ def test_calculate_queue_emits_pending_when_stopped_during_retry() -> None:
         RouteJobStatus.RETRY,
         RouteJobStatus.PENDING,
     ]
+
+
+def test_calculate_queue_keeps_duration_empty_when_provider_has_no_duration() -> None:
+    from app.batch import BatchQueue, RouteJob, RouteJobStatus
+    from app.models.route_option import RouteOption
+
+    job = RouteJob(
+        2,
+        "A",
+        "B",
+        "Distance",
+        result_duration_column="Duration",
+    )
+    queue = BatchQueue([job])
+    request = make_request("A", "B")
+    result = RouteResult(
+        True,
+        request,
+        "vietbando_web",
+        routes=[
+            RouteOption(
+                distance_km=128.1,
+                duration_minutes=0,
+                raw={"duration_available": False},
+            )
+        ],
+    )
+    calculation_service = MagicMock()
+    calculation_service.calculate.return_value = result
+    writer = MagicMock()
+    service = BatchCalculationService(calculation_service)
+
+    assert service.calculate_queue(queue, result_writer=writer) == [result]
+
+    assert job.status is RouteJobStatus.DONE
+    assert job.result_distance_km == 128.1
+    assert job.result_duration_minutes is None
+    assert job.result_duration_text is None
+    writer.write.assert_called_once_with(job)

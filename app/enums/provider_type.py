@@ -11,3 +11,4 @@ class ProviderType(StrEnum):
     GOOGLE_MAPS_WEB = "Google Maps Web"
     BING_MAPS_WEB = "Bing Maps"
     OPENSTREETMAP_WEB = "OpenStreetMap"
+    VIETBANDO_WEB = "VietBanDo"

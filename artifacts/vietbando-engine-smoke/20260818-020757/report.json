@@ -1,0 +1,29 @@
+[
+  {
+    "mode": "driving",
+    "success": true,
+    "route_count": 1,
+    "distance_text": "128.1 km",
+    "distance_km": 128.1,
+    "duration_available": false,
+    "error": null
+  },
+  {
+    "mode": "truck",
+    "success": true,
+    "route_count": 1,
+    "distance_text": "128.441 km",
+    "distance_km": 128.441,
+    "duration_available": false,
+    "error": null
+  },
+  {
+    "mode": "walking",
+    "success": true,
+    "route_count": 1,
+    "distance_text": "126.774 km",
+    "distance_km": 126.774,
+    "duration_available": false,
+    "error": null
+  }
+]

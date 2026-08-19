@@ -63,6 +63,20 @@ PROVIDER_DEFINITIONS = (
         supports_avoid_highways=False,
         supports_avoid_ferries=False,
     ),
+    ProviderDefinition(
+        provider=ProviderType.VIETBANDO_WEB,
+        display_name="VietBanDo",
+        supported_travel_modes=(
+            TravelMode.DRIVING,
+            TravelMode.TRUCK,
+            TravelMode.WALKING,
+        ),
+        engine_ready=True,
+        execution_enabled=True,
+        supports_avoid_tolls=False,
+        supports_avoid_highways=False,
+        supports_avoid_ferries=False,
+    ),
 )
 
 _PROVIDER_DEFINITIONS_BY_TYPE = {
