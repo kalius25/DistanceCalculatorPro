@@ -12,7 +12,7 @@ function Invoke-CheckedPython {
     }
 }
 
-Write-Host "== DistanceCalculatorPro v1.3 RC build =="
+Write-Host "== DistanceCalculatorPro v1.3 RC2 build =="
 
 Write-Host "== RC release metadata gate =="
 Invoke-CheckedPython @(

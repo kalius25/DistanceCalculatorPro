@@ -85,10 +85,25 @@ def test_validate_request():
 def test_travel_mode_handling(engine):
     engine._select_non_default_travel_mode(MagicMock(), make_request())
 
-    request = make_request()
-    request.travel_mode = TravelMode.WALKING
-    with pytest.raises(NotImplementedError, match="Unsupported travel mode"):
-        engine._select_non_default_travel_mode(MagicMock(), request)
+    walking = make_request()
+    walking.travel_mode = TravelMode.WALKING
+    engine._select_non_default_travel_mode(MagicMock(), walking)
+
+    for mode in (
+        TravelMode.TRUCK,
+        TravelMode.BICYCLING,
+        TravelMode.TRANSIT,
+    ):
+        unsupported = make_request()
+        unsupported.travel_mode = mode
+        with pytest.raises(
+            NotImplementedError,
+            match="Unsupported travel mode",
+        ):
+            engine._select_non_default_travel_mode(
+                MagicMock(),
+                unsupported,
+            )
 
 
 def test_find_routes_uses_complete_url(engine, locator, parser):
@@ -114,6 +129,26 @@ def test_find_routes_uses_complete_url(engine, locator, parser):
     )
     parser.parse.assert_called_once_with(page, engine._diagnostics)
     assert result == parser_result
+
+
+def test_find_routes_supports_walking_url_mode(
+    engine,
+    locator,
+    parser,
+):
+    page = MagicMock()
+    route_cards = MagicMock()
+    locator.route_cards.return_value = route_cards
+    parser.parse.return_value = [make_route()]
+
+    request = make_request()
+    request.travel_mode = TravelMode.WALKING
+
+    routes = engine.find_routes(page, request)
+
+    assert routes == parser.parse.return_value
+    url = page.goto.call_args.args[0]
+    assert "/data=!4m2!4m1!3e2/" in url
 
 
 def test_find_routes_timeout_raises_engine_exception(engine):

@@ -8,8 +8,8 @@ from pathlib import Path
 
 from app.version import __version__
 
-RC_RUNTIME_VERSION = "1.3.0-rc1"
-RC_PACKAGE_VERSION = "1.3.0rc1"
+RC_RUNTIME_VERSION = "1.3.0-rc2"
+RC_PACKAGE_VERSION = "1.3.0rc2"
 
 
 def validate_rc_release(project_root: Path) -> tuple[str, ...]:

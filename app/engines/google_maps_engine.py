@@ -152,8 +152,11 @@ class GoogleMapsEngine(BaseEngine):
         page: Page,
         request: RouteRequest,
     ) -> None:
-        """Keep driving as URL default; reject unsupported modes explicitly."""
-        if request.travel_mode is TravelMode.DRIVING:
+        """Accept modes already encoded by the Google Maps route URL."""
+        if request.travel_mode in (
+            TravelMode.DRIVING,
+            TravelMode.WALKING,
+        ):
             return
         raise NotImplementedError(f"Unsupported travel mode: {request.travel_mode}")
 

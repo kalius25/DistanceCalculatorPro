@@ -25,7 +25,7 @@ def test_validate_rc_release_reports_runtime_version(
     with patch.object(rc_release_gate, "__version__", "1.2.0"):
         issues = rc_release_gate.validate_rc_release(tmp_path)
 
-    assert issues == ("Runtime version must be 1.3.0-rc1; found 1.2.0.",)
+    assert issues == ("Runtime version must be 1.3.0-rc2; found 1.2.0.",)
 
 
 def test_validate_rc_release_reports_missing_pyproject(
@@ -43,7 +43,7 @@ def test_validate_rc_release_reports_package_version(
 
     issues = rc_release_gate.validate_rc_release(tmp_path)
 
-    assert issues == ("Package version must be 1.3.0rc1; found '1.2.0'.",)
+    assert issues == ("Package version must be 1.3.0rc2; found '1.2.0'.",)
 
 
 def test_main_passes_and_fails(tmp_path: Path, capsys: object) -> None:

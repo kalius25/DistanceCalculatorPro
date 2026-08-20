@@ -9,7 +9,7 @@ def test_default_metadata() -> None:
     metadata = AppMetadata()
 
     assert metadata.name == "DistanceCalculatorPro"
-    assert metadata.version == "1.3.0-rc1"
+    assert metadata.version == "1.3.0-rc2"
     assert metadata.organization == "DistanceCalculatorPro"
     assert metadata.domain == "distancecalculatorpro.local"
 
