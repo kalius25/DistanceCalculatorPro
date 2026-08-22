@@ -323,8 +323,6 @@ class MainWindow(QMainWindow):
         self._execution_status_label.setObjectName("lblExecutionStatus")
         self._status_label = QLabel("Ready", self)
         self._status_label.setObjectName("lblStatus")
-        self._provider_label = QLabel("Provider: -", self)
-        self._provider_label.setObjectName("lblProvider")
         self._theme_label = QLabel(self)
         self._theme_label.setObjectName("lblTheme")
         self._version_label = QLabel(
@@ -336,7 +334,6 @@ class MainWindow(QMainWindow):
         status_bar = self.statusBar()
         status_bar.addWidget(self._execution_status_label, 0)
         status_bar.addWidget(self._status_label, 1)
-        status_bar.addPermanentWidget(self._provider_label)
         status_bar.addPermanentWidget(self._theme_label)
         status_bar.addPermanentWidget(self._version_label)
 

@@ -106,7 +106,7 @@ def test_initial_shell_structure_and_state(
     assert window._content_stack.currentIndex() == window.HOME_PAGE_INDEX
     assert window._home_page.selected_file is None
     assert window._status_label.text() == "Ready · Home"
-    assert window._provider_label.text() == "Provider: -"
+    assert not hasattr(window, "_provider_label")
     assert window._theme_label.text() == "Theme: Light"
     assert window._version_label.text() == (f"{metadata.name} v{metadata.version}")
     assert window._action_light_theme.isChecked()

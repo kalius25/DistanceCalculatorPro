@@ -11,7 +11,7 @@ class SettingsManager:
     WORKSPACE_PANELS_VISIBLE_KEY = "workspace/file_panels_visible"
     WORKSPACE_SPLITTER_STATE_KEY = "workspace/splitter_state"
     RECENT_FILES_KEY = "files/recent"
-    MAX_RECENT_FILES = 10
+    MAX_RECENT_FILES = 30
     DEBUG_ENABLED_KEY = "debug/enabled"
     TRACE_BROWSER_KEY = "debug/trace_browser"
     PARSER_DIAGNOSTICS_KEY = "debug/parser_diagnostics"

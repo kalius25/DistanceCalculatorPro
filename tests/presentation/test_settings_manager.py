@@ -110,7 +110,7 @@ def test_add_recent_file_limits_history(manager: SettingsManager) -> None:
     recent_files = manager.recent_files()
 
     assert len(recent_files) == SettingsManager.MAX_RECENT_FILES
-    assert recent_files[0] == "file-11.xlsx"
+    assert recent_files[0] == "file-31.xlsx"
     assert recent_files[-1] == "file-2.xlsx"
 
 
@@ -193,3 +193,7 @@ def test_workspace_splitter_state_returns_only_qbytearray(
 
     qt_settings.setValue(SettingsManager.WORKSPACE_SPLITTER_STATE_KEY, "invalid")
     assert manager.workspace_splitter_state() is None
+
+
+def test_recent_file_limit_is_thirty() -> None:
+    assert SettingsManager.MAX_RECENT_FILES == 30
